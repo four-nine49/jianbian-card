@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>渐变带 · 自由回路状态栏</title>
+<style>
+  :root{--bg:#10151c;--card:#171e28;--line:#243040;--ink:#c9d6e2;--dim:#77899b;--cyan:#4fc3f7;--g:#66bb6a;--y:#ffd54f;--o:#ffa726;--r:#ef5350;--p:#ab47bc;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font:13px/1.6 "Microsoft YaHei",system-ui,sans-serif;padding:8px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px;}
+  h3{font-size:12px;color:var(--cyan);letter-spacing:1px;border-bottom:1px dashed var(--line);padding-bottom:3px;margin-bottom:6px;font-weight:600;}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .kv{font-size:12px;color:var(--dim);}
+  .kv b{color:var(--ink);}
+  .bar{flex:1;min-width:120px;height:8px;background:#0b0f14;border-radius:4px;overflow:hidden;position:relative;}
+  .bar i{display:block;height:100%;border-radius:4px;}
+  .badge{font-size:11px;border-radius:10px;padding:1px 8px;border:1px solid var(--line);color:var(--dim);}
+  .badge.g{color:var(--g);border-color:var(--g);} .badge.y{color:var(--y);border-color:var(--y);}
+  .badge.r{color:var(--r);border-color:var(--r);} .badge.p{color:var(--p);border-color:var(--p);}
+  .btn{border:1px solid var(--line);background:#1c2531;color:var(--ink);border-radius:5px;padding:2px 10px;font-size:12px;cursor:pointer;}
+  .btn:hover{border-color:var(--cyan);color:var(--cyan);}
+  .btn.pri{border-color:var(--cyan);color:var(--cyan);}
+  .btn.warn{border-color:var(--r);color:var(--r);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .tabs{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0;}
+  .tab{border:1px solid var(--line);border-radius:5px;padding:2px 10px;font-size:12px;color:var(--dim);cursor:pointer;}
+  .tab.on{color:var(--cyan);border-color:var(--cyan);}
+  .page{display:none;} .page.on{display:block;}
+  .seg{display:flex;gap:3px;flex-wrap:wrap;}
+  .segbtn{border:1px solid var(--line);background:#131a24;color:var(--dim);border-radius:4px;padding:1px 7px;font-size:11px;cursor:pointer;}
+  .segbtn.on{color:var(--cyan);border-color:var(--cyan);}
+  .segbtn.dis{opacity:.35;text-decoration:line-through;cursor:not-allowed;}
+  input[type=range]{width:100%;accent-color:var(--cyan);}
+  textarea{width:100%;background:#0b0f14;border:1px solid var(--line);color:var(--ink);border-radius:5px;padding:5px;font:12px/1.5 inherit;}
+  select{background:#131a24;border:1px solid var(--line);color:var(--ink);border-radius:4px;padding:2px 5px;font-size:12px;}
+  .lab{font-size:11px;color:var(--dim);margin:7px 0 2px;display:flex;justify-content:space-between;}
+  .lab b{color:var(--ink);font-weight:600;}
+  .hint{font-size:10px;color:var(--dim);}
+  .meters{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+  .meter{background:#131a24;border:1px solid var(--line);border-radius:5px;padding:4px 7px;}
+  .meter .mv{font-size:14px;font-weight:700;}
+  .circuit{border:1px solid var(--line);border-radius:6px;padding:4px 7px;margin-bottom:4px;font-size:12px;}
+  .circuit .nm{color:var(--cyan);font-weight:600;}
+  .pbar{height:4px;background:#0b0f14;border-radius:2px;margin-top:2px;overflow:hidden;}
+  .pbar i{display:block;height:100%;background:var(--cyan);}
+  pre.log{background:#0b0f14;border:1px solid var(--line);border-radius:5px;padding:6px;font:11px/1.5 Consolas,monospace;color:#9fc3d8;white-space:pre-wrap;max-height:260px;overflow:auto;}
+  table{width:100%;border-collapse:collapse;font-size:11px;}
+  td{padding:1px 4px;border-bottom:1px dotted var(--line);vertical-align:top;}
+  td.v{text-align:right;font-family:Consolas,monospace;}
+  .gl{color:var(--g);} .yl{color:var(--y);} .rl{color:var(--r);} .dl{color:var(--dim);} .cl{color:var(--cyan);}
+</style>
+</head>
+<body>
+<div id="app">渐变带状态栏加载中…</div>
+
+<script>
+/*@ENGINE@*/
+(function () {
+  'use strict';
+  var E = window.CircuitEngine || globalThis.CircuitEngine;
+  var $ = function (s, el) { return (el || document).querySelector(s); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function fmtN(n) { return Math.round(n * 10) / 10; }
+
+  /* ── 数据读取 ── */
+  function readChat() {
+    try { var v = getVariables({ type: 'chat' }); return v ? v['渐变带'] || null : null; } catch (e) { return null; }
+  }
+  function readSnapshot() {
+    try {
+      var ids = [];
+      try { ids.push(getCurrentMessageId()); } catch (e) {}
+      ids.push(-1, -2, -3);
+      for (var i = 0; i < ids.length; i++) {
+        var v = getVariables({ type: 'message', message_id: ids[i] });
+        var s = v && v.stat_data && v.stat_data['渐变带'];
+        if (s) return s;
+      }
+    } catch (e) { /* 忽略 */ }
+    return null;
+  }
+  function writeGame(mut) {
+    try {
+      updateVariablesWith(function (v) { var g = v['渐变带']; if (g) { mut(g); } return v; }, { type: 'chat' });
+      // 同步快照到最新楼
+      setTimeout(function () {
+        try {
+          var g = readChat(); if (!g) return;
+          var snap = JSON.parse(JSON.stringify(g));
+          if (snap['主角']) delete snap['主角']['上次结算min'];
+          updateVariablesWith(function (v) { v.stat_data = v.stat_data || {}; v.stat_data['渐变带'] = snap; return v; }, { type: 'message', message_id: getLastMessageId() });
+        } catch (e) {}
+      }, 300);
+      return true;
+    } catch (e) { alert('写入失败：' + e); return false; }
+  }
+
+  /* ── 状态渲染 ── */
+  var panelOpen = false, curTab = 'slots';
+  var S = { fam: 'flow', e: 40, c: {}, desc: '' };   // 构筑页状态
+  var FAMNAME = { pour: '倾泻系', flow: '波动系', struct: '结构系', life: '生机系', perce: '感知系' };
+
+  function affinityOf(g) { return { main: Array.isArray(g.亲和.主分支) ? g.亲和.主分支 : (g.亲和.主分支 ? [g.亲和.主分支] : []), subs: g.亲和.次分支 || [] }; }
+
+  function render() {
+    var g = readSnapshot() || readChat();
+    var app = $('#app');
+    if (!g) { app.innerHTML = '<div class="card">尚未开局：请先打开「渐变带开局」面板完成角色创建。</div>'; return; }
+    if (!E) { app.innerHTML = '<div class="card">状态栏就绪（引擎未内联，仅展示）。</div>' + simpleStatus(g); return; }
+    var zhu = g.主角;
+    var ePct = Math.max(0, Math.min(100, zhu.能量kJ.当前 / zhu.能量kJ.上限 * 100));
+    var mPct = Math.max(0, Math.min(100, zhu.精神点.当前 / zhu.精神点.上限 * 100));
+    var bodyBadge = { '正常': 'g', '轻伤': 'y', '重伤': 'r', '过载透支': 'p' }[zhu.身体状态] || 'g';
+    var supplies = g.补给物品 || [];
+    var html = '';
+    html += '<div class="card"><h3>渐变带 · 状态</h3>';
+    html += '<div class="row"><span class="kv">⏱ <b>' + esc(zhu.剧情时间.label) + '</b></span>';
+    html += '<span class="badge ' + (zhu.战斗中 ? 'r' : 'g') + '">' + (zhu.战斗中 ? '⚔ 战斗中' : '非战斗') + '</span>';
+    html += '<span class="badge ' + bodyBadge + '">' + esc(zhu.身体状态) + '</span></div>';
+    html += '<div class="lab"><b>能量</b><span class="kv">' + fmtN(zhu.能量kJ.当前) + ' / ' + zhu.能量kJ.上限 + ' kJ</span></div>';
+    html += '<div class="bar"><i style="width:' + ePct + '%;background:var(--cyan)"></i></div>';
+    html += '<div class="lab"><b>精神</b><span class="kv">' + fmtN(zhu.精神点.当前) + ' / ' + zhu.精神点.上限 + '</span></div>';
+    html += '<div class="bar"><i style="width:' + mPct + '%;background:var(--g)"></i></div>';
+    if (g.待扣单 && g.待扣单.length) html += '<div class="hint" style="margin-top:4px">待扣单 ' + g.待扣单.length + ' 条（回合末结算）</div>';
+    html += '</div>';
+
+    html += '<div class="row"><button class="btn pri" id="tgPanel">' + (panelOpen ? '收起面板 ▲' : '展开面板 ▼') + '</button></div>';
+    html += '<div id="panel" style="display:' + (panelOpen ? '' : 'none') + '">';
+    html += '<div class="tabs">' + ['slots|槽位', 'build|构筑', 'lib|回路库', 'sup|补给', 'log|管线'].map(function (t) { var p = t.split('|'); return '<div class="tab' + (curTab === p[0] ? ' on' : '') + '" data-t="' + p[0] + '">' + p[1] + '</div>'; }).join('') + '</div>';
+    html += '<div class="page' + (curTab === 'slots' ? ' on' : '') + '" data-p="slots">' + pageSlots(g) + '</div>';
+    html += '<div class="page' + (curTab === 'build' ? ' on' : '') + '" data-p="build">' + pageBuild(g) + '</div>';
+    html += '<div class="page' + (curTab === 'lib' ? ' on' : '') + '" data-p="lib">' + pageLib(g) + '</div>';
+    html += '<div class="page' + (curTab === 'sup' ? ' on' : '') + '" data-p="sup">' + pageSup(g) + '</div>';
+    html += '<div class="page' + (curTab === 'log' ? ' on' : '') + '" data-p="log">' + pageLog(g) + '</div>';
+    html += '</div>';
+    app.innerHTML = html;
+    bind(g);
+  }
+
+  function simpleStatus(g) {
+    var zhu = g.主角 || {};
+    return '<div class="card">⏱ ' + esc(zhu.剧情时间 && zhu.剧情时间.label) + '　能量 ' + fmtN((zhu.能量kJ || {}).当前) + 'kJ　精神 ' + fmtN((zhu.精神点 || {}).当前) + '　' + esc(zhu.身体状态) + (zhu.战斗中 ? '　⚔战斗中' : '') + '</div>';
+  }
+
+  /* ── 槽位页 ── */
+  function circuitById(g, id) { for (var i = 0; i < g.回路库.length; i++) if (g.回路库[i].id === id) return g.回路库[i]; return null; }
+  function pageSlots(g) {
+    var h = '';
+    var inBattle = g.主角.战斗中;
+    h += '<div class="card"><h3>槽位（固定10 / 自由3）' + (inBattle ? '　<span class="rl">战斗中：固定槽上锁</span>' : '') + '</h3>';
+    for (var i = 0; i < g.槽位.固定槽.length; i++) {
+      h += slotRow(g, g.槽位.固定槽[i], '固定' + (i + 1), inBattle);
+    }
+    for (var j = 0; j < g.槽位.自由槽.length; j++) {
+      h += slotRow(g, g.槽位.自由槽[j], '自由' + (j + 1), false);
+    }
+    h += '</div>';
+    return h;
+  }
+  function slotRow(g, id, label, locked) {
+    var c = id ? circuitById(g, id) : null;
+    if (!c) return '<div class="circuit dl">' + label + '：空</div>';
+    var uses = c.type === 'free' ? '　uses ' + (c.uses || 0) + '/10' : '';
+    return '<div class="circuit"><span class="nm">' + esc(c.名称) + '</span> <span class="dl">[' + esc(c.族) + '·' + esc(c.分支) + ']' + uses + '</span><br>' +
+      '<span class="hint">' + esc(c.基线账单.一句话效果) + '</span><br>' +
+      '<span class="kv">计费 ' + c.基线账单.计费kJ + 'kJ · 精神 ' + c.基线账单.精神 + '</span> ' +
+      '<button class="btn pri" data-cast="' + c.id + '">施放</button>' +
+      (locked ? ' <span class="hint">🔒战斗中固定槽上锁</span>' : ' <button class="btn" data-unmount="' + c.id + '">换出</button>') +
+      '</div>';
+  }
+
+  /* ── 构筑页 ── */
+  function ctrlList(fam) {
+    var ctrls = E.FAMS[fam].ctrls.slice();
+    if (fam === 'flow') ctrls = ctrls.concat(E.SUBS[E.curKey(S.c)] ? E.SUBS[E.curKey(S.c)].ctrls : []);
+    return ctrls;
+  }
+  function pageBuild(g) {
+    var h = '<div class="card"><h3>自由构筑（面板=编译器前端，算术 100% 脚本）</h3>';
+    // L1 族
+    h += '<div class="lab"><b>L1 族</b></div><div class="seg">';
+    Object.keys(E.FAMS).forEach(function (k) { h += '<span class="segbtn' + (S.fam === k ? ' on' : '') + '" data-fam="' + k + '">' + FAMNAME[k] + '</span>'; });
+    h += '</div><div class="hint">' + esc(E.FAMS[S.fam].sub) + '</div>';
+    // L2 能量
+    var derived = !!(E.FAMS[S.fam] && E.FAMS[S.fam].derived);
+    h += '<div class="lab"><b>L2 注入能量 E</b><span class="cl">' + (derived ? 'E=公式导出（波动系禁用）' : E.sliderToKJ(S.e).toFixed(1) + ' kJ') + '</span></div>';
+    h += '<input type="range" id="eRange" min="0" max="100" step="1" value="' + S.e + '"' + (derived ? ' disabled' : '') + '>';
+    // L3 实体插槽
+    h += '<div class="card" style="margin-top:6px"><h3>L3 专属插槽</h3>' + buildCtrls(g) + '</div>';
+    // L4 仪表
+    var q = quoteCurrent(g);
+    h += '<div class="card" style="margin-top:6px"><h3>L4 实时核算</h3>' + meters(g, q) + '</div>';
+    // 描述 + 送审 + 施放
+    h += '<div class="lab"><b>自由描述（送审素材）</b></div>';
+    h += '<textarea id="descBox" rows="2" placeholder="一句话描述你想干什么，例：用磁场把三米外手枪隔空捞过来">' + esc(S.desc) + '</textarea>';
+    h += '<div class="row" style="margin-top:6px">';
+    h += '<button class="btn" id="btnJudge">送审 → 入自由库</button>';
+    h += '<button class="btn" id="btnEnroll">录入剧情获得的回路（送审→固定库）</button>';
+    h += '<button class="btn pri" id="btnCast">施放 · 挂待扣单 →</button></div>';
+    h += '<div class="hint">送审通过后进入回路库（不自动占槽，去槽位页/回路库页装上）。</div>';
+    h += '<pre class="log" id="judgeOut" style="display:none"></pre>';
+    h += '</div>';
+    return h;
+  }
+  function buildCtrls(g) {
+    var h = '';
+    ctrlList(S.fam).forEach(function (ctl, idx) {
+      if (ctl.show && !ctl.show(S.c)) return;
+      if (ctl.k === 'sub') {
+        h += '<div class="lab"><b>' + esc(ctl.label) + '</b></div><div class="seg">';
+        var ks = E.SUBKEYS[S.c.mode] || [];
+        ks.forEach(function (key, i) {
+          var dis = key === '2-2' ? '' : '';
+          h += '<span class="segbtn' + (E.curKey(S.c) === key ? ' on' : '') + '" data-ck="sub" data-ci="' + i + '">' + esc(E.SUBS[key].n.split(' ')[0]) + '</span>';
+        });
+        h += '</div>';
+        return;
+      }
+      if (ctl.type === 'seg') {
+        h += '<div class="lab"><b>' + esc(ctl.label) + '</b></div><div class="seg">';
+        ctl.opts.forEach(function (o, i) {
+          var dis = (ctl.k === 'pert' && i >= (ctl.lockFrom || 99)) ? ' dis' : '';
+          h += '<span class="segbtn' + (S.c[ctl.k] === i ? ' on' : '') + dis + '" data-ck="' + ctl.k + '" data-ci="' + i + '">' + esc(o) + '</span>';
+        });
+        h += '</div>';
+      } else {
+        h += '<div class="lab"><b>' + esc(ctl.label) + '</b><span class="cl">' + esc(ctl.fmt ? ctl.fmt(S.c[ctl.k]) : S.c[ctl.k]) + '</span></div>';
+        h += '<input type="range" data-rk="' + ctl.k + '" min="' + ctl.min + '" max="' + ctl.max + '" step="' + ctl.step + '" value="' + S.c[ctl.k] + '">';
+      }
+    });
+    return h;
+  }
+  function quoteCurrent(g) {
+    try {
+      var ctx = {
+        aff: affinityOf(g),
+        scene: { wind: g.场景.风力档, mat: g.场景.可塑无机物kJ, water: g.场景.水体在场 },
+        char: { burstKW: g.主角.爆发线kW, sustainKW: g.主角.持续线kW, speed: 1, eCur: g.主角.能量kJ.当前, mCur: g.主角.精神点.当前, mMax: g.主角.精神点.上限, body: g.主角.身体状态 },
+        tuned: tunedList(g)
+      };
+      return E.quote({ fam: S.fam, e: S.e, c: S.c }, ctx);
+    } catch (e) { return null; }
+  }
+  function tunedList(g) {
+    var out = [];
+    (g.槽位.固定槽 || []).forEach(function (id) {
+      if (!id) return; var c = circuitById(g, id);
+      if (c && c.type === 'fixed' && c.微调预算) out.push({ id: c.id, 名: c.名称, params: c.参数向量, budget: c.微调预算 });
+    });
+    return out;
+  }
+  function meters(g, q) {
+    if (!q) return '<span class="rl">核算失败</span>';
+    var r = q.r;
+    var h = '<div class="meters">';
+    h += '<div class="meter"><div class="hint">瞬时功率 P=账单/t</div><div class="mv">' + fmtN(q.power) + ' kW</div><div class="hint">爆发 ' + g.主角.爆发线kW + ' / 持续 ' + g.主角.持续线kW + '</div></div>';
+    h += '<div class="meter"><div class="hint">精神占用（' + q.zone.n + '）</div><div class="mv">' + q.mind + '</div><div class="hint">陌生×' + q.unf.unf.toFixed(2) + (q.tunedHit ? ' · 微调命中《' + esc(q.tunedName) + '》精神×0.3' : '') + '</div></div>';
+    h += '<div class="meter"><div class="hint">征状等级</div><div class="mv">Lv' + q.tell + '</div><div class="hint">导引 ' + fmtN(q.readyT) + 's · 作用 ' + fmtN(q.relT) + 's</div></div>';
+    h += '<div class="meter"><div class="hint">过载风险</div><div class="mv ' + (q.risk >= 60 ? 'rl' : q.risk >= 30 ? 'yl' : 'gl') + '">' + q.risk + '%</div><div class="hint">上限85%</div></div>';
+    h += '<div class="meter"><div class="hint">能量输出</div><div class="mv">' + fmtN(q.E_out) + ' kJ</div><div class="hint">' + esc(E.anchorOf(q.E_out)) + '</div></div>';
+    h += '<div class="meter"><div class="hint">能量账单（回合末扣）</div><div class="mv cl">' + q.bill.toFixed(1) + ' kJ</div><div class="hint">' + (q.exhaust ? '<span class="rl">储量透支!</span>' : '储量充足') + '</div></div>';
+    h += '</div>';
+    if (q.chips.length) {
+      h += '<div style="margin-top:4px">';
+      q.chips.forEach(function (c) { h += '<span class="badge ' + (c.l === 'r' ? 'r' : c.l === 'o' ? 'y' : 'g') + '" style="margin:1px 2px">' + esc(c.t) + '</span>'; });
+      h += '</div>';
+    }
+    h += '<table style="margin-top:5px">';
+    r.lines.forEach(function (l) { h += '<tr><td>' + esc(l[0]) + '</td><td class="v">' + esc(l[1] || '') + '</td></tr>'; });
+    h += '</table>';
+    return h;
+  }
+
+  /* ── 回路库页 ── */
+  function pageLib(g) {
+    var h = '<div class="card"><h3>回路库</h3>';
+    ['fixed', 'free'].forEach(function (type) {
+      h += '<div class="lab"><b>' + (type === 'fixed' ? '固定回路' : '自由回路（uses/10 满 10 转正）') + '</b></div>';
+      g.回路库.filter(function (c) { return c.type === type; }).forEach(function (c) {
+        var mounted = (g.槽位.固定槽.indexOf(c.id) >= 0) || (g.槽位.自由槽.indexOf(c.id) >= 0);
+        h += '<div class="circuit"><span class="nm">' + esc(c.名称) + '</span> <span class="dl">' + c.id + ' [' + esc(c.族) + '·' + esc(c.分支) + ']</span>' + (c.来源 ? ' <span class="hint">' + esc(c.来源) + '</span>' : '') + '<br>';
+        h += '<span class="hint">' + esc(c.基线账单.一句话效果) + ' · 计费' + c.基线账单.计费kJ + 'kJ · 精神' + c.基线账单.精神 + '</span><br>';
+        if (type === 'free') {
+          var pct = Math.min(100, (c.uses || 0) / 10 * 100);
+          h += '<div class="pbar"><i style="width:' + pct + '%"></i></div><div class="hint">uses ' + (c.uses || 0) + '/10</div>';
+        }
+        if (c.微调预算明细) h += '<div class="hint">微调预算：' + esc(JSON.stringify(c.微调预算明细)) + '</div>';
+        h += '<div class="row" style="margin-top:2px">';
+        if (!mounted) h += '<button class="btn" data-mount="' + c.id + '">装上</button>';
+        h += '<button class="btn" data-detail="' + c.id + '">详情</button></div>';
+        h += '<div class="hint" data-d="' + c.id + '" style="display:none;margin-top:3px">参数：' + esc(JSON.stringify(c.参数明细)) + '</div>';
+        h += '</div>';
+      });
+    });
+    h += '<div class="hint">录入剧情获得的回路：去「构筑」页调好参数和描述后点【录入剧情获得的回路】。</div>';
+    h += '</div>';
+    return h;
+  }
+
+  /* ── 补给页 ── */
+  function pageSup(g) {
+    var h = '<div class="card"><h3>补给物品（使用=脚本动作，AI 无权触碰）</h3>';
+    if (!g.补给物品.length) h += '<div class="dl">空</div>';
+    g.补给物品.forEach(function (it, i) {
+      var eff = it.效果;
+      var effTxt = eff.目标 === '能量' ? '能量+' + eff.增加kJ + 'kJ' : '精神+' + eff.增加点;
+      h += '<div class="circuit"><span class="nm">' + esc(it.名称) + '</span> ×' + it.数量 + ' <span class="hint">（' + effTxt + '）</span> <button class="btn pri" data-use="' + i + '">使用</button></div>';
+    });
+    h += '</div>';
+    return h;
+  }
+
+  /* ── 管线页 ── */
+  function readLog() {
+    try { var v = getVariables({ type: 'chat' }); return (v && v['渐变带日志']) || null; } catch (e) { return null; }
+  }
+  function pageLog(g) {
+    var lg = readLog();
+    var h = '<div class="card"><h3>回合管线（每一步可追溯）</h3>';
+    h += '<div class="lab"><b>场景声明（玩家可改，数据AI也会从正文提取）</b></div><div class="row">';
+    h += '风力 <select id="scWind">' + E.WINDS.map(function (w) { return '<option value="' + w.v + '"' + (g.场景.风力档 === w.v ? ' selected' : '') + '>' + w.t + '(' + w.v + ')</option>'; }).join('') + '</select>';
+    h += '基底 <select id="scMat">' + E.MATS.map(function (w) { return '<option value="' + w.v + '"' + (g.场景.可塑无机物kJ === w.v ? ' selected' : '') + '>' + w.t + '(' + w.v + ')</option>'; }).join('') + '</select>';
+    h += '水体 <select id="scWater"><option value="0"' + (!g.场景.水体在场 ? ' selected' : '') + '>无</option><option value="1"' + (g.场景.水体在场 ? ' selected' : '') + '>有</option></select>';
+    h += '<button class="btn" id="btnScene">应用场景</button></div>';
+    h += '<div class="lab"><b>身体 / 战斗旗（正常=数据AI报告位，这里可手动兜底）</b></div><div class="row">';
+    h += '<select id="bodySel">' + ['正常', '轻伤', '重伤', '过载透支'].map(function (b) { return '<option' + (g.主角.身体状态 === b ? ' selected' : '') + '>' + b + '</option>'; }).join('') + '</select>';
+    h += '<select id="battleSel"><option value="0"' + (!g.主角.战斗中 ? ' selected' : '') + '>非战斗</option><option value="1"' + (g.主角.战斗中 ? ' selected' : '') + '>战斗中</option></select>';
+    h += '<button class="btn" id="btnBody">应用状态</button></div>';
+    if (lg) {
+      h += '<div class="lab"><b>最近结算日志</b></div>';
+      h += '<pre class="log">' + esc((lg.log || []).join('\n')) + (lg.notices && lg.notices.length ? '\n\n【提示】\n' + lg.notices.join('\n') : '') + '</pre>';
+    } else h += '<div class="hint">尚无结算日志。</div>';
+    h += '</div>';
+    return h;
+  }
+
+  /* ── 事件绑定（委托只绑一次，innerHTML 重绘不影响） ── */
+  function bind(g) {
+    var app = $('#app');
+    if (app.dataset.bound) return;
+    app.dataset.bound = '1';
+    app.addEventListener('click', onBtn);
+    app.addEventListener('input', onRange, true);
+  }
+  function onRange(ev) { var k = ev.target.getAttribute && ev.target.getAttribute('data-rk'); if (!k) return; S.c[k] = +ev.target.value; var g = readSnapshot() || readChat(); if (g) refreshBuild(g); }
+
+  function refreshBuild(g) {
+    var old = $('#panel .page[data-p=build]');
+    if (old) old.innerHTML = pageBuild(g);
+    rebindBuild();
+  }
+  function rebindBuild() { /* 委托在 #app 上，无需重复绑定 */ }
+
+  var currentGame = null;
+  function onBtn(ev) {
+    var t = ev.target;
+    var g = readSnapshot() || readChat();
+    if (!g) return;
+    currentGame = g;
+    if (t.id === 'tgPanel') { panelOpen = !panelOpen; render(); return; }
+    if (t.getAttribute && t.getAttribute('data-t')) { curTab = t.getAttribute('data-t'); render(); return; }
+    if (t.getAttribute && t.getAttribute('data-fam')) { S.fam = t.getAttribute('data-fam'); S.c = E.initParams(S.fam); render(); return; }
+    var ck = t.getAttribute && t.getAttribute('data-ck');
+    if (ck) {
+      var ci = +t.getAttribute('data-ci');
+      if (t.classList.contains('dis')) return;
+      S.c[ck] = ci;
+      if (ck === 'mode' || ck === 'sub') S.c = E.syncParams(S.fam, S.c);
+      render(); return;
+    }
+    if (t.id === 'eRange') return;
+    var cast = t.getAttribute && t.getAttribute('data-cast');
+    if (cast) return doCast(g, cast);
+    var un = t.getAttribute && t.getAttribute('data-unmount');
+    if (un) {
+      writeGame(function (gg) {
+        gg.槽位.固定槽 = gg.槽位.固定槽.map(function (x) { return x === un ? null : x; });
+        gg.槽位.自由槽 = gg.槽位.自由槽.map(function (x) { return x === un ? null : x; });
+      });
+      render(); return;
+    }
+    var mo = t.getAttribute && t.getAttribute('data-mount');
+    if (mo) {
+      var c = circuitById(g, mo);
+      if (!c) return;
+      if (g.主角.战斗中 && c.type === 'fixed') { alert('战斗中固定槽整排上锁'); return; }
+      writeGame(function (gg) {
+        var arr = c.type === 'fixed' ? gg.槽位.固定槽 : gg.槽位.自由槽;
+        var idx = arr.indexOf(null);
+        if (idx < 0) { alert((c.type === 'fixed' ? '固定槽' : '自由槽') + '已满'); return; }
+        arr[idx] = c.id;
+      });
+      render(); return;
+    }
+    var dt = t.getAttribute && t.getAttribute('data-detail');
+    if (dt) { var el = document.querySelector('[data-d="' + dt + '"]'); if (el) el.style.display = el.style.display === 'none' ? '' : 'none'; return; }
+    var use = t.getAttribute && t.getAttribute('data-use');
+    if (use != null && use !== '') {
+      var it = g.补给物品[+use];
+      if (!it) return;
+      writeGame(function (gg) {
+        var item = null;
+        for (var i = 0; i < gg.补给物品.length; i++) if (gg.补给物品[i].名称 === it.名称) item = gg.补给物品[i];
+        if (!item) return;
+        var eff = item.效果;
+        if (eff.目标 === '能量') gg.主角.能量kJ.当前 = Math.min(gg.主角.能量kJ.上限, gg.主角.能量kJ.当前 + (eff.增加kJ || 0));
+        else gg.主角.精神点.当前 = Math.min(gg.主角.精神点.上限, gg.主角.精神点.当前 + (eff.增加点 || 0));
+        item.数量 -= 1;
+        if (item.数量 <= 0) gg.补给物品.splice(gg.补给物品.indexOf(item), 1);
+      });
+      render(); return;
+    }
+    if (t.id === 'btnScene') {
+      writeGame(function (gg) {
+        gg.场景.风力档 = +$('#scWind').value;
+        gg.场景.可塑无机物kJ = +$('#scMat').value;
+        gg.场景.水体在场 = $('#scWater').value === '1';
+      });
+      render(); return;
+    }
+    if (t.id === 'btnBody') {
+      writeGame(function (gg) {
+        gg.主角.身体状态 = $('#bodySel').value;
+        gg.主角.战斗中 = $('#battleSel').value === '1';
+      });
+      render(); return;
+    }
+    if (t.id === 'btnJudge') return doJudge(g, 'free');
+    if (t.id === 'btnEnroll') return doJudge(g, 'fixed');
+    if (t.id === 'btnCast') return doCastCurrent(g);
+  }
+
+  /* ── 施放 ── */
+  function doCast(g, id) {
+    var c = circuitById(g, id);
+    if (!c) return;
+    writeGame(function (gg) {
+      var cc = circuitById(gg, id); if (!cc) return;
+      var ctx = {
+        aff: affinityOf(gg),
+        scene: { wind: gg.场景.风力档, mat: gg.场景.可塑无机物kJ, water: gg.场景.水体在场 },
+        char: { burstKW: gg.主角.爆发线kW, sustainKW: gg.主角.持续线kW, speed: 1, eCur: gg.主角.能量kJ.当前, mCur: gg.主角.精神点.当前, mMax: gg.主角.精神点.上限, body: gg.主角.身体状态 },
+        tuned: tunedList(gg)
+      };
+      var q = E.quote({ fam: cc.famKey, e: cc.注册e || 0, c: cc.参数向量 }, ctx);
+      gg.待扣单.push({
+        ref: q.tunedHit || cc.id,
+        名称: cc.名称 + (cc.type === 'fixed' ? '' : '·现构'),
+        bill: q.bill, mind: q.mind, tell: q.tell, risk: q.risk,
+        锚点: E.anchorOf(q.E_out), order: E.compileOrder(q), famKey: cc.famKey
+      });
+      lastOrder = E.compileOrder(q);
+    });
+    if (lastOrder) { /* 出手单由世界书 EJS 注入正文AI；这里提示 */ }
+    render();
+  }
+  var lastOrder = null;
+  function doCastCurrent(g) {
+    if (!E) return;
+    var q = quoteCurrent(g);
+    if (!q) return;
+    writeGame(function (gg) {
+      var ctx = {
+        aff: affinityOf(gg),
+        scene: { wind: gg.场景.风力档, mat: gg.场景.可塑无机物kJ, water: gg.场景.水体在场 },
+        char: { burstKW: gg.主角.爆发线kW, sustainKW: gg.主角.持续线kW, speed: 1, eCur: gg.主角.能量kJ.当前, mCur: gg.主角.精神点.当前, mMax: gg.主角.精神点.上限, body: gg.主角.身体状态 },
+        tuned: tunedList(gg)
+      };
+      var qq = E.quote({ fam: S.fam, e: S.e, c: S.c }, ctx);
+      gg.待扣单.push({
+        ref: qq.tunedHit || 'tmp·现搭',
+        名称: String(qq.r.effect).slice(0, 10) + (qq.tunedHit ? '·微调' : '·现构'),
+        bill: qq.bill, mind: qq.mind, tell: qq.tell, risk: qq.risk,
+        锚点: E.anchorOf(qq.E_out), order: E.compileOrder(qq), famKey: S.fam
+      });
+      lastOrder = E.compileOrder(qq);
+    });
+    render();
+  }
+
+  /* ── 送审 ── */
+  var DEFAULT_SPELL_PROMPT = [
+    { role: 'system', enabled: true, content: '你是跑团系统的"法术AI"，负责审核玩家自创施法回路是否合理（物理可行性，与亲和无关）。通过→{"结论":"通过","规范化回路":{"名称":"2~7字中文短名","一句话效果":"…","效果文字稿":"…"}}；驳回→{"结论":"驳回","解释":"通俗说明"}。只输出 JSON。' },
+    { role: 'user', enabled: true, content: '【玩家描述】\n{{描述}}\n\n【构筑参数】\n{{参数}}\n\n【场景】\n{{场景}}\n\n【已有回路（查重）】\n{{库索引}}\n\n请输出审核结果 JSON。' }
+  ];
+  function getSpellPrompt() {
+    try {
+      var ctx = window.parent ? null : null;
+      var st = (typeof SillyTavern !== 'undefined') && SillyTavern.getContext && SillyTavern.getContext();
+      var seg = st && st.extensionSettings && st.extensionSettings['渐变带自由回路'] && st.extensionSettings['渐变带自由回路'].提示词 && st.extensionSettings['渐变带自由回路'].提示词.法术AI;
+      if (seg && seg.length) return seg;
+    } catch (e) {}
+    return DEFAULT_SPELL_PROMPT;
+  }
+  function assemble(segs, vars) {
+    return segs.filter(function (s) { return s.enabled !== false; }).map(function (s) {
+      var c = s.content;
+      Object.keys(vars).forEach(function (k) { c = c.split('{{' + k + '}}').join(vars[k]); });
+      return { role: s.role, content: c };
+    });
+  }
+  function doJudge(g, targetType) {
+    var desc = ($('#descBox') || {}).value || '';
+    var out = $('#judgeOut');
+    if (desc.trim().length < 8) { out.style.display = ''; out.textContent = '【驳回】描述太短（本地预检）：至少写清"作用对象+作用方式"。'; return; }
+    out.style.display = ''; out.textContent = '送审中…（法术AI' + ')';
+    var vars = {
+      描述: desc,
+      参数: JSON.stringify({ 族: S.fam, 参数明细: E.readableParams(S.fam, S.c), 引擎参考效果: String(quoteCurrent(g).r.effect || '') }, null, 1),
+      场景: '风力' + g.场景.风力档 + '，无机物' + g.场景.可塑无机物kJ + 'kJ，水体' + (g.场景.水体在场 ? '有' : '无'),
+      库索引: g.回路库.length ? g.回路库.map(function (c) { return c.id + '《' + c.名称 + '》'; }).join('\n') : '（库为空）'
+    };
+    var api;
+    try {
+      var st = (typeof SillyTavern !== 'undefined') && SillyTavern.getContext && SillyTavern.getContext();
+      var cfg = st && st.extensionSettings && st.extensionSettings['渐变带自由回路'] && st.extensionSettings['渐变带自由回路'].api;
+      api = cfg && cfg.法术AI && cfg.法术AI.mode === 'custom' ? cfg.法术AI : undefined;
+    } catch (e) {}
+    generateRaw({
+      ordered_prompts: assemble(getSpellPrompt(), vars),
+      should_stream: false, should_silence: true,
+      generation_id: 'gb_spell_webui_' + Date.now(),
+      custom_api: api,
+      json_schema: { name: 'spell_review', value: { type: 'object', properties: { 结论: { type: 'string', enum: ['通过', '驳回'] }, 规范化回路: { type: ['object', 'null'], properties: { 名称: { type: 'string' }, 一句话效果: { type: 'string' }, 效果文字稿: { type: 'string' } }, required: ['名称', '一句话效果'], additionalProperties: false }, 解释: { type: ['string', 'null'] } }, required: ['结论', '规范化回路', '解释'], additionalProperties: false } }
+    }).then(function (raw) {
+      var text = typeof raw === 'string' ? raw : JSON.stringify(raw);
+      var m = text.match(/\{[\s\S]*\}/); var json = null;
+      try { json = JSON.parse(m ? m[0] : text); } catch (e) {}
+      handleJudge(json, targetType, desc, g);
+    }).catch(function (e) {
+      // 兜底：引擎本地判别
+      handleJudge({ 结论: '通过', 规范化回路: { 名称: desc.slice(0, 6) + '·自拟', 一句话效果: String(quoteCurrent(g).r.effect || ''), 效果文字稿: desc } }, targetType, desc, g, '（法术AI不可用，本地兜底判别）\n');
+    });
+  }
+  function handleJudge(json, targetType, desc, g, prefix) {
+    var out = $('#judgeOut'); if (!out) return;
+    if (!json) { out.textContent = (prefix || '') + '【失败】法术AI输出无法解析。'; return; }
+    if (json.结论 === '通过' && json.规范化回路) {
+      var name = String(json.规范化回路.名称).slice(0, 10);
+      var effect = String(json.规范化回路.一句话效果 || '');
+      writeGame(function (gg) {
+        var n = 1; var ids = gg.回路库.map(function (c) { return c.id; });
+        var prefixId = targetType === 'fixed' ? 'fx' : 'fr';
+        while (ids.indexOf(prefixId + '-' + (n < 10 ? '0' + n : n)) >= 0) n++;
+        var id = prefixId + '-' + (n < 10 ? '0' + n : n);
+        var ctx = {
+          aff: affinityOf(gg),
+          scene: { wind: gg.场景.风力档, mat: gg.场景.可塑无机物kJ, water: gg.场景.水体在场 },
+          char: { burstKW: gg.主角.爆发线kW, sustainKW: gg.主角.持续线kW, speed: 1, eCur: gg.主角.能量kJ.当前, mCur: gg.主角.精神点.当前, mMax: gg.主角.精神点.上限, body: gg.主角.身体状态 },
+          tuned: []
+        };
+        var params = E.syncParams(S.fam, S.c);
+        var q = E.quote({ fam: S.fam, e: S.e, c: params }, ctx);
+        var budget = targetType === 'fixed' ? E.budgetFrom(S.fam, params, q.E_out) : null;
+        gg.回路库.push({
+          id: id, 名称: name, type: targetType,
+          族: ({ pour: '倾泻', flow: '波动', struct: '结构', life: '生机', perce: '感知' })[S.fam],
+          famKey: S.fam, 分支: E.branchOf(S.fam, params),
+          实体: S.fam === 'flow' ? String(E.curKey(params)) : null,
+          参数向量: params, 注册e: S.e,
+          参数明细: E.readableParams(S.fam, params),
+          微调预算: budget, 微调预算明细: E.readableBudget(budget),
+          基线账单: { 输出kJ: q.E_out, 计费kJ: q.bill, 精神: q.mind, 一句话效果: effect },
+          uses: targetType === 'free' ? 0 : null,
+          来源: targetType === 'fixed' ? '剧情授技' : '面板送审',
+          审核存档: { 原始描述: desc, 规范化结果: json.规范化回路 }
+        });
+      });
+      out.textContent = (prefix || '') + '【通过】《' + name + '》已入' + (targetType === 'fixed' ? '固' : '自') + '定库（不自动占槽，去回路库页装上）。';
+    } else {
+      out.textContent = (prefix || '') + '【驳回】' + (json.解释 || '（未给出理由）');
+    }
+  }
+
+  /* ── 启动 ── */
+  function boot() {
+    var g = readSnapshot() || readChat();
+    S.c = E ? E.initParams(S.fam) : {};
+    render();
+    // 快照变化时自动刷新（监听不到事件就轮询）
+    setInterval(function () { render(); }, 4000);
+  }
+  if (typeof getVariables !== 'function') {
+    document.getElementById('app').textContent = '渐变带状态栏需要酒馆助手环境。';
+  } else {
+    boot();
+  }
+})();
+</script>
+</body>
+</html>

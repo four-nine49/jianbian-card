@@ -1,0 +1,172 @@
+[
+  {
+    "uid": "profile",
+    "name": "角色档案",
+    "headers": [
+      "角色",
+      "名字",
+      "身份",
+      "种族",
+      "性别",
+      "外貌",
+      "整体状态",
+      "综合属性",
+      "流动资金"
+    ],
+    "sourceData": {
+      "note": "记录主角和主要角色的身份档案、身体状态与基础属性。此表有且仅有固定几行（主角一行、各主要角色一行）。\n综合属性格式为\"力量X 敏捷X 体质X 智力X\"，四值均为 0-25 整数。属性不轻易变化，仅奇遇或生死突破时调整，单次不超过 ±2。",
+      "insertRule": "新角色正式登场后插入一行。SQL示例: INSERT INTO profile (角色,名字,...) VALUES ('新角色','名',...);",
+      "updateRule": "状态/属性/资金变化时按 角色 定位更新。SQL示例: UPDATE profile SET 整体状态='轻伤' WHERE 角色='主角';",
+      "deleteRule": "禁止。角色离场仅更新状态字段。"
+    },
+    "updateConfig": {
+      "enabled": true,
+      "updateFrequency": 1,
+      "contextRounds": 3
+    },
+    "purpose": "存主角与主要角色的身份、状态、属性、资金，开局必建。"
+  },
+  {
+    "uid": "skills",
+    "name": "技能",
+    "headers": [
+      "所属",
+      "技能名",
+      "技能类型",
+      "阶段",
+      "效果描述"
+    ],
+    "sourceData": {
+      "note": "记录各角色掌握的技能。多行表，每行一个技能。阶段：入门/初学/熟练/精通/大师。",
+      "insertRule": "学会新技能时插入，初始阶段\"初学\"。SQL示例: INSERT INTO skills (所属,技能名,技能类型,阶段,效果描述) VALUES ('主角','单手长剑','主动','初学','...');",
+      "updateRule": "技能提升时更新阶段与效果描述，每次只升一阶。SQL示例: UPDATE skills SET 阶段='熟练' WHERE 所属='主角' AND 技能名='单手长剑';",
+      "deleteRule": "技能遗忘/废弃时删除。"
+    },
+    "updateConfig": {
+      "enabled": true,
+      "updateFrequency": 1,
+      "contextRounds": 3
+    },
+    "purpose": "存各角色掌握的技能与熟练阶段，开局必建。"
+  },
+  {
+    "uid": "chronicle",
+    "name": "纪要表",
+    "headers": [
+      "编码索引",
+      "时间跨度",
+      "概览",
+      "纪要",
+      "重要对话"
+    ],
+    "sourceData": {
+      "note": "轮次日志。每轮交互结束后插入一条新记录。编码索引 AMXXXX 递增不跳号；时间跨度 \"YYYY-MM-DD HH:MM ~ YYYY-MM-DD HH:MM\"；概览 ≤50 字；纪要 300-500 字第三方中立记录；重要对话摘录 3-5 句关键台词。",
+      "insertRule": "每轮交互结束后插入一条。SQL示例: INSERT INTO chronicle (编码索引,时间跨度,概览,纪要,重要对话) VALUES ('AM0001','2026-01-01 08:00 ~ 08:30','一句话','本轮纪要...',NULL);",
+      "updateRule": "禁止。",
+      "deleteRule": "禁止。"
+    },
+    "updateConfig": {
+      "enabled": true,
+      "updateFrequency": 1,
+      "sendLatestRows": 10,
+      "contextRounds": 3
+    },
+    "purpose": "每轮交互的日志，靠自动填表逐轮插入——开局常驻空表也必须建。"
+  },
+  {
+    "uid": "assets",
+    "name": "资产",
+    "headers": [
+      "名称",
+      "简介",
+      "类型",
+      "所属",
+      "实际掌控者",
+      "所属地区"
+    ],
+    "sourceData": {
+      "note": "记录的房产/商铺/组织/物品等资产。名称|简介|类型|地区 的条目，所属与实际掌控者通常为 {{user}}。",
+      "insertRule": "获得新资产时插入一行。",
+      "updateRule": "资产状态变化时更新。",
+      "deleteRule": "失去资产时删除。"
+    },
+    "updateConfig": {
+      "enabled": true,
+      "updateFrequency": 2,
+      "contextRounds": 2
+    },
+    "purpose": "记录房产/商铺/物品等资产的归属与状态，开局常驻。"
+  },
+  {
+    "uid": "region",
+    "name": "地区",
+    "headers": [
+      "名称",
+      "规模",
+      "简述",
+      "所属",
+      "主导产业",
+      "经济状态",
+      "政治状态",
+      "与主角关系",
+      "关键势力",
+      "当前事件"
+    ],
+    "sourceData": {
+      "note": "开局所在地区设定。十列齐全，无关键势力写\"无\"。",
+      "insertRule": "开局时一行，一般不改。",
+      "updateRule": "地区状态重大变化时更新。",
+      "deleteRule": "禁止。"
+    },
+    "updateConfig": {
+      "enabled": false,
+      "updateFrequency": 999,
+      "contextRounds": 0
+    },
+    "purpose": "开局所在地区的设定，基本只读。"
+  },
+  {
+    "uid": "network",
+    "name": "系统网络",
+    "headers": [
+      "已连接对象",
+      "智力",
+      "状态",
+      "态度"
+    ],
+    "sourceData": {
+      "note": "推演系统的已连接对象。首行固定主角（{{user}}）。",
+      "insertRule": "新增连接时插入。",
+      "updateRule": "状态变化时更新。",
+      "deleteRule": "断开连接时删除。"
+    },
+    "updateConfig": {
+      "enabled": true,
+      "updateFrequency": 2,
+      "contextRounds": 2
+    },
+    "purpose": "推演系统的已连接对象（首行固定玩家），开局常驻。"
+  },
+  {
+    "uid": "overview",
+    "name": "系统总览",
+    "headers": [
+      "当前时间",
+      "系统状态",
+      "当前推演解锁",
+      "已解锁知识库"
+    ],
+    "sourceData": {
+      "note": "推演系统的总览状态。单行表。",
+      "insertRule": "禁止。",
+      "updateRule": "总览变化时更新。",
+      "deleteRule": "禁止。"
+    },
+    "updateConfig": {
+      "enabled": true,
+      "updateFrequency": 1,
+      "contextRounds": 2
+    },
+    "purpose": "推演系统的总览状态（单行表）。"
+  }
+]
