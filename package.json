@@ -1,0 +1,21 @@
+{
+  "name": "opening-framework-extension",
+  "version": "1.1.0",
+  "description": "开局框架 - SillyTavern 扩展（带窗口和悬浮窗）",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs --watch",
+    "check": "tsc --noEmit",
+    "loader": "node package-loader.mjs",
+    "smoke": "node smoke.mjs"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0"
+  }
+}
