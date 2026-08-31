@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>渐变带 · 开局初始化</title>
+<style>
+  :root{--bg:#10151c;--card:#171e28;--line:#243040;--ink:#c9d6e2;--dim:#77899b;--cyan:#4fc3f7;--g:#66bb6a;--y:#ffd54f;--r:#ef5350;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font:13px/1.7 "Microsoft YaHei",system-ui,sans-serif;padding:10px;}
+  .wrap{max-width:720px;margin:0 auto;}
+  h2{text-align:center;color:var(--cyan);letter-spacing:2px;margin-bottom:2px;font-size:16px;}
+  .sub{text-align:center;color:var(--dim);font-size:11px;margin-bottom:10px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 11px;margin-bottom:8px;}
+  .card h4{font-size:12px;color:var(--cyan);letter-spacing:1px;border-bottom:1px dashed var(--line);padding-bottom:3px;margin-bottom:6px;}
+  .row{display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
+  .opt{border:1px solid var(--line);background:#131a24;color:var(--dim);border-radius:5px;padding:2px 12px;font-size:12px;cursor:pointer;}
+  .opt.on{color:var(--cyan);border-color:var(--cyan);}
+  .tri{display:inline-flex;border:1px solid var(--line);border-radius:5px;overflow:hidden;margin:2px 4px 2px 0;font-size:11px;}
+  .tri span{padding:1px 7px;color:var(--dim);cursor:pointer;border-right:1px solid var(--line);}
+  .tri span:last-child{border-right:0;}
+  .tri.main span.on{color:#fff;background:#2e7d32;}
+  .tri.subb span.on{color:#fff;background:#6f6f2e;}
+  .famname{color:var(--ink);margin-right:2px;}
+  .hint{font-size:10px;color:var(--dim);}
+  input[type=text],textarea{width:100%;background:#0b0f14;border:1px solid var(--line);color:var(--ink);border-radius:5px;padding:5px 7px;font:12px/1.6 inherit;}
+  label.ck{display:inline-flex;align-items:center;gap:4px;margin:2px 8px 2px 0;font-size:12px;color:var(--ink);cursor:pointer;}
+  .btn{border:1px solid var(--line);background:#1c2531;color:var(--ink);border-radius:5px;padding:4px 14px;font-size:13px;cursor:pointer;}
+  .btn.pri{border-color:var(--cyan);color:var(--cyan);}
+  .btn.big{padding:7px 26px;font-size:14px;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .center{text-align:center;margin-top:10px;}
+  #msg{text-align:center;font-size:12px;color:var(--y);min-height:18px;margin-top:6px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h2>渐变带 · 开局初始化</h2>
+  <div class="sub">性别 → 亲和（主/次分支，不限族不限数量，核力场也可选）→ 开局发放 → 剧情时间 → 确认</div>
+
+  <div class="card"><h4>① 主角性别</h4>
+    <div class="row" id="genderRow">
+      <span class="opt" data-g="男">男</span>
+      <span class="opt" data-g="女">女</span>
+    </div>
+    <div class="hint">性别影响开场白版本。</div>
+  </div>
+
+  <div class="card"><h4>② 亲和选择（每族分支：无 / 主 / 次）</h4>
+    <div id="affTree"></div>
+    <div class="hint">主分支=施法×1/×1；同族其他分支与次分支=×2精神/×1.5能量；其余=×4/×4。可以做五族全主分支的龙傲天。</div>
+  </div>
+
+  <div class="card"><h4>③ 开局发放</h4>
+    <div class="row">
+      <span class="opt on" data-m="新手包">新手包（风切·标准发 + 管控晶×2）</span>
+      <span class="opt" data-m="自挑">自挑</span>
+    </div>
+    <div id="pickBox" style="display:none;margin-top:6px">
+      <div class="hint">预设固定回路：</div><div id="pkCircuits"></div>
+      <div class="hint">预设补给：</div><div id="pkSupplies"></div>
+    </div>
+  </div>
+
+  <div class="card"><h4>④ 剧情时间 与 开场白</h4>
+    <div class="hint">剧情时间格式：2026年9月1日，08：00（脚本据此自动恢复能量/精神）</div>
+    <input type="text" id="timeInput" value="2026年9月1日，08：00">
+    <div class="hint" style="margin-top:6px">开场白（写入第 0 楼，可修改）：</div>
+    <textarea id="openingBox" rows="6"></textarea>
+  </div>
+
+  <div class="center">
+    <button class="btn pri big" id="btnGo" disabled>确认开局</button>
+    <div id="msg"></div>
+  </div>
+</div>
+
+<script>
+/*@ENGINE@*/
+(function () {
+  'use strict';
+  var E = window.CircuitEngine || globalThis.CircuitEngine;
+  function $(s) { return document.querySelector(s); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  /* ── 预设清单（与扩展 core/presets.ts 保持一致）── */
+  var 预设回路 = [
+    { key: 'windcut', 名称: '风切·标准发', famKey: 'flow', e: 0, params: { mode: 1, sub: 1, fmed: 0, fa: 33, fv: 70, br: 100 }, 一句话效果: '风刃 A=0.049m² v=397m/s' },
+    { key: 'fireball', 名称: '火球·标准式', famKey: 'pour', e: 40, params: { phase: 2, pw: 55, th: 25 }, 一句话效果: '热爆轰·收窄束' },
+    { key: 'stonewall', 名称: '石肤壁垒', famKey: 'struct', e: 40, params: { base: 1, latt: 80, mass: 55, rate: 3, stress: 0, stressT: 10 }, 一句话效果: '土石壁垒·混相' },
+    { key: 'scan', 名称: '周界扫描', famKey: 'perce', e: 5, params: { rad: 30, res: 1, pert: 0, dwell: 0, dwellSec: 20 }, 一句话效果: '半径30m·标准' }
+  ];
+  var 预设补给 = [
+    { 名称: '管控晶（80%纯度魔素晶体）', 数量: 2, 效果: { 目标: '能量', 增加kJ: 200 } },
+    { 名称: '民用晶（低纯度魔素晶体）', 数量: 3, 效果: { 目标: '能量', 增加kJ: 50 } },
+    { 名称: '安神剂', 数量: 1, 效果: { 目标: '精神', 增加点: 5 } },
+    { 名称: '应急精神稳定剂', 数量: 1, 效果: { 目标: '精神', 增加点: 15 } }
+  ];
+  var FAMNAME = { pour: '倾泻', flow: '波动', struct: '结构', life: '生机', perce: '感知' };
+  var TREE = { 倾泻: ['光', '电', '热'], 波动: ['实体波', '媒介波', '电磁场', '引力场', '核力场'], 结构: ['晶体', '金属', '土石', '合金'], 生机: ['植物', '动物(含人体)', '微生物'], 感知: ['五感延伸', '读心干扰', '信息伪造'] };
+  var FAMKEY = { 倾泻: 'pour', 波动: 'flow', 结构: 'struct', 生机: 'life', 感知: 'perce' };
+
+  /* ── 选择状态 ── */
+  var sel = { gender: null, aff: {}, mode: '新手包', circuits: ['windcut'], supplies: ['管控晶（80%纯度魔素晶体）'] };
+  // aff: {'波动·媒介波': 'main'|'sub'|null}
+  Object.keys(TREE).forEach(function (f) { TREE[f].forEach(function (b) { sel.aff[f + '·' + b] = null; }); });
+
+  var DEFAULT_OPENING = {
+    '男': '2026年，魔素渗入这个世界的每个角落已经二十七年。路灯里淌着微光，换电站取代了旧时代的加油站，义务教育里的魔法课和体育课地位相当。今天是你进入魔法学院报到的日子……（可在上方编辑开场白）',
+    '女': '2026年，魔素渗入这个世界的每个角落已经二十七年。路灯里淌着微光，换电站取代了旧时代的加油站，义务教育里的魔法课和体育课地位相当。今天是你进入魔法学院报到的日子……（可在上方编辑开场白）'
+  };
+
+  /* ── 渲染 ── */
+  function renderAff() {
+    var h = '';
+    Object.keys(TREE).forEach(function (f) {
+      h += '<div><span class="famname">' + f + '：</span>';
+      TREE[f].forEach(function (b) {
+        var key = f + '·' + b;
+        var st = sel.aff[key];
+        h += '<span class="tri ' + (st === 'main' ? 'main' : st === 'sub' ? 'subb' : '') + '" data-k="' + esc(key) + '">' +
+          '<span class="' + (st === 'main' ? 'on' : '') + '" data-v="main">主</span>' +
+          '<span class="' + (st === 'sub' ? 'on' : '') + '" data-v="sub">次</span>' +
+          '<span class="' + (!st ? 'on' : '') + '" data-v="null">无</span>' +
+          '</span>';
+      });
+      h += '</div>';
+    });
+    $('#affTree').innerHTML = h;
+  }
+  function renderPick() {
+    var h = '';
+    预设回路.forEach(function (p) {
+      h += '<label class="ck"><input type="checkbox" data-pk="' + p.key + '"' + (sel.circuits.indexOf(p.key) >= 0 ? ' checked' : '') + '>' + esc(p.名称) + '</label>';
+    });
+    $('#pkCircuits').innerHTML = h;
+    var h2 = '';
+    预设补给.forEach(function (s) {
+      h2 += '<label class="ck"><input type="checkbox" data-ps="' + esc(s.名称) + '"' + (sel.supplies.indexOf(s.名称) >= 0 ? ' checked' : '') + '>' + esc(s.名称) + '</label>';
+    });
+    $('#pkSupplies').innerHTML = h2;
+  }
+  function updateGo() { $('#btnGo').disabled = !(sel.gender && mains().length >= 0); }
+
+  function mains() { return Object.keys(sel.aff).filter(function (k) { return sel.aff[k] === 'main'; }); }
+  function subs() { return Object.keys(sel.aff).filter(function (k) { return sel.aff[k] === 'sub'; }); }
+  function toBranch(k) { var p = k.split('·'); return { 族: p[0], 分支: p[1] }; }
+
+  /* ── 事件 ── */
+  document.body.addEventListener('click', function (ev) {
+    var t = ev.target;
+    if (t.dataset && t.dataset.g) {
+      sel.gender = t.dataset.g;
+      document.querySelectorAll('#genderRow .opt').forEach(function (o) { o.classList.toggle('on', o.dataset.g === sel.gender); });
+      $('#openingBox').value = DEFAULT_OPENING[sel.gender];
+      updateGo(); return;
+    }
+    if (t.dataset && t.dataset.m) {
+      sel.mode = t.dataset.m;
+      document.querySelectorAll('[data-m]').forEach(function (o) { o.classList.toggle('on', o.dataset.m === sel.mode); });
+      $('#pickBox').style.display = sel.mode === '自挑' ? '' : 'none';
+      return;
+    }
+    var tri = t.parentElement;
+    if (tri && tri.classList && tri.classList.contains('tri') && t.dataset.v) {
+      sel.aff[tri.dataset.k] = t.dataset.v === 'null' ? null : t.dataset.v;
+      renderAff(); return;
+    }
+    if (t.id === 'btnGo') { doOpen(); return; }
+  });
+  document.body.addEventListener('change', function (ev) {
+    var t = ev.target;
+    if (t.dataset && t.dataset.pk) {
+      if (t.checked) { if (sel.circuits.indexOf(t.dataset.pk) < 0) sel.circuits.push(t.dataset.pk); }
+      else sel.circuits = sel.circuits.filter(function (k) { return k !== t.dataset.pk; });
+    }
+    if (t.dataset && t.dataset.ps) {
+      if (t.checked) { if (sel.supplies.indexOf(t.dataset.ps) < 0) sel.supplies.push(t.dataset.ps); }
+      else sel.supplies = sel.supplies.filter(function (k) { return k !== t.dataset.ps; });
+    }
+  });
+
+  /* ── 时间解析（与扩展 core/time.ts 一致）── */
+  function parseTime(label) {
+    var s = String(label || '').replace(/[，,]/g, ',').replace(/[：:]/g, ':').replace(/\s+/g, '').trim();
+    var m = s.match(/^(\d{1,4})年(\d{1,2})月(\d{1,2})日,(\d{1,2}):(\d{2})$/);
+    if (!m) return null;
+    var t = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
+    return Number.isNaN(t) ? null : Math.round(t / 60000);
+  }
+
+  /* ── 确认开局 ── */
+  function toast(ok, text) { var m = $('#msg'); m.style.color = ok ? 'var(--g)' : 'var(--r)'; m.textContent = text; }
+
+  function doOpen() {
+    if (!sel.gender) { toast(false, '请先选择性别'); return; }
+    if (typeof getVariables !== 'function') { toast(false, '需要酒馆助手环境'); return; }
+    var timeLabel = $('#timeInput').value.trim();
+    if (!parseTime(timeLabel)) { toast(false, '剧情时间格式应为：2026年9月1日，08：00'); return; }
+    var opening = $('#openingBox').value.trim();
+    if (!opening) { toast(false, '开场白为空'); return; }
+
+    var mainsB = mains().map(toBranch);
+    var subsB = subs().map(toBranch);
+    var circuitKeys = sel.mode === '新手包' ? ['windcut'] : sel.circuits;
+    var supplyNames = sel.mode === '新手包' ? ['管控晶（80%纯度魔素晶体）'] : sel.supplies;
+
+    // 组存档（固定回路的基线账单由引擎现算）
+    var g = {
+      version: 2,
+      主角: {
+        能量kJ: { 当前: 5000, 上限: 10000 }, 精神点: { 当前: 80, 上限: 90 },
+        爆发线kW: 300, 持续线kW: 50,
+        战斗中: false, 身体状态: '正常',
+        剧情时间: { label: timeLabel }, 上次结算min: parseTime(timeLabel)
+      },
+      补给物品: [], 回路库: [],
+      槽位: { 固定槽: [null, null, null, null, null, null, null, null, null, null], 自由槽: [null, null, null] },
+      亲和: { 主分支: mainsB, 次分支: subsB },
+      待扣单: [],
+      场景: { 风力档: 40, 可塑无机物kJ: 3000, 水体在场: false },
+      感情追踪: { '陆安': { 自洽: 10, 共情: 6, 解构: 10, '对主角的信任度': 5, 长期目标: '', 短期目标: '', 怎么看待主角: '' } }
+    };
+    var ctx = {
+      aff: { main: mainsB, subs: subsB },
+      scene: { wind: 40, mat: 3000, water: false },
+      char: { burstKW: 300, sustainKW: 50, speed: 1, eCur: 5000, mCur: 80, mMax: 90, body: '正常' },
+      tuned: []
+    };
+    var slot = 0;
+    circuitKeys.forEach(function (key) {
+      var p = null;
+      for (var i = 0; i < 预设回路.length; i++) if (预设回路[i].key === key) p = 预设回路[i];
+      if (!p || slot >= 10 || !E) return;
+      var params = Object.assign(E.initParams(p.famKey), p.params);
+      var q = E.quote({ fam: p.famKey, e: p.e, c: params }, ctx);
+      var budget = E.budgetFrom(p.famKey, params, q.E_out);
+      var famName = FAMNAME[p.famKey] || p.famKey;
+      g.回路库.push({
+        id: 'fx-' + (slot < 9 ? '0' + (slot + 1) : slot + 1),
+        名称: p.名称, type: 'fixed', 族: famName, famKey: p.famKey,
+        分支: E.branchOf(p.famKey, params),
+        实体: p.famKey === 'flow' ? String(E.curKey(params)) : null,
+        参数向量: params, 注册e: p.e,
+        参数明细: E.readableParams(p.famKey, params),
+        微调预算: budget, 微调预算明细: E.readableBudget(budget),
+        基线账单: { 输出kJ: q.E_out, 计费kJ: q.bill, 精神: q.mind, 一句话效果: p.一句话效果 },
+        uses: null, 来源: '开局预设', 审核存档: null
+      });
+      g.槽位.固定槽[slot] = g.回路库[g.回路库.length - 1].id;
+      slot++;
+    });
+    supplyNames.forEach(function (n) {
+      for (var i = 0; i < 预设补给.length; i++) if (预设补给[i].名称 === n) g.补给物品.push(JSON.parse(JSON.stringify(预设补给[i])));
+    });
+
+    // 落盘 + 写 0 楼开场白 + 快照
+    $('#btnGo').disabled = true; toast(true, '正在写入…');
+    Promise.resolve(updateVariablesWith(function (v) { v['渐变带'] = g; return v; }, { type: 'chat' })).then(function () {
+      return Promise.resolve(setChatMessages([{ message_id: 0, message: opening }], { refresh: 'all' })).catch(function () {});
+    }).then(function () {
+      var snap = JSON.parse(JSON.stringify(g)); if (snap['主角']) delete snap['主角']['上次结算min'];
+      return Promise.resolve(updateVariablesWith(function (v) { v.stat_data = v.stat_data || {}; v.stat_data['渐变带'] = snap; return v; }, { type: 'message', message_id: 0 })).catch(function () {});
+    }).then(function () {
+      toast(true, '✓ 开局完成！开场白已写入第 0 楼，开始冒险吧。');
+    }).catch(function (e) {
+      toast(false, '失败：' + e);
+      $('#btnGo').disabled = false;
+    });
+  }
+
+  /* ── 启动 ── */
+  renderAff(); renderPick(); updateGo();
+  $('#openingBox').value = DEFAULT_OPENING['男'];
+  if (typeof getVariables !== 'function') toast(false, '需要酒馆助手环境（请在酒馆消息楼层内打开本页）');
+})();
+</script>
+</body>
+</html>
