@@ -47,6 +47,7 @@ export const Sheet = z.object({
   uid: z.string(),                               // 表唯一标识
   name: z.string(),                              // 表名（给 AI 看）
   purpose: z.string().default(''),               // 作用注释（这张表是干嘛的，给人看）
+  type: z.enum(['standard', 'special']).default('standard'), // 归属：standard=标准AI可见（填表/感情）；special=特殊AI专用（渐变带引擎，标准AI不可见）
   headers: z.array(z.string()),                  // 列名（不含 row_id 列；row_id = 行索引+1）
   rows: z.array(z.array(z.union([z.string(), z.null()]))), // 数据行
   sourceData: SheetSourceData,
@@ -77,6 +78,7 @@ export const TableDef = z.object({
   name: z.string(),
   purpose: z.string().default(''),               // 作用注释：这张表是干嘛的 / 什么时候需要
   scope: z.enum(['always', 'onSeed']).default('always'), // 结算时建表时机：always=开局必建；onSeed=有初始行才建
+  type: z.enum(['standard', 'special']).default('standard'), // 归属（见 Sheet.type）
   headers: z.array(z.string()),
   sourceData: SheetSourceData,
   updateConfig: z.object({}).catchall(z.any()).default({}), // Partial<UpdateConfig>，导入时与默认合并

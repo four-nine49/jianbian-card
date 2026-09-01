@@ -52,6 +52,7 @@ export const SETTLEMENT_TABLE_DEFS: TableDef[] = [
     uid: 'profile', name: '角色档案',
     purpose: '存主角与主要角色的档案。固定几行：主角一行、各主要角色一行。综合属性格式"力量X 敏捷X 体质X 智力X"，0-25 整数。属性不轻易变化。',
     scope: 'always',
+    type: 'standard',
     headers: ['角色', '名字', '身份', '种族', '性别', '外貌', '整体状态', '综合属性', '流动资金'],
     sourceData: {
       note: '记录主角和主要角色的档案。固定几行：主角一行、各主要角色一行。综合属性格式"力量X 敏捷X 体质X 智力X"，0-25 整数。属性不轻易变化。',
@@ -65,6 +66,7 @@ export const SETTLEMENT_TABLE_DEFS: TableDef[] = [
     uid: 'skills', name: '技能',
     purpose: '存各角色掌握的技能与熟练阶段。',
     scope: 'always',
+    type: 'standard',
     headers: ['所属', '技能名', '技能类型', '阶段', '效果描述'],
     sourceData: {
       note: '记录各角色的技能。每行一个技能。阶段：入门/初学/熟练/精通/大师。',
@@ -81,6 +83,7 @@ export const SETTLEMENT_TABLE_DEFS: TableDef[] = [
     uid: 'assets', name: '资产',
     purpose: '记录房产/商铺/物品等资产的归属与状态，开局常驻（后续也会自动增删）。',
     scope: 'always',
+    type: 'standard',
     headers: ['名称', '简介', '类型', '所属', '实际掌控者', '所属地区'],
     sourceData: {
       note: '记录的房产/商铺/组织/物品等资产。名称|简介|类型|地区 的列表。',
@@ -94,6 +97,7 @@ export const SETTLEMENT_TABLE_DEFS: TableDef[] = [
     uid: 'region', name: '地区',
     purpose: '开局所在地区的设定，基本只读——结算没提到地区就不建这张表。',
     scope: 'onSeed',
+    type: 'standard',
     headers: ['名称', '规模', '简述', '所属', '主导产业', '经济状态', '政治状态', '与主角关系', '关键势力', '当前事件'],
     sourceData: {
       note: '开局所在地区设定。填满十列，无关键势力写"无"。',
@@ -107,6 +111,7 @@ export const SETTLEMENT_TABLE_DEFS: TableDef[] = [
     uid: 'network', name: '系统网络',
     purpose: '推演系统的已连接对象（首行固定玩家），开局常驻。',
     scope: 'always',
+    type: 'standard',
     headers: ['已连接对象', '智力', '状态', '态度'],
     sourceData: {
       note: '金手指=推演系统时的已连接对象。首行固定"玩家"。',
@@ -120,6 +125,7 @@ export const SETTLEMENT_TABLE_DEFS: TableDef[] = [
     uid: 'overview', name: '系统总览',
     purpose: '推演系统的总览状态（单行表）——结算没产出总览字段就不建。',
     scope: 'onSeed',
+    type: 'standard',
     headers: ['当前时间', '系统状态', '当前推演解锁', '已解锁知识库'],
     sourceData: {
       note: '推演系统的总览状态。单行表。',

@@ -9,12 +9,12 @@ import { renderJianbandaiPage } from './pages/jianbandai-opening';
 import { renderGradbandPage } from './pages/gradband';
 import { renderGradbandPromptsPage } from './pages/gradband-prompts';
 import { renderGradbandDataPage } from './pages/gradband-data';
-import { renderGradbandFeelPage } from './pages/gradband-feel';
+import { renderGradbandPromptPage } from './pages/gradband-prompt';
 import { renderChatPage } from './pages/chat';
 import { renderTablesPage } from './pages/tables';
 import { renderSheetConfigPage } from './pages/sheet-config';
-import { renderSettingsPage } from './pages/settings';
 import { renderPromptTemplatePage } from './pages/prompt-template';
+import { renderSettingsPage } from './pages/settings';
 import { renderToolsPage } from './pages/tools';
 import { loadSettings, saveSetting } from '../core/settings';
 
@@ -23,7 +23,6 @@ export type AppMode = 'presets' | 'gradband';
 export interface PageDef {
   name: string;
   label: string;
-  icon: string;
   order: number;
   render: (el: HTMLElement) => void;
   /** 可见模式（缺省 = 两种模式都显示） */
@@ -32,22 +31,24 @@ export interface PageDef {
 
 export const PAGES: PageDef[] = [
   // ── 剑与汽水模式 ──
-  { name: 'preset', label: '剑与汽水角色卡专用', icon: '📜', order: 3, render: renderPresetPage, modes: ['presets'] },
-  { name: 'start', label: '开局', icon: '🎬', order: 5, render: renderStartPage, modes: ['presets'] },
-  { name: 'chat', label: 'AI 对话', icon: '💬', order: 10, render: renderChatPage, modes: ['presets'] },
-  { name: 'tables', label: '表格数据', icon: '📋', order: 20, render: renderTablesPage, modes: ['presets'] },
-  { name: 'sheetconf', label: '表结构/配置', icon: '⚙️', order: 30, render: renderSheetConfigPage, modes: ['presets'] },
-  { name: 'settings', label: '设置', icon: '🔌', order: 40, render: renderSettingsPage, modes: ['presets'] },
-  { name: 'prompt', label: '提示词模板', icon: '📝', order: 50, render: renderPromptTemplatePage, modes: ['presets'] },
-  { name: 'tools', label: '工具', icon: '🧰', order: 90, render: renderToolsPage, modes: ['presets'] },
+  { name: 'preset', label: '剑与汽水角色卡专用', order: 3, render: renderPresetPage, modes: ['presets'] },
+  { name: 'start', label: '开局', order: 5, render: renderStartPage, modes: ['presets'] },
+  { name: 'chat', label: 'AI 对话', order: 10, render: renderChatPage, modes: ['presets'] },
+  { name: 'tables', label: '表格数据', order: 20, render: renderTablesPage, modes: ['presets'] },
+  { name: 'sheetconf', label: '表结构/配置', order: 30, render: renderSheetConfigPage, modes: ['presets'] },
+  { name: 'settings', label: '设置', order: 40, render: renderSettingsPage, modes: ['presets'] },
+  { name: 'prompt', label: '提示词模板', order: 50, render: renderPromptTemplatePage, modes: ['presets'] },
+  { name: 'tools', label: '工具', order: 90, render: renderToolsPage, modes: ['presets'] },
 
   // ── 渐变带模式 ──
-  { name: 'gradband', label: '渐变带·自由回路', icon: '⚡', order: 6, render: renderGradbandPage, modes: ['gradband'] },
-  { name: 'gradband-prompts', label: '渐变带·提示词', icon: '✍️', order: 7, render: renderGradbandPromptsPage, modes: ['gradband'] },
-  { name: 'gradband-data', label: '渐变带·数据', icon: '🗂️', order: 8, render: renderGradbandDataPage, modes: ['gradband'] },
-  { name: 'gradband-feel', label: '渐变带·感情', icon: '💗', order: 9, render: renderGradbandFeelPage, modes: ['gradband'] },
-  { name: 'settings', label: '设置', icon: '🔌', order: 40, render: renderSettingsPage, modes: ['gradband'] },
-  { name: 'tools', label: '工具', icon: '🧰', order: 90, render: renderToolsPage, modes: ['gradband'] },
+  { name: 'gradband', label: '渐变带·自由回路', order: 6, render: renderGradbandPage, modes: ['gradband'] },
+  { name: 'gradband-prompts', label: '渐变带·提示词', order: 7, render: renderGradbandPromptsPage, modes: ['gradband'] },
+  { name: 'gradband-data', label: '渐变带·数据', order: 8, render: renderGradbandDataPage, modes: ['gradband'] },
+  { name: 'tables', label: '表格数据', order: 20, render: renderTablesPage, modes: ['gradband'] },
+  { name: 'sheetconf', label: '表结构/配置', order: 30, render: renderSheetConfigPage, modes: ['gradband'] },
+  { name: 'gradband-prompt', label: '提示词模板', order: 50, render: renderGradbandPromptPage, modes: ['gradband'] },
+  { name: 'settings', label: '设置', order: 40, render: renderSettingsPage, modes: ['gradband'] },
+  { name: 'tools', label: '工具', order: 90, render: renderToolsPage, modes: ['gradband'] },
 ];
 
 let currentName = 'start';
@@ -77,8 +78,8 @@ export function mountApp(root: HTMLElement): void {
   root.className = 'of-panel';
   root.innerHTML = `
     <div class="of-modepicker" id="of-modepicker">
-      <button class="of-modebtn" data-mode="presets">📜 剑与汽水</button>
-      <button class="of-modebtn" data-mode="gradband">⚡ 渐变带</button>
+      <button class="of-modebtn" data-mode="presets">剑与汽水</button>
+      <button class="of-modebtn" data-mode="gradband">渐变带</button>
     </div>
     <nav class="of-nav" id="of-nav"></nav>
     <button class="of-collapse" id="of-collapse">◀</button>
@@ -121,7 +122,7 @@ export function mountApp(root: HTMLElement): void {
   function renderNav() {
     if (!navEl) return;
     navEl.innerHTML = visiblePages().map(p =>
-      `<button class="of-nav-btn${p.name === currentName ? ' active' : ''}" data-page="${p.name}">${p.icon} ${p.label}</button>`
+      `<button class="of-nav-btn${p.name === currentName ? ' active' : ''}" data-page="${p.name}">${p.label}</button>`
     ).join('');
   }
 

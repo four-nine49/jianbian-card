@@ -52,6 +52,7 @@ function toTableDef(t: FeelTableDef): TableDef {
     name: t.name,
     purpose: `感情追踪表（${t.name}）：追踪角色心理状态，由感情AI按表规则更新。`,
     scope: 'always',
+    type: 'standard',   // 感情表 = standard：标准AI（感情）可见，标准页可编辑；不参与标准自动填表（enabled=false）
     headers: t.headers,
     sourceData: { note: t.note, insertRule: '禁止。', updateRule: '感情AI按规则更新。', deleteRule: '禁止。' },
     updateConfig: { enabled: false },

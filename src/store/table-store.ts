@@ -123,6 +123,7 @@ export function importTemplate(defs: TableDef[]): TableStore {
       uid: def.uid,
       name: def.name,
       purpose: def.purpose,
+      type: def.type ?? 'standard',
       headers: def.headers,
       rows: [],
       sourceData: def.sourceData,
@@ -238,7 +239,7 @@ export function addSheet(def: TableDef): string {
   if (store.sheets[key]) throw new Error(`表 uid 已存在：${def.uid}`);
   const merged = { ...DEFAULT_UPDATE_CONFIG, ...(def.updateConfig as any) };
   store.sheets[key] = {
-    uid: def.uid, name: def.name, purpose: def.purpose ?? '', headers: def.headers, rows: [],
+    uid: def.uid, name: def.name, purpose: def.purpose ?? '', type: (def.type ?? 'standard') as 'standard' | 'special', headers: def.headers, rows: [],
     sourceData: SheetSourceData.parse(def.sourceData ?? {}),
     updateConfig: merged,
   };

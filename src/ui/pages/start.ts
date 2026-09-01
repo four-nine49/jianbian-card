@@ -261,6 +261,7 @@ function showPath(root: HTMLElement, path: string, hasData: boolean, dialogue: a
           uid, name, headers,
           purpose: '',
           scope: 'always',
+          type: 'standard',
           sourceData: {
             note: (detail.querySelector('#of-ns-note') as HTMLTextAreaElement).value,
             insertRule: (detail.querySelector('#of-ns-insert') as HTMLTextAreaElement).value,
