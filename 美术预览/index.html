@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>渐变带 · 卡牌美术预览</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#0a0d12;color:#c9d6e2;font:14px/1.6 "Microsoft YaHei",system-ui,sans-serif;min-height:100vh;}
+  .head{padding:18px 20px 6px;text-align:center;}
+  .head h1{font-size:18px;font-weight:600;letter-spacing:2px;color:#e6edf4;}
+  .head p{font-size:12px;color:#77889b;margin-top:4px;}
+  .stage{display:flex;flex-wrap:wrap;gap:14px;padding:14px 16px 22px;justify-content:center;}
+  .panel{flex:1 1 320px;min-width:300px;max-width:440px;border-radius:10px;overflow:hidden;background:#0e1219;border:1px solid #1e2836;}
+  .panel .tt{display:flex;align-items:baseline;justify-content:space-between;padding:9px 12px 7px;border-bottom:1px dashed #223044;}
+  .panel .tt b{font-size:14px;font-weight:600;}
+  .panel .tt span{font-size:11px;color:#77889b;}
+  .panel canvas{display:block;width:100%;height:240px;touch-action:none;cursor:grab;}
+  .panel canvas:active{cursor:grabbing;}
+  .panel .note{padding:8px 12px 10px;font-size:11px;color:#8fa2b4;}
+</style>
+</head>
+<body>
+<div class="head">
+  <h1>渐变带 · 卡牌美术预览</h1>
+  <p>三套风格并排展示：拖动视角、悬停卡牌可倾斜查看质感。选定的风格将用于正式状态栏。</p>
+</div>
+<div class="stage" id="stage"></div>
+
+<script src="three.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  /* ── 三套风格定义 ── */
+  var STYLES = [
+    {
+      key: 'paper', name: '旧纸派', tag: '泛黄羊皮纸 · 烫金描边',
+      bg: 0x1b1712, desk: 0x241f17,
+      card: { face: '#e9dcbb', edge: '#b3925c', ink: '#43341d', accent: '#a3804a', blood: '#8a4a33', line: '#8a6f3f' },
+      material: { roughness: 0.92, metalness: 0.0 },
+      note: '古书摊开味，最贴密教原版；与科幻弧光略错位。'
+    },
+    {
+      key: 'mystic', name: '暗色秘仪', tag: '墨蓝底 · 暗金纹章 · 血红点缀',
+      bg: 0x0c0f18, desk: 0x10141f,
+      card: { face: '#182130', edge: '#8f7a3f', ink: '#c9d6e2', accent: '#c8a55a', blood: '#a02f2f', line: '#3a4a63' },
+      material: { roughness: 0.45, metalness: 0.72 },
+      note: '蜡封旧金属手感，和科技弧光咬合；主推。'
+    },
+    {
+      key: 'sage', name: '灰绿学阀', tag: '暗绿铜锈 · 黄铜边框',
+      bg: 0x0d1311, desk: 0x111916,
+      card: { face: '#1a2622', edge: '#9a8f48', ink: '#c8d8cc', accent: '#7fa88f', blood: '#7b4a3a', line: '#2c4840' },
+      material: { roughness: 0.6, metalness: 0.5 },
+      note: '秘密图书馆的金属书架味，克制内敛。'
+    }
+  ];
+
+  var FAMILIES = ['倾泻系', '波动系', '结构系', '生机系', '感知系'];
+
+  /* ── 卡面画布（程序生成，无外图）── */
+  function makeFaceTexture(st) {
+    var c = document.createElement('canvas'); c.width = 320; c.height = 470;
+    var x = c.getContext('2d');
+    var col = st.card;
+    // 底
+    x.fillStyle = col.face; x.fillRect(0, 0, 320, 470);
+    // 做旧噪点
+    for (var i = 0; i < 2400; i++) {
+      x.fillStyle = 'rgba(0,0,0,' + (Math.random() * 0.05) + ')';
+      x.fillRect(Math.random() * 320, Math.random() * 470, 1.4, 1.4);
+    }
+    // 外框
+    x.strokeStyle = col.line; x.lineWidth = 3; x.strokeRect(8, 8, 304, 454);
+    x.strokeStyle = col.accent; x.lineWidth = 1; x.strokeRect(14, 14, 292, 442);
+    // 标题
+    x.fillStyle = col.ink; x.font = 'bold 30px "Microsoft YaHei",serif';
+    x.textAlign = 'center'; x.textBaseline = 'top';
+    x.fillText('回路卡', 160, 30);
+    // 族徽（圆章）
+    var cx = 160, cy = 185, r = 72;
+    x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.fillStyle = col.accent; x.globalAlpha = 0.18; x.fill(); x.globalAlpha = 1;
+    x.lineWidth = 3; x.strokeStyle = col.accent; x.stroke();
+    x.lineWidth = 1.5; x.strokeStyle = col.blood;
+    x.beginPath(); x.moveTo(cx, cy - r + 12);
+    for (var k = 0; k < 5; k++) { var a = -Math.PI / 2 + k * 4 * Math.PI / 5; x.lineTo(cx + Math.cos(a) * (r - 18), cy + Math.sin(a) * (r - 18)); }
+    x.closePath(); x.stroke();
+    // 族名
+    x.fillStyle = col.ink; x.font = 'bold 24px "Microsoft YaHei",serif';
+    x.fillText(FAMILIES[0], 160, cy + r + 22);
+    // 底部效果条
+    x.fillStyle = 'rgba(0,0,0,0.25)';
+    x.fillRect(26, 372, 268, 60);
+    x.strokeStyle = col.accent; x.lineWidth = 1; x.strokeRect(26, 372, 268, 60);
+    x.fillStyle = '#f4ecd8'; x.font = '16px "Microsoft YaHei",serif';
+    x.fillText('效果：一句话效果', 160, 392);
+    var t = new THREE.CanvasTexture(c);
+    t.anisotropy = 4; t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }
+
+  function makeBackTexture(st) {
+    var c = document.createElement('canvas'); c.width = 320; c.height = 470;
+    var x = c.getContext('2d');
+    var col = st.card;
+    x.fillStyle = col.face; x.fillRect(0, 0, 320, 470);
+    for (var i = 0; i < 2400; i++) {
+      x.fillStyle = 'rgba(0,0,0,' + (Math.random() * 0.05) + ')';
+      x.fillRect(Math.random() * 320, Math.random() * 470, 1.4, 1.4);
+    }
+    x.strokeStyle = col.line; x.lineWidth = 3; x.strokeRect(8, 8, 304, 454);
+    x.strokeStyle = col.accent; x.lineWidth = 1; x.strokeRect(14, 14, 292, 442);
+    var cx = 160, cy = 235, r = 100;
+    x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.strokeStyle = col.accent; x.lineWidth = 3; x.stroke();
+    x.beginPath(); x.arc(cx, cy, r - 14, 0, Math.PI * 2); x.strokeStyle = col.blood; x.lineWidth = 1.5; x.stroke();
+    x.fillStyle = col.blood; x.font = 'bold 44px "Microsoft YaHei",serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText('渐·变·带', cx, cy);
+    var t = new THREE.CanvasTexture(c);
+    t.anisotropy = 4; t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }
+
+  function roundedShape(w, h, r) {
+    var s = new THREE.Shape();
+    var x0 = -w / 2, y0 = -h / 2;
+    s.moveTo(x0 + r, y0);
+    s.lineTo(x0 + w - r, y0);
+    s.quadraticCurveTo(x0 + w, y0, x0 + w, y0 + r);
+    s.lineTo(x0 + w, y0 + h - r);
+    s.quadraticCurveTo(x0 + w, y0 + h, x0 + w - r, y0 + h);
+    s.lineTo(x0 + r, y0 + h);
+    s.quadraticCurveTo(x0, y0 + h, x0, y0 + h - r);
+    s.lineTo(x0, y0 + r);
+    s.quadraticCurveTo(x0, y0, x0 + r, y0);
+    return s;
+  }
+
+  function makeCard(st, faceTex, backTex, isBack) {
+    var w = 1.5, h = 2.2, depth = 0.1;
+    var geo = new THREE.ExtrudeGeometry(roundedShape(w, h, 0.12), { depth: depth, bevelEnabled: true, bevelThickness: 0.035, bevelSize: 0.03, bevelSegments: 2, steps: 1 });
+    var mat = new THREE.MeshStandardMaterial({
+      map: isBack ? backTex : faceTex,
+      roughness: st.material.roughness,
+      metalness: st.material.metalness,
+      side: THREE.DoubleSide
+    });
+    // 侧面单独布料色，形成边缘厚度
+    var sideMat = new THREE.MeshStandardMaterial({
+      color: st.card.edge, roughness: st.material.roughness, metalness: st.material.metalness
+    });
+    var mesh = new THREE.Mesh(geo, [sideMat, mat, mat]);
+    return mesh;
+  }
+
+  function makeSlot(st) {
+    var w = 1.5, h = 2.2, depth = 0.04;
+    var geo = new THREE.ExtrudeGeometry(roundedShape(w, h, 0.12), { depth: depth, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 1, steps: 1 });
+    // 半透明暗座：槽位
+    var slotMat = new THREE.MeshStandardMaterial({
+      color: st.card.edge, transparent: true, opacity: 0.32, roughness: 0.8, metalness: 0.1
+    });
+    // 发光边线
+    var frameMat = new THREE.MeshStandardMaterial({
+      color: st.card.accent, emissive: st.card.accent, emissiveIntensity: 0.35, transparent: true, opacity: 0.85
+    });
+    var mesh = new THREE.Mesh(geo, [slotMat, frameMat, frameMat]);
+    return mesh;
+  }
+
+  /* ── 场景搭建 ── */
+  function buildPanel(st, container) {
+    var W = container.clientWidth, H = 240;
+    var renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(W, H);
+    renderer.setClearColor(st.bg, 1);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    container.appendChild(renderer.domElement);
+
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(38, W / H, 0.1, 60);
+    camera.position.set(1.1, 2.4, 6.2);
+    camera.lookAt(0, -0.1, 0);
+
+    // 灯光
+    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    var key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(3, 5, 4); scene.add(key);
+    var fill = new THREE.DirectionalLight(0x88aaff, 0.35); fill.position.set(-4, 2, -2); scene.add(fill);
+    var warm = new THREE.PointLight(st.card.accent, 4, 14); warm.position.set(0, 1.4, 2.4); scene.add(warm);
+
+    // 牌桌
+    var desk = new THREE.Mesh(
+      new THREE.CircleGeometry(4.6, 48),
+      new THREE.MeshStandardMaterial({ color: st.desk, roughness: 0.95, metalness: 0.05 })
+    );
+    desk.rotation.x = -Math.PI / 2;
+    desk.position.y = -0.7;
+    scene.add(desk);
+
+    var faceTex = makeFaceTexture(st);
+    var backTex = makeBackTexture(st);
+    var cards = [];
+    // 正面卡 ×2（错落摆放）
+    var pos1 = [-1.05, -0.68, 0.15];
+    var pos2 = [1.15, -0.68, -0.1];
+    var c1 = makeCard(st, faceTex, backTex, false); c1.position.set(pos1[0], pos1[1], pos1[2]); c1.rotation.y = 0.32; scene.add(c1); cards.push(c1);
+    var c2 = makeCard(st, faceTex, backTex, false); c2.position.set(pos2[0], pos2[1], pos2[2]); c2.rotation.y = -0.28; scene.add(c2); cards.push(c2);
+    // 卡背一张
+    var cb = makeCard(st, faceTex, backTex, true); cb.position.set(-0.1, -0.68, 0.65); cb.rotation.y = 0; scene.add(cb); cards.push(cb);
+    // 空槽位一张（置于边缘）
+    var sl = makeSlot(st); sl.position.set(0, 0.32, -0.95); sl.rotation.x = 0.02; sl.rotation.y = 0; scene.add(sl);
+
+    var rot = 0;
+    var dragging = false, lastX = 0, lastY = 0;
+    var cameraRotY = 0;
+
+    var el = renderer.domElement;
+    el.addEventListener('pointerdown', function (e) { dragging = true; lastX = e.clientX; lastY = e.clientY; el.setPointerCapture(e.pointerId); });
+    el.addEventListener('pointerup', function () { dragging = false; });
+    el.addEventListener('pointercancel', function () { dragging = false; });
+    el.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      var dx = e.clientX - lastX, dy = e.clientY - lastY;
+      lastX = e.clientX; lastY = e.clientY;
+      cameraRotY += dx * 0.005;
+      camera.position.x = 1.1 + Math.sin(cameraRotY) * 2.2;
+      camera.position.z = 6.2 - (1 - Math.cos(cameraRotY)) * 2.2;
+      camera.lookAt(0, -0.1, 0);
+    });
+
+    var clock = new THREE.Clock();
+    (function animate() {
+      requestAnimationFrame(animate);
+      var t = clock.getElapsedTime();
+      cards.forEach(function (c, i) {
+        c.rotation.y = (c.userData.ry || c.rotation.y) + Math.sin(t * 0.7 + i * 1.7) * 0.04;
+        c.position.y = -0.68 + Math.sin(t * 1.1 + i * 2.1) * 0.03;
+      });
+      renderer.render(scene, camera);
+    })();
+
+    var resize = function () {
+      var w = container.clientWidth; if (!w) return;
+      camera.aspect = w / 240; camera.updateProjectionMatrix();
+      renderer.setSize(w, 240);
+    };
+    window.addEventListener('resize', resize);
+  }
+
+  /* ── 装配三套 ── */
+  var stage = document.getElementById('stage');
+  STYLES.forEach(function (st) {
+    var panel = document.createElement('div'); panel.className = 'panel';
+    var tt = document.createElement('div'); tt.className = 'tt';
+    var b = document.createElement('b'); b.textContent = st.name; b.style.color = '#' + st.card.accent.toString(16).padStart(6, '0');
+    var sp = document.createElement('span'); sp.textContent = st.tag;
+    tt.appendChild(b); tt.appendChild(sp);
+    var box = document.createElement('div'); box.style.position = 'relative';
+    var note = document.createElement('div'); note.className = 'note'; note.textContent = st.note;
+    panel.appendChild(tt); panel.appendChild(box); panel.appendChild(note);
+    stage.appendChild(panel);
+    buildPanel(st, box);
+  });
+})();
+</script>
+</body>
+</html>

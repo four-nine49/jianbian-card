@@ -102,10 +102,15 @@ function emitHtml() {
   const eng = resolve(__dirname, 'src', 'gradband', 'engine', 'circuit-engine.js');
   const assets = resolve(__dirname, 'src', 'gradband', 'assets');
   const engine = readFileSync(eng, 'utf8');
-  for (const name of ['statusbar', 'opening']) {
+  const htmlTargets = {
+    statusbar: '状态栏面板.html',
+    opening: '开局界面.html',
+    'statusbar-desk': '状态栏面板-双桌.html', // 双桌工作台（另存，不替换旧版）
+  };
+  for (const [name, outName] of Object.entries(htmlTargets)) {
     const tpl = readFileSync(resolve(assets, `${name}.html`), 'utf8');
     const out = tpl.replace('/*@ENGINE@*/', () => engine);
-    const file = resolve(OUTDIR, name === 'statusbar' ? '状态栏面板.html' : '开局界面.html');
+    const file = resolve(OUTDIR, outName);
     writeFileSync(file, out, 'utf8');
     console.log(`[build] ${file} (${(out.length / 1024).toFixed(1)} KB)`);
   }

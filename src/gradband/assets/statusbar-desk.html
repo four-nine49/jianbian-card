@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>渐变带 // 双桌矩阵工作台 [DYNAMIC_AFFINITY_PRO]</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700;800&family=Syne:wght@800;900&family=JetBrains+Mono:wght@600;800&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
+    :root {
+      --desk-wood: #06070a;
+      --grid-line: rgba(255, 255, 255, 0.035);
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-display: 'Syne', sans-serif;
+      --font-sans: 'Space Grotesk', sans-serif;
+      --acid-green: #c6ff00;
+      --acid-orange: #ff6600;
+      --acid-cyan: #00f0ff;
+      --acid-red: #f43f5e;
+      --acid-yellow: #eab308;
+      --acid-purple: #c084fc;
+    }
+
+    body {
+      background-color: var(--desk-wood);
+      color: #cbd5e1;
+      font-family: var(--font-mono);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* ================= 顶端切换条 ================= */
+    .top-desk-switcher {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 48px;
+      background: #090c12;
+      border-bottom: 2px solid #1e293b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      z-index: 500;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-txt {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+    .brand-badge {
+      background: var(--acid-green);
+      color: #000;
+      font-size: 9px;
+      font-weight: 800;
+      padding: 1px 5px;
+    }
+
+    .table-nav-tabs {
+      display: flex;
+      height: 100%;
+    }
+    .nav-tab-btn {
+      height: 100%;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: #64748b;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .nav-tab-btn:hover { color: #e2e8f0; background: rgba(255,255,255,0.02); }
+    .nav-tab-btn.active {
+      color: var(--acid-green);
+      border-bottom-color: var(--acid-green);
+      background: rgba(198, 255, 0, 0.04);
+    }
+    .nav-tab-btn span.tab-num {
+      font-size: 9px;
+      opacity: 0.6;
+    }
+
+    .top-status-indicator {
+      font-size: 10px;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .top-status-indicator b { color: #fff; }
+
+    /* ================= 视口结构 ================= */
+    .tabletop-viewport {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      position: absolute;
+      top: 0;
+      left: 0;
+      display: none;
+    }
+    .tabletop-viewport.active { display: block; }
+
+    /* 桌台1与桌台2：均支持自由拖拽平移与滚轮缩放 */
+    #viewportDesk1, #viewportDesk2 { cursor: grab; }
+    #viewportDesk1.grabbing, #viewportDesk2.grabbing { cursor: grabbing; }
+
+    .table-surface {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform-origin: 50% 50%;
+      transform-style: preserve-3d;
+      background: 
+        radial-gradient(circle at 50% 45%, #131928 0%, #080a10 75%),
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+      box-shadow: inset 0 0 200px rgba(0, 0, 0, 0.95);
+      border: 8px solid #050608;
+    }
+
+    /* 桌面 1 画布大小 */
+    #surfaceDesk1 {
+      width: 3400px;
+      height: 2200px;
+      background-size: 100% 100%, 48px 48px, 48px 48px;
+    }
+
+    /* 桌面 2 画布大小：大尺寸漫游桌面 */
+    #surfaceDesk2 {
+      width: 2800px;
+      height: 2000px;
+      background-size: 100% 100%, 40px 40px, 40px 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 100px 40px 60px;
+    }
+
+    /* 屏幕 HUD 提示条 */
+    .hud-controls-hint {
+      position: fixed;
+      bottom: 12px;
+      left: 16px;
+      font-size: 10px;
+      color: #64748b;
+      z-index: 100;
+      pointer-events: none;
+      display: flex;
+      gap: 12px;
+    }
+    .hud-controls-hint em {
+      font-style: normal;
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 1px 4px;
+    }
+
+    /* ================= 桌面1：回路配置桌 ================= */
+    .desk-monitors {
+      position: absolute;
+      top: 80px;
+      left: 100px;
+      display: flex;
+      gap: 16px;
+      background: rgba(8, 10, 15, 0.94);
+      padding: 12px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      z-index: 5;
+    }
+    .dial-block {
+      display: flex;
+      flex-direction: column;
+      font-size: 9px;
+      min-width: 100px;
+    }
+    .dial-title { color: #52617a; font-size: 8.5px; letter-spacing: 0.5px; margin-bottom: 2px; }
+    .dial-val { font-size: 12px; font-weight: 800; color: #fff; }
+    .combat-switch {
+      padding: 4px 10px;
+      border: 1px solid var(--acid-green);
+      background: rgba(198, 255, 0, 0.08);
+      color: var(--acid-green);
+      font-size: 9.5px;
+      font-weight: 800;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.2s;
+    }
+    .combat-switch.combat {
+      border-color: var(--acid-red);
+      background: rgba(244, 63, 94, 0.15);
+      color: var(--acid-red);
+    }
+
+    .slot-matrix-grid {
+      position: absolute;
+      top: 190px;
+      left: 100px;
+      padding: 22px;
+      background: rgba(12, 16, 24, 0.45);
+      border: 1px dashed rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .matrix-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding-bottom: 10px;
+    }
+    .matrix-title { font-size: 11px; letter-spacing: 1.5px; color: #64748b; font-weight: 800; }
+    .matrix-ctrls { display: flex; align-items: center; gap: 8px; }
+    .btn-slot-mod {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #cbd5e1;
+      padding: 3px 8px;
+      font-size: 10px;
+      font-weight: 800;
+      cursor: pointer;
+      border-radius: 2px;
+      font-family: var(--font-mono);
+      transition: all 0.2s;
+    }
+    .btn-slot-mod:hover { background: var(--acid-green); color: #000; border-color: var(--acid-green); }
+
+    .slots-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      max-width: 1000px;
+    }
+    .slot-socket {
+      width: 148px;
+      height: 220px;
+      border: 1px dashed rgba(255, 255, 255, 0.12);
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.015);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 4px;
+      color: #374151;
+      font-size: 9px;
+      transition: all 0.2s;
+    }
+    .slot-socket.drag-hover {
+      border-color: var(--acid-green);
+      background: rgba(198, 255, 0, 0.06);
+      box-shadow: 0 0 15px rgba(198, 255, 0, 0.25);
+    }
+    .socket-label {
+      position: absolute;
+      top: 6px;
+      left: 8px;
+      font-size: 8px;
+      color: #4b5563;
+      font-weight: 700;
+    }
+
+    /* 回路卡牌式样 */
+    .card-token {
+      width: 136px;
+      height: 206px;
+      position: absolute;
+      cursor: grab;
+      transform-style: preserve-3d;
+      transition: box-shadow 0.2s ease, transform 0.12s ease-out;
+      z-index: 10;
+    }
+    .card-token.dragging {
+      cursor: grabbing;
+      z-index: 999 !important;
+      transform: scale(1.06) rotateZ(-1deg) !important;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.95);
+    }
+    .card-token.selected .card-inner {
+      border-color: #fff !important;
+      box-shadow: 0 0 0 2px #fff, 0 16px 36px rgba(0,0,0,0.9);
+    }
+    .card-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 4px;
+      background: var(--card-bg, #0d1118);
+      border: 2px solid var(--accent, #334155);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.7);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+    .card-token.spent .card-inner {
+      border-color: #334155 !important;
+      background: #090b0e !important;
+      opacity: 0.6;
+      filter: grayscale(0.9);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.8);
+    }
+    .card-token.spent .spent-overlay-stamp { display: flex; }
+    .spent-overlay-stamp {
+      display: none;
+      position: absolute;
+      top: 42%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-18deg);
+      border: 3px solid var(--acid-red);
+      color: var(--acid-red);
+      padding: 4px 10px;
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      pointer-events: none;
+      z-index: 10;
+      background: rgba(10, 5, 8, 0.9);
+      white-space: nowrap;
+    }
+    .token-glare {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.2) 0%, transparent 65%);
+      mix-blend-mode: overlay;
+    }
+    .token-ghost {
+      position: absolute;
+      top: 36%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: var(--font-display);
+      font-size: 58px;
+      font-weight: 900;
+      color: var(--accent);
+      opacity: 0.05;
+      letter-spacing: -2px;
+      pointer-events: none;
+    }
+    .token-top {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      font-weight: 800;
+      color: var(--accent);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding-bottom: 3px;
+      z-index: 2;
+    }
+    .token-name {
+      margin-top: 4px;
+      border-left: 3px solid var(--accent);
+      padding-left: 6px;
+      z-index: 2;
+    }
+    .token-name-1 { font-family: var(--font-display); font-size: 16px; font-weight: 900; color: #fff; line-height: 1.05; }
+    .token-name-2 { font-size: 14px; font-weight: 800; color: var(--accent); line-height: 1.05; margin-top: 2px; }
+    .token-qtm {
+      margin: 4px 0;
+      padding: 4px 6px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      z-index: 2;
+    }
+    .token-val { font-size: 20px; font-weight: 900; color: #fff; line-height: 1; }
+    .token-unit { font-size: 12px; color: var(--accent); margin-left: 2px; }
+    .token-cost-badge {
+      background: var(--accent);
+      color: #000;
+      font-size: 9.5px;
+      font-weight: 900;
+      padding: 3px 5px;
+      text-align: center;
+      letter-spacing: 0.3px;
+      z-index: 2;
+    }
+    .token-switch-bar { margin-top: 5px; display: flex; z-index: 2; }
+    .btn-toggle-spent {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-size: 9.5px;
+      font-weight: 800;
+      padding: 4px 2px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-toggle-spent:hover { background: #fff; color: #000; }
+    .card-token.spent .btn-toggle-spent {
+      background: rgba(244, 63, 94, 0.2);
+      border-color: var(--acid-red);
+      color: var(--acid-red);
+    }
+    .card-token.spent .btn-toggle-spent:hover { background: var(--acid-red); color: #fff; }
+
+    /* ================= 桌面2：角色桌（全新紧凑高密度 5 族并列矩阵） ================= */
+    .char-profile-banner {
+      width: 100%;
+      max-width: 1480px;
+      background: rgba(10, 14, 22, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      padding: 16px 24px;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.7);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .char-bio-block { display: flex; flex-direction: column; gap: 4px; }
+    .char-name-title {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 900;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .affinity-legend-bar {
+      display: flex;
+      gap: 14px;
+      font-size: 10px;
+      align-items: center;
+    }
+    .leg-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 3px;
+      font-weight: 800;
+    }
+    /* 图例指示发光效果 */
+    .leg-badge.primary {
+      background: #000;
+      border: 1px solid #fff;
+      color: #fff;
+      box-shadow: 0 0 14px rgba(255, 0, 200, 0.8), 0 0 8px rgba(0, 255, 255, 0.9);
+      position: relative;
+      overflow: hidden;
+    }
+    .leg-badge.secondary {
+      background: rgba(255, 102, 0, 0.15);
+      border: 1px solid var(--acid-orange);
+      color: var(--acid-orange);
+      box-shadow: 0 0 10px rgba(255, 102, 0, 0.4);
+    }
+    .leg-badge.none {
+      background: rgba(100, 116, 139, 0.1);
+      border: 1px solid #334155;
+      color: #64748b;
+    }
+
+    /* 5 列族群并列矩阵：紧凑消除空间浪费 */
+    .affinity-columns-grid {
+      width: 100%;
+      max-width: 1480px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .affinity-family-col {
+      background: rgba(12, 16, 24, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .family-col-header {
+      border-bottom: 2px solid var(--fam-color, rgba(255,255,255,0.1));
+      padding-bottom: 8px;
+    }
+    .family-col-title {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 900;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .family-col-sub {
+      font-size: 8.5px;
+      color: #64748b;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .cards-vertical-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* ================= 亲和卡本体设计 (136px x 152px) ================= */
+    .affinity-card {
+      width: 100%;
+      height: 146px;
+      border-radius: 5px;
+      background: #090c12;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.25s ease;
+      overflow: hidden;
+    }
+    .affinity-card:hover {
+      transform: translateY(-4px) scale(1.02);
+      z-index: 20;
+    }
+
+    /* -------------------------------------------------------------
+       发光机制核心：
+       1. 主亲和：彩色流光霓虹 (Multi-color Chromatic Neon Glow)
+       2. 次亲和：原本纯色发光 (Solid Branch Glow)
+       3. 非亲和：完全不发光 (Zero Glow / Matte Dim)
+       ------------------------------------------------------------- */
+
+    /* 1. 主亲和：炫彩霓虹流动边框与多色外发光 */
+    .affinity-card.status-primary {
+      border: 2px solid transparent;
+      background: linear-gradient(#090c12, #090c12) padding-box,
+                  linear-gradient(135deg, #ff007f, #00f0ff, #c6ff00, #ff00ea) border-box;
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.45), 
+                  0 0 28px rgba(255, 0, 128, 0.35),
+                  inset 0 0 12px rgba(198, 255, 0, 0.15);
+      animation: neonPulse 3s ease-in-out infinite alternate;
+    }
+    @keyframes neonPulse {
+      0% {
+        box-shadow: 0 0 14px rgba(0, 240, 255, 0.5), 0 0 24px rgba(255, 0, 128, 0.4), inset 0 0 10px rgba(198, 255, 0, 0.15);
+      }
+      100% {
+        box-shadow: 0 0 22px rgba(198, 255, 0, 0.6), 0 0 34px rgba(0, 240, 255, 0.5), inset 0 0 16px rgba(255, 0, 200, 0.25);
+      }
+    }
+    .affinity-card.status-primary .aff-level-tag {
+      background: linear-gradient(90deg, #00f0ff, #c6ff00);
+      color: #000;
+      font-weight: 900;
+    }
+
+    /* 2. 次亲和：原本分支基调纯色发光 */
+    .affinity-card.status-secondary {
+      border: 2px solid var(--accent, #ff6600);
+      box-shadow: 0 0 14px var(--accent-glow, rgba(255, 102, 0, 0.45)), 
+                  inset 0 0 10px rgba(255, 255, 255, 0.03);
+    }
+    .affinity-card.status-secondary .aff-level-tag {
+      background: var(--accent, #ff6600);
+      color: #000;
+      font-weight: 900;
+    }
+
+    /* 3. 非亲和：完全不发光 (暗色消隐) */
+    .affinity-card.status-none {
+      border: 1px solid #1f2937;
+      box-shadow: none !important;
+      opacity: 0.5;
+    }
+    .affinity-card.status-none:hover {
+      opacity: 0.85;
+      border-color: #475569;
+    }
+    .affinity-card.status-none .aff-level-tag {
+      background: #1f2937;
+      color: #64748b;
+    }
+
+    /* 卡牌选定态 */
+    .affinity-card.selected {
+      outline: 2px solid #ffffff;
+      outline-offset: 2px;
+      opacity: 1 !important;
+    }
+
+    .aff-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 8px;
+      color: #64748b;
+      font-weight: 700;
+    }
+    .aff-level-tag {
+      font-size: 8px;
+      font-weight: 800;
+      padding: 1px 4px;
+      border-radius: 2px;
+      letter-spacing: 0.5px;
+    }
+
+    /* SVG 几何图腾区 (中置居中) */
+    .aff-svg-wrap {
+      height: 52px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 2px 0;
+    }
+    .aff-svg-wrap svg {
+      width: 48px;
+      height: 48px;
+      filter: drop-shadow(0 0 6px currentColor);
+    }
+
+    .aff-title-box {
+      border-left: 2.5px solid var(--accent, #64748b);
+      padding-left: 5px;
+    }
+    .aff-name {
+      font-family: var(--font-display);
+      font-size: 13.5px;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.1;
+    }
+    .aff-sub {
+      font-size: 8px;
+      color: #718096;
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .aff-rate-pill {
+      font-size: 8px;
+      color: #94a3b8;
+      background: rgba(255,255,255,0.03);
+      padding: 2px 4px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 2px;
+    }
+
+    /* ================= 屏幕固定侧栏 ================= */
+    .screen-sidebar {
+      position: fixed;
+      top: 48px;
+      right: 0;
+      width: 380px;
+      height: calc(100vh - 48px);
+      background: rgba(7, 9, 14, 0.98);
+      backdrop-filter: blur(25px);
+      border-left: 2px solid #232c3d;
+      z-index: 400;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: -15px 0 40px rgba(0, 0, 0, 0.9);
+    }
+    .screen-sidebar.open { transform: translateX(0); }
+
+    .sidebar-handle {
+      position: absolute;
+      top: 50%;
+      left: -32px;
+      transform: translateY(-50%);
+      width: 32px;
+      height: 100px;
+      background: rgba(7, 9, 14, 0.98);
+      border: 2px solid #232c3d;
+      border-right: none;
+      border-radius: 6px 0 0 6px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      font-size: 10px;
+      color: var(--acid-green);
+      font-weight: 800;
+      letter-spacing: 2px;
+      writing-mode: vertical-lr;
+      box-shadow: -6px 0 16px rgba(0,0,0,0.6);
+      transition: all 0.2s;
+    }
+    .sidebar-handle:hover { background: var(--acid-green); color: #000; }
+
+    .sidebar-tabs {
+      display: flex;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+      background: #0b0e15;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 14px 10px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #64748b;
+      text-align: center;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      font-family: var(--font-mono);
+    }
+    .tab-btn:hover { color: #fff; }
+    .tab-btn.active {
+      color: var(--acid-green);
+      border-bottom-color: var(--acid-green);
+      background: rgba(198, 255, 0, 0.03);
+    }
+
+    .tab-content-panel {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px;
+      display: none;
+    }
+    .tab-content-panel.active {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .repo-card-item {
+      padding: 12px;
+      background: rgba(13, 17, 24, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .repo-card-item:hover { border-color: var(--item-acc, #c6ff00); transform: translateX(-4px); }
+    .repo-card-head { display: flex; justify-content: space-between; font-size: 8.5px; color: #64748b; }
+    .repo-card-title { font-size: 13px; font-weight: 800; color: #fff; margin: 3px 0; }
+    .repo-card-stat { font-size: 9.5px; color: var(--item-acc, #c6ff00); }
+
+    .dos-hero { border-left: 4px solid var(--dos-acc, #c6ff00); padding-left: 12px; }
+    .dos-cat { font-size: 9.5px; color: #64748b; }
+    .dos-name { font-family: var(--font-display); font-size: 20px; font-weight: 900; color: #fff; margin-top: 4px; }
+    .dos-energy { font-size: 24px; font-weight: 800; color: var(--dos-acc, #c6ff00); margin-top: 4px; }
+    .dos-anchor { font-size: 11px; color: #94a3b8; }
+    .dos-specs { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); padding: 12px; }
+    .spec-r { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px; }
+    .spec-r:last-child { margin-bottom: 0; }
+    .spec-r .k { color: #8b99ae; }
+    .spec-r .v { color: #fff; font-weight: 600; }
+    .dos-banner { background: var(--dos-acc, #c6ff00); color: #000; padding: 8px 12px; font-weight: 800; font-size: 10.5px; }
+    .dos-lore { font-size: 11px; line-height: 1.6; color: #94a3b8; border-top: 1px dashed rgba(255,255,255,0.12); padding-top: 12px; }
+
+    .btn-recycle-card {
+      margin-top: 10px;
+      background: rgba(244, 63, 94, 0.12);
+      border: 1px solid var(--acid-red);
+      color: var(--acid-red);
+      padding: 10px;
+      font-size: 11px;
+      font-weight: 800;
+      text-align: center;
+      cursor: pointer;
+      letter-spacing: 1px;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+    .btn-recycle-card:hover {
+      background: var(--acid-red);
+      color: #fff;
+      box-shadow: 0 0 15px rgba(244, 63, 94, 0.4);
+    }
+  </style>
+</head>
+<body>
+
+<!-- 0. 屏幕最顶端：工作桌切换导航条 -->
+<nav class="top-desk-switcher">
+  <div class="brand-group">
+    <span class="brand-txt">GRADIENT ZONE</span>
+    <span class="brand-badge">DESK MATRIX</span>
+  </div>
+
+  <div class="table-nav-tabs">
+    <button class="nav-tab-btn active" id="btnNavDesk1" data-target="desk1">
+      <span class="tab-num">[1]</span>
+      <span>回路配置桌</span>
+    </button>
+    <button class="nav-tab-btn" id="btnNavDesk2" data-target="desk2">
+      <span class="tab-num">[2]</span>
+      <span>角色桌 // 亲和光谱</span>
+    </button>
+  </div>
+
+  <div class="top-status-indicator" id="topActorSummary">
+    <!-- 动态载入角色概览 -->
+  </div>
+</nav>
+
+<div class="hud-controls-hint">
+  <span>[ <em>顶部切换工作台</em> ]</span>
+  <span>[ <em>滚轮</em> 缩放桌台景深 ]</span>
+  <span>[ <em>双桌台均支持自由抓取拖拽平移与滚轮缩放</em> ]</span>
+  <span>[ <em>点击任意卡牌</em> 侧栏展开详细档案 ]</span>
+</div>
+
+<!-- 屏幕固定右侧栏 -->
+<aside class="screen-sidebar" id="screenSidebar">
+  <div class="sidebar-handle" id="sidebarHandle">侧栏 // HUD</div>
+
+  <div class="sidebar-tabs">
+    <button class="tab-btn" id="tabBtnRepo" data-tab="tabRepo">回路牌库</button>
+    <button class="tab-btn active" id="tabBtnDetail" data-tab="tabDetail">卡牌档案显示</button>
+  </div>
+
+  <div class="tab-content-panel" id="tabRepo">
+    <div style="font-size:10px; color:#64748b; letter-spacing:1px; margin-bottom:6px;">
+      RESERVE CIRCUITS // 备选回路库（自由回路）
+    </div>
+    <div id="repoListContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
+  </div>
+
+  <div class="tab-content-panel active" id="tabDetail">
+    <div id="detailContainer">
+      <div style="text-align:center; padding:60px 20px; color:#475569; font-size:11px;">
+        [ 未选定卡牌 ]<br>点击桌面上任意回路卡或亲和卡，在此处显示详细参数
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ================= 视口 1：回路配置桌 ================= -->
+<div class="tabletop-viewport active" id="viewportDesk1">
+  <div class="table-surface" id="surfaceDesk1">
+
+    <div class="desk-monitors">
+      <div class="dial-block">
+        <span class="dial-title">身体状态 // VITALS</span>
+        <span class="dial-val" id="valBody">--</span>
+      </div>
+      <div class="dial-block">
+        <span class="dial-title">能量 / 精神 // RES</span>
+        <span class="dial-val" style="color:var(--acid-green);" id="valRes">--</span>
+      </div>
+      <div class="dial-block">
+        <span class="dial-title">剧情锚点 // TIME</span>
+        <span class="dial-val" id="valTime">--</span>
+      </div>
+      <div class="dial-block" style="justify-content:center;">
+        <button class="combat-switch" id="btnCombatToggle">非战斗 [槽位自由]</button>
+      </div>
+    </div>
+
+    <div class="slot-matrix-grid" id="slotMatrixGrid">
+      <div class="matrix-header">
+        <span class="matrix-title">固定回路托盘 // 固定槽 (10) + 自由槽 (3)</span>
+        <div class="matrix-ctrls">
+          <span style="font-size:10px; color:#94a3b8;" id="slotCapTag">--</span>
+        </div>
+      </div>
+      <div class="slots-container" id="slotsContainer"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================= 视口 2：角色桌（禁止平移，只能缩放，紧凑5列矩阵） ================= -->
+<div class="tabletop-viewport" id="viewportDesk2">
+  <div class="table-surface" id="surfaceDesk2">
+
+    <!-- 角色基础横幅 -->
+    <div class="char-profile-banner">
+      <div class="char-bio-block">
+        <div class="char-name-title" id="charBannerTitle">
+          <!-- 动态载入 -->
+        </div>
+        <div style="font-size:10px; color:#64748b; margin-top:2px;" id="charBannerSub">
+          <!-- 动态载入 -->
+        </div>
+      </div>
+
+      <!-- 亲和发光图例 -->
+      <div class="affinity-legend-bar">
+        <div class="leg-badge primary">● 主亲和 (炫彩霓虹 · 精神×1 能量×1)</div>
+        <div class="leg-badge secondary">◐ 次亲和 (原本光 · 精神×2 能量×1.5)</div>
+        <div class="leg-badge none">○ 非亲和 (不发光 · 精神×4 能量×4 过载+15)</div>
+      </div>
+    </div>
+
+    <!-- 5列紧凑排列：倾泻(3) / 波动(5) / 结构(4) / 生机(3) / 感知(3) = 18分支 -->
+    <div class="affinity-columns-grid" id="affinityColumnsGrid">
+      <!-- 动态构建 5 列 18 分支卡牌 -->
+    </div>
+
+  </div>
+</div>
+
+<script>
+/*@ENGINE@*/
+(function () {
+  'use strict';
+  var E = window.CircuitEngine || globalThis.CircuitEngine;
+
+  /* ═══════════════════ 数据访问（真实契约：chat 变量 渐变带） ═══════════════════ */
+  function readChat() {
+    try { var v = getVariables({ type: 'chat' }); return v ? v['渐变带'] || null : null; } catch (e) { return null; }
+  }
+  function writeGame(mut) {
+    try {
+      updateVariablesWith(function (v) { var g = v['渐变带']; if (g) mut(g); return v; }, { type: 'chat' });
+      setTimeout(function () {
+        try {
+          var g = readChat(); if (!g) return;
+          var snap = JSON.parse(JSON.stringify(g));
+          if (snap['主角']) delete snap['主角']['上次结算min'];
+          updateVariablesWith(function (v) { v.stat_data = v.stat_data || {}; v.stat_data['渐变带'] = snap; return v; }, { type: 'message', message_id: getLastMessageId() });
+        } catch (e) {}
+      }, 300);
+      return true;
+    } catch (e) { alert('写入失败：' + e); return false; }
+  }
+  function circuitById(g, id) { for (var i = 0; i < g.回路库.length; i++) if (g.回路库[i].id === id) return g.回路库[i]; return null; }
+  function affinityOf(g) { return { main: Array.isArray(g.亲和.主分支) ? g.亲和.主分支 : (g.亲和.主分支 ? [g.亲和.主分支] : []), subs: g.亲和.次分支 || [] }; }
+  function tunedList(g) {
+    var out = [];
+    (g.槽位.固定槽 || []).forEach(function (id) {
+      if (!id) return; var c = circuitById(g, id);
+      if (c && c.type === 'fixed' && c.微调预算) out.push({ id: c.id, 名: c.名称, params: c.参数向量, budget: c.微调预算 });
+    });
+    return out;
+  }
+  function engineCtx(g) {
+    return {
+      aff: affinityOf(g),
+      scene: { wind: g.场景.风力档, mat: g.场景.可塑无机物kJ, water: g.场景.水体在场 },
+      char: { burstKW: g.主角.爆发线kW, sustainKW: g.主角.持续线kW, speed: 1, eCur: g.主角.能量kJ.当前, mCur: g.主角.精神点.当前, mMax: g.主角.精神点.上限, body: g.主角.身体状态 },
+      tuned: tunedList(g)
+    };
+  }
+
+  var $ = function (s) { return document.querySelector(s); };
+
+  /* ═══════════════════ 数据模型（从存档装载，不再写死） ═══════════════════ */
+  var g = null;
+  var ON_DESK_CARDS = [];       // 已装槽回路卡（固定槽 + 自由槽）
+  var REPO_CARDS = [];          // 备选：未装槽的自由回路
+  var CURRENT_ACTOR = { name: '—', title: '', department: '', truth: '', affinityMap: {} };
+  var isCombat = false;
+  var selectedEntity = null;
+
+  function loadFromSave() {
+    g = readChat();
+    if (!g) return false;
+
+    // 主角横幅
+    var zhu = g.主角;
+    CURRENT_ACTOR.name = '施法者';
+    CURRENT_ACTOR.title = (zhu.战斗中 ? '战斗中' : '非战斗') + ' · ' + (zhu.身体状态 || '正常');
+    CURRENT_ACTOR.department = '能量 ' + Math.round(zhu.能量kJ.当前) + '/' + zhu.能量kJ.上限 + 'kJ';
+    CURRENT_ACTOR.truth = '精神 ' + Math.round(zhu.精神点.当前) + '/' + zhu.精神点.上限;
+
+    // 亲和映射：主分支 → primary；次分支 → secondary；其余 none
+    CURRENT_ACTOR.affinityMap = {};
+    var aff = affinityOf(g);
+    aff.main.forEach(function (m) { CURRENT_ACTOR.affinityMap[affKey(m.族, m.分支)] = 'primary'; });
+    aff.subs.forEach(function (s2) { var k = affKey(s2.族, s2.分支); if (!CURRENT_ACTOR.affinityMap[k]) CURRENT_ACTOR.affinityMap[k] = 'secondary'; });
+
+    // 回路卡：槽位 + 回路库
+    ON_DESK_CARDS = [];
+    var slotIndex = 0;
+    (g.槽位.固定槽 || []).forEach(function (id) {
+      if (!id) { slotIndex++; return; }
+      var c = circuitById(g, id);
+      if (c) { ON_DESK_CARDS.push(toDeskCard(c, 'fixed', slotIndex)); }
+      slotIndex++;
+    });
+    (g.槽位.自由槽 || []).forEach(function (id) {
+      if (!id) { slotIndex++; return; }
+      var c = circuitById(g, id);
+      if (c) { ON_DESK_CARDS.push(toDeskCard(c, 'free', slotIndex)); }
+      slotIndex++;
+    });
+
+    // 备选：未装槽的自由回路
+    var mounted = new Set(ON_DESK_CARDS.map(function (c) { return c.id; }));
+    REPO_CARDS = g.回路库.filter(function (c) { return c.type === 'free' && !mounted.has(c.id); }).map(function (c) { return toDeskCard(c, 'free', null); });
+
+    return true;
+  }
+
+  function famAccent(famKey) {
+    return { pour: '#00f0ff', flow: '#c6ff00', struct: '#ff6600', life: '#f43f5e', perce: '#eab308' }[famKey] || '#334155';
+  }
+  function affKey(族, 分支) { return 'aff_' + (族 || '') + '_' + (分支 || ''); }
+
+  /* 回路 → 桌面卡（真实数据：名称/族·分支/计费/精神/uses/参数明细） */
+  function toDeskCard(c, type, slotIndex) {
+    var bill = c.基线账单 || {};
+    return {
+      id: c.id,
+      name: c.名称,
+      category: (c.族 || '') + '·' + (c.分支 || ''),
+      famKey: c.famKey,
+      energy: String(bill.计费kJ != null ? bill.计费kJ : 0),
+      unit: 'kJ',
+      costBadge: '精神 ' + (bill.精神 != null ? bill.精神 : 0) + (type === 'free' ? ' · uses ' + (c.uses || 0) : ''),
+      accent: famAccent(c.famKey),
+      bg: '#0d1118',
+      ghost: (c.分支 || 'CIRC').slice(0, 4).toUpperCase(),
+      spent: false,
+      slotIndex: slotIndex,
+      x: 0, y: 0,
+      specs: [
+        { k: '类型', v: type === 'fixed' ? '固定' : '自由' },
+        { k: '族', v: c.族 || '' },
+        { k: '分支', v: c.分支 || '' },
+        { k: '效果', v: bill.一句话效果 || '' }
+      ],
+      banner: type === 'fixed' ? '▶ 固化回路' : '自由 · uses ' + (c.uses || 0) + '/10',
+      lore: (c.参数明细 && Object.keys(c.参数明细).length ? '参数：' + JSON.stringify(c.参数明细) : '') + (c.来源 ? ' · 来源 ' + c.来源 : '')
+    };
+  }
+
+  /* ═══════════════════ 静态模型：五族分支本体树（保留，亲和等级动态） ═══════════════════ */
+  var BRANCHES_ONTOLOGY = [
+    { family: '倾泻族', familyDesc: '高能热相与电磁 / 极速杀伤', color: '#00f0ff', colorGlow: 'rgba(0, 240, 255, 0.45)', famKey: 'pour',
+      branches: [
+        { id: 'aff_pour_光', name: '光', desc: '定向高能光频冲击与光压致盲', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="32" cy="32" r="10"/><line x1="32" y1="8" x2="32" y2="16"/><line x1="32" y1="48" x2="32" y2="56"/><line x1="8" y1="32" x2="16" y2="32"/><line x1="48" y1="32" x2="56" y2="32"/></svg>', lore: '把未分化能量粗暴坍缩为光相。' },
+        { id: 'aff_pour_电', name: '电', desc: '高压电荷脉冲与强电弧击穿', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="35,6 18,34 32,34 27,58 48,26 34,26 40,6"/></svg>', lore: '电荷脉冲导速极快，连发易痉挛。' },
+        { id: 'aff_pour_热', name: '热', desc: '高能热焰喷射与热运动相变', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M32 8 C20 22 16 34 16 44 A16 16 0 0 0 48 44 C48 34 44 22 32 8 Z"/></svg>', lore: '热能喷射是全民基础魔法之一。' }
+      ] },
+    { family: '波动族', familyDesc: '波与场指挥 / 借力省耗 / 共振放大', color: '#c6ff00', colorGlow: 'rgba(198, 255, 0, 0.45)', famKey: 'flow',
+      branches: [
+        { id: 'aff_flow_实体波', name: '实体波', desc: '电磁波震荡与无介质波形传递', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="32" cy="32" r="24" stroke-dasharray="3,3"/><circle cx="32" cy="32" r="16"/></svg>', lore: '空间场自发性形变。' },
+        { id: 'aff_flow_媒介波', name: '媒介波', desc: '气流激波、风刃剪切、水流与声', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M8 22 Q 20 12 32 22 T 56 22"/></svg>', lore: '借由环境风与媒介流动，转化率最高。' },
+        { id: 'aff_flow_电磁场', name: '电磁场', desc: '势能梯度导向与磁力约束力场', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><ellipse cx="32" cy="32" rx="25" ry="10"/><ellipse cx="32" cy="32" rx="25" ry="10" transform="rotate(60 32 32)"/></svg>', lore: '工业磁约束与带电粒子偏转。' },
+        { id: 'aff_flow_引力场', name: '引力场', desc: '微重力沉降、失重悬浮与空间折角', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="32" cy="32" r="26"/><circle cx="32" cy="32" r="18"/><circle cx="32" cy="32" r="10"/></svg>', lore: '能耗极高但极为致命。' },
+        { id: 'aff_flow_核力场', name: '核力场', desc: '强弱相互作用干涉 / 战略核级禁区', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="32" cy="32" r="5" fill="currentColor"/><circle cx="32" cy="32" r="25" stroke-dasharray="3,3"/></svg>', lore: '国家战略禁区，动用即国家级能源大事件。' }
+      ] },
+    { family: '结构族', familyDesc: '固相重排 / 分子强键合 / 最高结构度', color: '#ff6600', colorGlow: 'rgba(255, 102, 0, 0.45)', famKey: 'struct',
+      branches: [
+        { id: 'aff_struct_晶体', name: '晶体', desc: '晶界致密强化、硅基固化、晶体壁垒', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="32,6 54,20 54,44 32,58 10,44 10,20"/></svg>', lore: '单位能量换取最高结构度。' },
+        { id: 'aff_struct_金属', name: '金属', desc: '金属晶格形变与抗冲击强化', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="14" y="14" width="36" height="36" rx="4"/><circle cx="22" cy="22" r="3" fill="currentColor"/></svg>', lore: '工业防弹与兵器附魔主力。' },
+        { id: 'aff_struct_土石', name: '土石', desc: '硅酸盐岩刺突变与宏观土体塑形', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="10,54 28,14 40,36 48,22 56,54"/></svg>', lore: '重型掩体建筑与地表改变。' },
+        { id: 'aff_struct_合金', name: '合金', desc: '多元固溶体界面微观调控硬化', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="32,10 52,24 44,48 20,48 12,24"/></svg>', lore: '尖端军工装甲核心工艺。' }
+      ] },
+    { family: '生机族', familyDesc: '有机过程活化 / 细胞诱导 / 缓释渗透', color: '#f43f5e', colorGlow: 'rgba(244, 63, 94, 0.45)', famKey: 'life',
+      branches: [
+        { id: 'aff_life_植物', name: '植物', desc: '纤维急速缠绕与木质素变异加固', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M32 58 C32 30 16 26 12 14 C26 14 32 26 32 38 C32 20 44 14 52 10 C50 24 42 34 32 58 Z"/></svg>', lore: '对植物细胞壁的强力干涉。' },
+        { id: 'aff_life_动物', name: '动物 (含人体)', desc: '血小板急速活化、肌纤维收缩愈合', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 28 C12 18 20 12 32 20 C44 12 52 18 52 28 C52 42 32 54 32 54 C32 54 12 42 12 28 Z"/></svg>', lore: '维持生命体征，紧急闭合破损。' },
+        { id: 'aff_life_微生物', name: '微生物', desc: '菌群定向裂变与生化分解催化', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="24" cy="24" r="10"/><circle cx="42" cy="38" r="8"/></svg>', lore: '生化反应极细微，过载易微循环坏死。' }
+      ] },
+    { family: '感知族', familyDesc: '只读不写 / 信息相位 / 神经负荷 / 稀有', color: '#eab308', colorGlow: 'rgba(234, 179, 8, 0.45)', famKey: 'perce',
+      branches: [
+        { id: 'aff_perce_五感延伸', name: '五感延伸', desc: '超声多普勒、视神经微动全景成像', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 32 C18 16 46 16 56 32 C46 48 18 48 8 32 Z"/><circle cx="32" cy="32" r="8"/></svg>', lore: '只读不写，闭眼听风即可绘三维声场。' },
+        { id: 'aff_perce_读心干扰', name: '读心干扰', desc: '神经突触电位杂音注入与意识打断', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 26 C14 16 22 10 32 10 C42 10 50 16 50 26 C50 32 46 36 42 40 L42 48 L22 48 L22 40 C18 36 14 32 14 26 Z"/></svg>', lore: '扰乱施法前摇，极度消耗脑力。' },
+        { id: 'aff_perce_信息伪造', name: '信息伪造', desc: '幻术相位投射与虚假多普勒频移', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="32,8 54,52 10,52"/><polygon points="32,22 44,46 20,46" stroke-dasharray="2,2"/></svg>', lore: '相位伪造与声学欺骗，谍战核心手段。' }
+      ] }
+  ];
+
+  /* ═══════════════════ 桌面1：槽位 + 回路卡渲染 ═══════════════════ */
+  var slotsContainer = $('#slotsContainer');
+  var slotCapTag = $('#slotCapTag');
+  var surfaceDesk1 = $('#surfaceDesk1');
+  var SOCKET_COORDS = [];
+
+  function buildSlots() {
+    slotsContainer.innerHTML = '';
+    var total = (g.槽位.固定槽 || []).length + (g.槽位.自由槽 || []).length;
+    for (var i = 0; i < total; i++) {
+      var socket = document.createElement('div');
+      socket.className = 'slot-socket';
+      socket.id = 'socket_' + i;
+      var isFree = i >= (g.槽位.固定槽 || []).length;
+      socket.innerHTML = '<span class="socket-label">' + (isFree ? 'FREE' : 'SLOT') + ' 0' + (i + 1) + '</span><div style="opacity:0.3;font-size:18px;">+</div><div style="opacity:0.4;">空置插槽</div>';
+      slotsContainer.appendChild(socket);
+    }
+    slotCapTag.textContent = (g.槽位.固定槽 || []).length + ' 固定 + ' + (g.槽位.自由槽 || []).length + ' 自由 (在桌 ' + ON_DESK_CARDS.length + ')';
+  }
+
+  function updateSocketCoordinates() {
+    SOCKET_COORDS.length = 0;
+    var surfaceRect = surfaceDesk1.getBoundingClientRect();
+    for (var i = 0; i < slotsContainer.children.length; i++) {
+      var sock = document.getElementById('socket_' + i);
+      if (!sock) continue;
+      var r = sock.getBoundingClientRect();
+      SOCKET_COORDS.push({ x: (r.left - surfaceRect.left) / scale1 + 6, y: (r.top - surfaceRect.top) / scale1 + 7, index: i });
+    }
+  }
+
+  function renderDesktopCards() {
+    document.querySelectorAll('#surfaceDesk1 .card-token').forEach(function (el) { el.remove(); });
+    updateSocketCoordinates();
+    ON_DESK_CARDS.forEach(function (c) {
+      if (c.slotIndex !== null && c.slotIndex !== undefined && c.slotIndex < SOCKET_COORDS.length) {
+        c.x = SOCKET_COORDS[c.slotIndex].x; c.y = SOCKET_COORDS[c.slotIndex].y;
+      }
+      var cardEl = document.createElement('div');
+      cardEl.className = 'card-token ' + (c.spent ? 'spent' : '') + (selectedEntity && selectedEntity.id === c.id ? ' selected' : '');
+      cardEl.style.setProperty('--accent', c.accent);
+      cardEl.style.left = c.x + 'px'; cardEl.style.top = c.y + 'px';
+      cardEl.dataset.id = c.id;
+      var slotDisplay = (c.slotIndex !== null && c.slotIndex !== undefined) ? '0' + (c.slotIndex + 1) : 'FREE';
+      cardEl.innerHTML =
+        '<div class="card-inner"><div class="spent-overlay-stamp">已使用</div><div class="token-glare"></div>' +
+        '<div class="token-ghost">' + c.ghost + '</div>' +
+        '<div><div class="token-top"><span>' + slotDisplay + '</span><span>' + c.category + '</span></div>' +
+        '<div class="token-name"><div class="token-name-1">' + c.name.slice(0, 3) + '</div><div class="token-name-2">' + c.name.slice(3) + '</div></div></div>' +
+        '<div class="token-qtm"><div class="token-val">' + c.energy + '<span class="token-unit">' + c.unit + '</span></div></div>' +
+        '<div><div class="token-cost-badge">' + c.costBadge + '</div>' +
+        '<div class="token-switch-bar"><button class="btn-toggle-spent" data-action="toggle-spent">' + (c.spent ? '● 已用' : '○ 标记') + '</button></div></div></div>';
+      bindFreeDragAndSnap(cardEl, c);
+      surfaceDesk1.appendChild(cardEl);
+    });
+    slotCapTag.textContent = (g.槽位.固定槽 || []).length + ' 固定 + ' + (g.槽位.自由槽 || []).length + ' 自由 (在桌 ' + ON_DESK_CARDS.length + ')';
+  }
+
+  function bindFreeDragAndSnap(cardEl, cardData) {
+    var isMouseDown = false, hasMoved = false, startX = 0, startY = 0, initX = 0, initY = 0;
+    cardEl.addEventListener('mousedown', function (e) {
+      if (e.target.dataset.action === 'toggle-spent') {
+        cardData.spent = !cardData.spent;
+        // 标记已用写回：自由回路 uses +1（真实契约）
+        writeGame(function (gg) {
+          var c = circuitById(gg, cardData.id);
+          if (c && c.type === 'free') c.uses = (c.uses || 0) + 1;
+        });
+        renderDesktopCards();
+        e.stopPropagation();
+        return;
+      }
+      isMouseDown = true; hasMoved = false;
+      startX = e.clientX; startY = e.clientY; initX = cardData.x; initY = cardData.y;
+      e.stopPropagation();
+    });
+    window.addEventListener('mousemove', function (e) {
+      if (!isMouseDown) return;
+      var dist = Math.hypot(e.clientX - startX, e.clientY - startY);
+      if (dist > 6) {
+        hasMoved = true;
+        cardEl.classList.add('dragging');
+        cardData.x = initX + (e.clientX - startX) / scale1;
+        cardData.y = initY + (e.clientY - startY) / scale1;
+        cardEl.style.left = cardData.x + 'px'; cardEl.style.top = cardData.y + 'px';
+        checkSocketHover(cardEl);
+      }
+    });
+    window.addEventListener('mouseup', function () {
+      if (!isMouseDown) return;
+      isMouseDown = false; cardEl.classList.remove('dragging'); clearSocketHighlights();
+      if (hasMoved) {
+        var hitIndex = getOverlappingSocket(cardEl);
+        if (hitIndex !== -1) {
+          // 换槽写回：旧槽清空，新槽占位（战斗中固定槽锁）
+          writeGame(function (gg) {
+            var fixedLen = (gg.槽位.固定槽 || []).length;
+            var targetArr = hitIndex < fixedLen ? gg.槽位.固定槽 : gg.槽位.自由槽;
+            var sourceArr = (cardData.slotIndex !== null && cardData.slotIndex < fixedLen) ? gg.槽位.固定槽 : gg.槽位.自由槽;
+            if (gg.主角.战斗中 && targetArr === gg.槽位.固定槽) { alert('战斗中固定槽上锁'); return; }
+            if (sourceArr && cardData.slotIndex !== null && cardData.slotIndex < sourceArr.length) sourceArr[cardData.slotIndex] = null;
+            if (targetArr && hitIndex < targetArr.length) targetArr[hitIndex] = cardData.id;
+            cardData.slotIndex = hitIndex;
+          });
+        } else {
+          // 拖出槽 → 卸回自由库
+          writeGame(function (gg) {
+            var fixedLen = (gg.槽位.固定槽 || []).length;
+            var sourceArr = (cardData.slotIndex !== null && cardData.slotIndex < fixedLen) ? gg.槽位.固定槽 : gg.槽位.自由槽;
+            if (sourceArr && cardData.slotIndex !== null && cardData.slotIndex < sourceArr.length) sourceArr[cardData.slotIndex] = null;
+            cardData.slotIndex = null;
+          });
+        }
+        loadFromSave(); renderDesktopCards();
+      } else {
+        selectCardAndShowDetail(cardData, 'circuit');
+      }
+    });
+  }
+
+  function getOverlappingSocket(cardEl) {
+    var r = cardEl.getBoundingClientRect();
+    var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    for (var i = 0; i < slotsContainer.children.length; i++) {
+      var sock = document.getElementById('socket_' + i);
+      if (!sock) continue;
+      var sr = sock.getBoundingClientRect();
+      if (cx >= sr.left && cx <= sr.right && cy >= sr.top && cy <= sr.bottom) return i;
+    }
+    return -1;
+  }
+  function checkSocketHover(cardEl) {
+    clearSocketHighlights();
+    var hit = getOverlappingSocket(cardEl);
+    if (hit !== -1) { var s = document.getElementById('socket_' + hit); if (s) s.classList.add('drag-hover'); }
+  }
+  function clearSocketHighlights() { document.querySelectorAll('.slot-socket').forEach(function (s) { s.classList.remove('drag-hover'); }); }
+
+  /* ═══════════════════ 桌面2：角色横幅 + 亲和矩阵 ═══════════════════ */
+  var charBannerTitle = $('#charBannerTitle');
+  var charBannerSub = $('#charBannerSub');
+  var topActorSummary = $('#topActorSummary');
+  var affinityColumnsGrid = $('#affinityColumnsGrid');
+
+  function renderActorBanner() {
+    charBannerTitle.innerHTML = '<span>' + CURRENT_ACTOR.name + '</span><span style="font-size:10.5px;background:#1e293b;color:#94a3b8;padding:2px 8px;border-radius:2px;">' + CURRENT_ACTOR.title + '</span>';
+    charBannerSub.textContent = CURRENT_ACTOR.department + ' | ' + CURRENT_ACTOR.truth;
+    var pKeys = Object.keys(CURRENT_ACTOR.affinityMap).filter(function (k) { return CURRENT_ACTOR.affinityMap[k] === 'primary'; });
+    topActorSummary.innerHTML = '<span>当前施法者：<b>施法者</b></span><span>主亲和共振：<b style="color:var(--acid-green)">' + (pKeys.length ? '已锁定' : '待测定') + '</b></span>';
+  }
+
+  function renderAffinityBoard() {
+    affinityColumnsGrid.innerHTML = '';
+    BRANCHES_ONTOLOGY.forEach(function (group) {
+      var col = document.createElement('div');
+      col.className = 'affinity-family-col';
+      col.style.setProperty('--fam-color', group.color);
+      col.innerHTML = '<div class="family-col-header"><div class="family-col-title"><span>' + group.family + '</span><span style="font-size:10px;opacity:0.6;">' + group.branches.length + ' 分支</span></div><div class="family-col-sub">' + group.familyDesc + '</div></div><div class="cards-vertical-stack"></div>';
+      var stack = col.querySelector('.cards-vertical-stack');
+      group.branches.forEach(function (branch) {
+        var level = CURRENT_ACTOR.affinityMap[branch.id] || 'none';
+        var card = document.createElement('div');
+        card.className = 'affinity-card status-' + level;
+        card.style.setProperty('--accent', group.color);
+        card.style.setProperty('--accent-glow', group.colorGlow);
+        var levelLabel = '非亲和', rateText = '门控 ×4.0 能量×4';
+        if (level === 'primary') { levelLabel = '主亲和 ★'; rateText = '门控 ×1.0 能量×1'; }
+        else if (level === 'secondary') { levelLabel = '次亲和 ◐'; rateText = '门控 ×2.0 能量×1.5'; }
+        card.innerHTML =
+          '<div class="aff-head"><span style="color:' + group.color + ';">' + group.family + '</span><span class="aff-level-tag">' + levelLabel + '</span></div>' +
+          '<div class="aff-svg-wrap" style="color:' + (level === 'none' ? '#64748b' : group.color) + ';">' + branch.svg + '</div>' +
+          '<div class="aff-title-box"><div class="aff-name">' + branch.name + '</div><div class="aff-sub">' + branch.desc + '</div></div>' +
+          '<div class="aff-rate-pill">' + rateText + '</div>';
+        card.addEventListener('click', function () {
+          selectCardAndShowDetail({ ...branch, level: level, familyName: group.family }, 'affinity');
+        });
+        stack.appendChild(card);
+      });
+      affinityColumnsGrid.appendChild(col);
+    });
+  }
+
+  /* ═══════════════════ 侧栏与详情 ═══════════════════ */
+  var screenSidebar = $('#screenSidebar');
+  var detailContainer = $('#detailContainer');
+  var repoListContainer = $('#repoListContainer');
+  $('#sidebarHandle').addEventListener('click', function () { screenSidebar.classList.toggle('open'); });
+  function openSidebar() { screenSidebar.classList.add('open'); }
+  function switchTab(name) {
+    $('#tabBtnRepo').classList.toggle('active', name === 'tabRepo');
+    $('#tabBtnDetail').classList.toggle('active', name === 'tabDetail');
+    $('#tabRepo').classList.toggle('active', name === 'tabRepo');
+    $('#tabDetail').classList.toggle('active', name === 'tabDetail');
+  }
+  $('#tabBtnRepo').addEventListener('click', function () { switchTab('tabRepo'); });
+  $('#tabBtnDetail').addEventListener('click', function () { switchTab('tabDetail'); });
+
+  function selectCardAndShowDetail(itemData, type) {
+    selectedEntity = itemData;
+    openSidebar(); switchTab('tabDetail');
+    if (type === 'circuit') {
+      var specsHtml = (itemData.specs || []).map(function (s) { return '<div class="spec-r"><span class="k">' + s.k + '</span><span class="v">' + s.v + '</span></div>'; }).join('');
+      detailContainer.innerHTML =
+        '<div class="dos-hero" style="--dos-acc:' + itemData.accent + '"><div class="dos-cat">' + itemData.category + '</div><div class="dos-name">' + itemData.name + '</div><div class="dos-energy">' + itemData.energy + ' ' + itemData.unit + '</div></div>' +
+        '<div class="dos-banner" style="--dos-acc:' + itemData.accent + '">' + itemData.banner + '</div>' +
+        '<div class="dos-specs">' + specsHtml + '</div>' +
+        '<div class="dos-lore"><div style="color:#fff;font-weight:700;margin-bottom:6px;">[ 身体代价与实战记录 ]</div><p>' + (itemData.lore || '暂无') + '</p></div>' +
+        '<button class="btn-recycle-card" id="btnRecycleInDetail">⇲ 卸载此回路并回收至牌库</button>';
+      document.getElementById('btnRecycleInDetail').addEventListener('click', function () { recycleCardFromDetail(itemData); });
+    } else if (type === 'affinity') {
+      var levelDesc = '【非亲和方向】：施法精神消耗×4，能量消耗×4，过载风险阈值强制+15。';
+      var tagColor = '#64748b', bannerText = '○ 陌生/高阻抗分支 (不发光)';
+      if (itemData.level === 'primary') { levelDesc = '【原生主亲和】：回路完美共振，消耗基线 精神×1 能量×1。'; tagColor = 'var(--acid-green)'; bannerText = '★ 核心主共振分支 (炫彩霓虹流动)'; }
+      else if (itemData.level === 'secondary') { levelDesc = '【次亲和倾向】：次级共振，施法精神×2，能量×1.5。'; tagColor = 'var(--acid-orange)'; bannerText = '◐ 次级共振分支 (原本光发散)'; }
+      detailContainer.innerHTML =
+        '<div class="dos-hero" style="--dos-acc:' + tagColor + '"><div class="dos-cat">' + itemData.familyName + ' · 亲和光谱分支</div><div class="dos-name">' + itemData.name + '</div><div class="dos-energy" style="font-size:18px;color:' + tagColor + '">' + itemData.desc + '</div></div>' +
+        '<div class="dos-banner" style="--dos-acc:' + tagColor + '">' + bannerText + '</div>' +
+        '<div class="dos-specs"><div style="font-size:10px;color:#64748b;margin-bottom:6px;">施法门控惩罚倍率</div>' +
+        '<div class="spec-r"><span class="k">精神力消耗倍率</span><span class="v">' + (itemData.level === 'primary' ? '× 1.0' : itemData.level === 'secondary' ? '× 2.0' : '× 4.0') + '</span></div>' +
+        '<div class="spec-r"><span class="k">能量魔素消耗倍率</span><span class="v">' + (itemData.level === 'primary' ? '× 1.0' : itemData.level === 'secondary' ? '× 1.5' : '× 4.0') + '</span></div>' +
+        '<div class="spec-r"><span class="k">过载风险加成</span><span class="v">' + (itemData.level === 'none' ? '+15 (高危)' : '+0 (安全)') + '</span></div></div>' +
+        '<div class="dos-lore"><div style="color:#fff;font-weight:700;margin-bottom:6px;">[ 人体回路机制剖析 ]</div><p style="margin-bottom:8px;">' + levelDesc + '</p><p>' + itemData.lore + '</p></div>';
+    }
+  }
+
+  function recycleCardFromDetail(cardData) {
+    if (isCombat) { alert('战备锁定！战斗中禁止卸载固定回路。'); return; }
+    writeGame(function (gg) {
+      var fixedLen = (gg.槽位.固定槽 || []).length;
+      var sourceArr = (cardData.slotIndex !== null && cardData.slotIndex < fixedLen) ? gg.槽位.固定槽 : gg.槽位.自由槽;
+      if (sourceArr && cardData.slotIndex !== null && cardData.slotIndex < sourceArr.length) sourceArr[cardData.slotIndex] = null;
+    });
+    selectedEntity = null;
+    detailContainer.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#475569;font-size:11px;">[ 回路已成功卸解回库 ]</div>';
+    loadFromSave(); renderDesktopCards(); renderRepoList(); switchTab('tabRepo');
+  }
+
+  function renderRepoList() {
+    repoListContainer.innerHTML = '';
+    REPO_CARDS.forEach(function (item) {
+      var cardEl = document.createElement('div');
+      cardEl.className = 'repo-card-item';
+      cardEl.style.setProperty('--item-acc', item.accent);
+      cardEl.innerHTML = '<div class="repo-card-head"><span>RESERVE // 自由回路</span><span>' + item.category + '</span></div><div class="repo-card-title">' + item.name + '</div><div class="repo-card-stat">' + item.energy + ' kJ · ' + item.costBadge + '</div>';
+      cardEl.addEventListener('click', function () {
+        if (isCombat) { alert('战备锁定！禁止装配新回路。'); return; }
+        // 从备选装槽：找到空槽位（自由槽优先）
+        writeGame(function (gg) {
+          var fixedLen = (gg.槽位.固定槽 || []).length;
+          var freeSlot = -1;
+          for (var i = fixedLen; i < fixedLen + (gg.槽位.自由槽 || []).length; i++) {
+            var arr = i < fixedLen ? gg.槽位.固定槽 : gg.槽位.自由槽;
+            if (arr[i < fixedLen ? i : i - fixedLen] == null) { freeSlot = i; break; }
+          }
+          if (freeSlot === -1) { alert('自由槽已满'); return; }
+          var arr2 = freeSlot < fixedLen ? gg.槽位.固定槽 : gg.槽位.自由槽;
+          arr2[freeSlot < fixedLen ? freeSlot : freeSlot - fixedLen] = item.id;
+        });
+        loadFromSave(); renderDesktopCards(); renderRepoList();
+      });
+      repoListContainer.appendChild(cardEl);
+    });
+  }
+
+  /* ═══════════════════ 桌面切换 / 缩放平移 / 战备 ═══════════════════ */
+  function switchDesk(n) {
+    $('#btnNavDesk1').classList.toggle('active', n === 1);
+    $('#btnNavDesk2').classList.toggle('active', n === 2);
+    $('#viewportDesk1').classList.toggle('active', n === 1);
+    $('#viewportDesk2').classList.toggle('active', n === 2);
+    if (n === 2) { renderActorBanner(); renderAffinityBoard(); }
+  }
+  $('#btnNavDesk1').addEventListener('click', function () { switchDesk(1); });
+  $('#btnNavDesk2').addEventListener('click', function () { switchDesk(2); });
+
+  var scale1 = 0.95, panX1 = 0, panY1 = 0, isPanning1 = false, sPX1 = 0, sPY1 = 0;
+  function upd1() { surfaceDesk1.style.transform = 'translate(calc(-50% + ' + panX1 + 'px), calc(-50% + ' + panY1 + 'px)) scale(' + scale1 + ') rotateX(10deg)'; }
+  $('#viewportDesk1').addEventListener('wheel', function (e) { e.preventDefault(); scale1 = Math.max(0.45, Math.min(1.6, scale1 - e.deltaY * 0.001)); upd1(); }, { passive: false });
+  $('#viewportDesk1').addEventListener('mousedown', function (e) {
+    if (e.target === $('#viewportDesk1') || e.target === surfaceDesk1 || e.target.classList.contains('slot-matrix-grid')) {
+      isPanning1 = true; $('#viewportDesk1').classList.add('grabbing'); sPX1 = e.clientX - panX1; sPY1 = e.clientY - panY1;
+    }
+  });
+  window.addEventListener('mousemove', function (e) {
+    if (isPanning1) { panX1 = Math.max(-1200, Math.min(1200, e.clientX - sPX1)); panY1 = Math.max(-900, Math.min(900, e.clientY - sPY1)); upd1(); }
+  });
+  window.addEventListener('mouseup', function () { isPanning1 = false; $('#viewportDesk1').classList.remove('grabbing'); });
+
+  var surfaceDesk2 = $('#surfaceDesk2');
+  var scale2 = 0.95, panX2 = 0, panY2 = 0, isPanning2 = false, sPX2 = 0, sPY2 = 0;
+  function upd2() { surfaceDesk2.style.transform = 'translate(calc(-50% + ' + panX2 + 'px), calc(-50% + ' + panY2 + 'px)) scale(' + scale2 + ') rotateX(8deg)'; }
+  $('#viewportDesk2').addEventListener('wheel', function (e) { e.preventDefault(); scale2 = Math.max(0.45, Math.min(1.6, scale2 - e.deltaY * 0.001)); upd2(); }, { passive: false });
+  $('#viewportDesk2').addEventListener('mousedown', function (e) {
+    if (e.target === $('#viewportDesk2') || e.target === surfaceDesk2 || e.target.classList.contains('char-profile-banner') || e.target.classList.contains('affinity-columns-grid') || e.target.classList.contains('affinity-family-col')) {
+      isPanning2 = true; $('#viewportDesk2').classList.add('grabbing'); sPX2 = e.clientX - panX2; sPY2 = e.clientY - panY2;
+    }
+  });
+  window.addEventListener('mousemove', function (e) {
+    if (isPanning2) { panX2 = Math.max(-1000, Math.min(1000, e.clientX - sPX2)); panY2 = Math.max(-800, Math.min(800, e.clientY - sPY2)); upd2(); }
+  });
+  window.addEventListener('mouseup', function () { isPanning2 = false; $('#viewportDesk2').classList.remove('grabbing'); });
+
+  var btnCombatToggle = $('#btnCombatToggle');
+  function renderCombat() {
+    if (isCombat) { btnCombatToggle.className = 'combat-switch combat'; btnCombatToggle.textContent = '战斗中 [槽位锁死]'; }
+    else { btnCombatToggle.className = 'combat-switch'; btnCombatToggle.textContent = '非战斗 [槽位自由]'; }
+  }
+  btnCombatToggle.addEventListener('click', function () {
+    isCombat = !isCombat;
+    writeGame(function (gg) { gg.主角.战斗中 = isCombat; });
+    renderCombat();
+  });
+
+  /* ═══════════════════ 顶部监视器刷新 ═══════════════════ */
+  function renderMonitors() {
+    if (!g) return;
+    var zhu = g.主角;
+    $('#valBody').textContent = zhu.身体状态 || '正常';
+    $('#valRes').textContent = Math.round(zhu.能量kJ.当前) + '/' + zhu.能量kJ.上限 + ' kJ · ' + Math.round(zhu.精神点.当前) + '/' + zhu.精神点.上限 + ' 精神';
+    $('#valTime').textContent = zhu.剧情时间 && zhu.剧情时间.label ? zhu.剧情时间.label : '--';
+    renderCombat();
+  }
+
+  /* ═══════════════════ 初始化 ═══════════════════ */
+  function init() {
+    if (!loadFromSave()) {
+      document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#64748b;font-size:13px;">尚未开局：请先完成渐变带开局。</div>';
+      return;
+    }
+    renderMonitors();
+    buildSlots();
+    renderDesktopCards();
+    renderRepoList();
+    renderActorBanner();
+    renderAffinityBoard();
+    upd1(); upd2();
+  }
+  init();
+})();
+</script>
+</body>
+</html>
