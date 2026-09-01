@@ -9,7 +9,6 @@ import { renderJianbandaiPage } from './pages/jianbandai-opening';
 import { renderGradbandPage } from './pages/gradband';
 import { renderGradbandPromptsPage } from './pages/gradband-prompts';
 import { renderGradbandDataPage } from './pages/gradband-data';
-import { renderGradbandPromptPage } from './pages/gradband-prompt';
 import { renderChatPage } from './pages/chat';
 import { renderTablesPage } from './pages/tables';
 import { renderSheetConfigPage } from './pages/sheet-config';
@@ -46,7 +45,7 @@ export const PAGES: PageDef[] = [
   { name: 'gradband-data', label: '渐变带·数据', order: 8, render: renderGradbandDataPage, modes: ['gradband'] },
   { name: 'tables', label: '表格数据', order: 20, render: renderTablesPage, modes: ['gradband'] },
   { name: 'sheetconf', label: '表结构/配置', order: 30, render: renderSheetConfigPage, modes: ['gradband'] },
-  { name: 'gradband-prompt', label: '提示词模板', order: 50, render: renderGradbandPromptPage, modes: ['gradband'] },
+  { name: 'gradband-prompt', label: '提示词模板', order: 50, render: renderPromptTemplatePage, modes: ['gradband'] },
   { name: 'settings', label: '设置', order: 40, render: renderSettingsPage, modes: ['gradband'] },
   { name: 'tools', label: '工具', order: 90, render: renderToolsPage, modes: ['gradband'] },
 ];

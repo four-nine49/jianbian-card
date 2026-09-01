@@ -1,6 +1,6 @@
 // ui/pages/gradband-data.ts — 渐变带·自由回路 数据页（六表运行时状态，只读概览）
 //
-// 六表：主角 / 补给物品 / 回路库 / 槽位 / 待扣单 / 感情追踪（+ 场景）。
+// 六表：主角 / 补给物品 / 回路库 / 槽位 / 待扣单 / 场景（标准表感情追踪不在特殊页显示）。
 // 运行时状态由 settle.ts 引擎维护，本页只读展示 + 引导到「渐变带·自由回路」管理窗口编辑。
 // 数据存 chat 变量 `渐变带`（game 对象），快照在 message 变量 stat_data.渐变带。
 import { loadGame, NS } from '../../gradband/core/store';
@@ -56,14 +56,6 @@ function renderOverview(g: 游戏): string {
   html += `<div class="of-card">
     <div class="of-h2" style="font-size:13px">待扣单（${g.待扣单.length}）</div>
     ${g.待扣单.length === 0 ? '<div class="of-muted">（无）</div>' : `<table class="of-table"><thead><tr><th>引用</th><th>名称</th><th>计费kJ</th><th>精神</th><th>风险</th></tr></thead><tbody>${g.待扣单.map(t => `<tr><td>${esc(t.ref)}</td><td>${esc(t.名称)}</td><td>${esc(t.bill)}</td><td>${esc(t.mind)}</td><td>${esc(t.risk)}</td></tr>`).join('')}</tbody></table>`}
-  </div>`;
-
-  // 感情追踪
-  const fe = g.感情追踪 ?? {};
-  const feNames = Object.keys(fe);
-  html += `<div class="of-card">
-    <div class="of-h2" style="font-size:13px">感情追踪（${feNames.length} 角色）</div>
-    ${feNames.length === 0 ? '<div class="of-muted">（无）</div>' : feNames.map(n => `<div style="margin:4px 0"><b>${esc(n)}</b>：${esc(JSON.stringify(fe[n]))}</div>`).join('')}
   </div>`;
 
   // 场景
