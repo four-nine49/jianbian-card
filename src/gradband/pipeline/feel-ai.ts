@@ -49,9 +49,11 @@ async function runFeelForTable(tableName: string): Promise<感情结果> {
   if (sheet.rows.length === 0) return { ok: false, error: `「${tableName}」还没有数据行`, 表: tableName };
 
   const current = rowToObj(sheet);
+  // 剑与汽水占位符：{{table_data}} = 列定义+规则+当前行；{{messages}} = 最近正文
   const 字段说明 = (def?.note || sheet.sourceData.note || '（无表规则）');
   const 当前值 = sheet.headers.map(h => `- ${h}: ${current[h] ?? ''}`).join('\n');
-  const vars = { 角色: tableName, 字段说明, 当前值, 正文: recentStory(4) };
+  const tableData = `[表名: ${sheet.name}]\nColumns: ${sheet.headers.map((h, i) => `[${i}:${h}]`).join(', ')}\nNote: ${字段说明}\n数据:\n  [1] ${sheet.headers.map(h => current[h] ?? '').join(', ')}`;
+  const vars = { table_data: tableData, messages: recentStory(4) };
   const segments = getFeelPrompt(tableName);
   const numCols = def?.numCols ?? [];
 

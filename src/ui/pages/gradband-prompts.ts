@@ -1,21 +1,20 @@
-// ui/pages/gradband-prompts.ts — 渐变带·自由回路 提示词编辑页（3 套段编辑器）
+// ui/pages/gradband-prompts.ts — 渐变带·自由回路 提示词编辑页（特殊页：数据/法术 AI）
 //
-// 数据AI / 法术AI / 感情AI 三套提示词，每套 = PromptSegment[]（与开局框架填表模板同构）。
+// 数据AI / 法术AI 两套提示词（感情AI 走标准「提示词模板」页，剑与汽水占位符体系）。
 // 段编辑交互同开局框架提示词页：ON/OFF、↑↓、删除、新增、恢复默认；占位符见页首说明。
 import { loadSettings, saveSettings, 默认提示词, type PromptSegment } from '../../gradband/core/settings';
 
-const GROUPS = ['数据AI', '法术AI', '感情AI'] as const;
+const GROUPS = ['数据AI', '法术AI'] as const;
 
 const PLACEHOLDER_HINTS: Record<string, string> = {
   数据AI: '{{状态}} {{场景}} {{出手单}} {{正文}}',
   法术AI: '{{描述}} {{参数}} {{亲和}} {{库索引}} {{场景}}',
-  感情AI: '{{角色}} {{字段说明}} {{当前值}} {{正文}}',
 };
 
 export function renderGradbandPromptsPage(el: HTMLElement): void {
   el.innerHTML = `<div style="padding:16px">
     <div class="of-h1">渐变带 · 提示词</div>
-    <div class="of-hint" style="margin-bottom:12px">三套提示词（数据 / 法术 / 感情）各自独立编辑。每套里：<b>ON/OFF</b> 控制这段发不发，↑↓ 调顺序，可删可加、可恢复默认。</div>
+    <div class="of-hint" style="margin-bottom:12px">数据 / 法术 两套提示词各自独立编辑（特殊 AI）。感情 AI 的提示词在「提示词模板」页（剑与汽水占位符体系）。每套里：<b>ON/OFF</b> 控制这段发不发，↑↓ 调顺序，可删可加、可恢复默认。</div>
     <div id="gbfc-pg-groups"></div>
   </div>`;
 

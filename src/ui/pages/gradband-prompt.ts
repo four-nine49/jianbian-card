@@ -7,10 +7,14 @@ import { FEEL_TABLES, getFeelPrompt, setFeelPrompt, 默认感情提示词 } from
 import type { PromptSegment } from '../../gradband/core/settings';
 
 const PLACEHOLDER_DOCS: { name: string; desc: string }[] = [
-  { name: '{{角色}}', desc: '当前感情表名（追踪角色）' },
-  { name: '{{字段说明}}', desc: '该表的 Note 规则（数值变化规则，自动注入）' },
-  { name: '{{当前值}}', desc: '该表当前各字段的值（自动注入）' },
-  { name: '{{正文}}', desc: '最近对话正文（按轮取，自动注入）' },
+  { name: '{{instructions}}', desc: '填表指令正文（本页下方"填表指令"输入框的内容会替换到这里）' },
+  { name: '{{target_tables}}', desc: '本次要更新的表名清单（自动生成，不用手填）' },
+  { name: '{{table_data}}', desc: '表数据：列定义、维护规则、当前所有行（自动渲染）' },
+  { name: '{{messages}}', desc: '最近对话正文（按表的"读取对话轮数"截取，已做标签过滤）' },
+  { name: '{{floor_info}}', desc: '楼层元信息（AI 回复计数、分组、读取轮数等）' },
+  { name: '{{worldbook}}', desc: '世界书内容（自动读取全局 + 角色卡 + 聊天绑定的世界书：蓝灯条目全发，绿灯条目按关键词匹配最近对话；在下方开启该段才会发送）' },
+  { name: '{{char_description}}', desc: '角色卡描述（在下方段里开启才会发送，当前版本内容为空）' },
+  { name: '{{persona_description}}', desc: '用户设定 / 个人描述（在下方段里开启才会发送，当前版本内容为空）' },
 ];
 
 let activeName = FEEL_TABLES[0]?.name ?? '';

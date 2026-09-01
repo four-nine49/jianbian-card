@@ -75,18 +75,18 @@ export function ensureFeelTables(): void {
 // 每表一套提示词（存 settings.感情提示词[表名]）
 // ──────────────────────────────────────────────
 
-/** 某张感情表的默认提示词（占位符：{{角色}} {{字段说明}} {{当前值}} {{正文}}） */
+/** 某张感情表的默认提示词（剑与汽水占位符体系：{{instructions}}/{{table_data}}/{{messages}}） */
 export function 默认感情提示词(tableName: string): PromptSegment[] {
   return [
-    { role: 'system', enabled: true, note: '任务与铁律', content: `你是跑团系统的"感情分析AI"。你只负责跟踪「${tableName}」这个角色的内心状态，阅读最新正文，输出该表各追踪字段的最新值（JSON）。
+    { role: 'system', enabled: true, note: '任务与铁律（{{instructions}} 的内容）', content: `你是跑团系统的"感情分析AI"。你只负责跟踪「${tableName}」这个角色的内心状态，阅读最新正文，输出该表各追踪字段的最新值（JSON）。
 规则：
 1. 数值字段必须是整数，且只在有明确剧情依据时才变动（一般每次 ±1~3，重大事件可更大），严格遵循表 Note 里的 0-17 变化规则。
 2. 文本字段用一句话概括当前状态。
 3. 没有变化的字段原样输出旧值；字段必须齐全，禁止增删字段。
 4. 另给一个"依据"字段，引用正文依据（50字内）。` },
-    { role: 'system', enabled: true, note: '表规则 + 当前值（脚本生成）', content: '【表规则】\n{{字段说明}}\n\n【当前值】\n{{当前值}}' },
-    { role: 'system', enabled: true, note: '最近正文（脚本生成）', content: '【最近正文】\n{{正文}}' },
-    { role: 'user', enabled: true, note: '收尾指令', content: '请输出该表各字段的最新值 JSON（含所有字段 + "依据"）。' },
+    { role: 'system', enabled: true, note: '表数据（列定义+规则+当前行，脚本生成）', content: '【表数据】\n{{table_data}}' },
+    { role: 'system', enabled: true, note: '最近对话正文（脚本生成）', content: '【最近对话】\n{{messages}}' },
+    { role: 'user', enabled: true, note: '收尾指令', content: '请按上述表数据与对话，输出该表各字段的最新值 JSON（含所有字段 + "依据"）。' },
   ];
 }
 
