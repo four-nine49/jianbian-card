@@ -1,37 +1,30 @@
-// pipeline/feel-ai.ts — 感情分析AI（渐变带版）：走开局框架表格通道
+// pipeline/feel-ai.ts — 感情分析AI（多表版）：逐张感情表走开局框架表格通道
 //
-// 数据源：开局框架表格存储里的「陆安追踪表」（单行表：长期目标/短期目标/怎么看待主角/
-//   自洽/共情/解构/对主角的信任度），规则即该表 sourceData.note（0-17 变化规则）。
-// 流程：读表当前行 → 提示词注入（表规则 + 当前值 + 最近正文）→ json_schema 按表头字段
-//   强制输出 → 校验（数值 0-17 整数，坏值回退旧值）→ 写回表格行（updateRow）。
-// 不再使用渐变带自己的 感情追踪 字段——感情数据统一走开局框架的表格通道。
+// 每张感情表（FEEL_TABLES 注册）：
+//   读表当前行 → 提示词注入（该表 Note 规则 + 当前值 + 最近正文，用该表自己的提示词）
+//   → json_schema 按表头生成（数值列 0-17 整数）→ 校验（坏值回退旧值）→ 写回表格第 1 行。
+// 提示词每表一套（settings.感情提示词[表名]），在「渐变带·感情」页编辑。
 import { loadStore, getSheet, updateRow } from '../../store/table-store';
 import type { Sheet } from '../../store/types';
-import { loadSettings } from '../core/settings';
 import { recentStory, callAI } from './ai-common';
 import { 抽取JSON } from './contract';
+import { FEEL_TABLES, getFeelTable, getFeelPrompt } from '../feel-tables';
 
-/** 感情追踪的目标表名（陆安追踪表，来自渐变带角色卡专用面板） */
-export const FEEL_SHEET_NAME = '陆安追踪表';
+export interface 感情结果 { ok: boolean; error?: string; 更新?: Record<string, any>; 表: string }
 
-export interface 感情结果 { ok: boolean; error?: string; 更新?: Record<string, any>; 角色: string }
-
-/** 数值列：自洽/共情/解构/对主角的信任度（0-17 整数）；其余为文本列 */
-const NUM_COLS = ['自洽', '共情', '解构', '对主角的信任度'];
-
-function getSheetSafe(): Sheet | null {
+function getSheetSafe(name: string): Sheet | null {
   try {
     const store = loadStore();
-    return getSheet(store, FEEL_SHEET_NAME);
+    return getSheet(store, name);
   } catch { return null; }
 }
 
-/** 按表头字段生成 json_schema（数值列 → integer 0-17，文本列 → string） */
-function sheetJSONSchema(sheet: Sheet) {
+/** 按表头 + 数值列生成 json_schema（数值列 → integer 0-17，其余 → string） */
+function sheetJSONSchema(sheet: Sheet, numCols: string[]) {
   const props: Record<string, any> = {};
   const required: string[] = [];
   for (const h of sheet.headers) {
-    if (NUM_COLS.includes(h)) props[h] = { type: 'integer', minimum: 0, maximum: 17 };
+    if (numCols.includes(h)) props[h] = { type: 'integer', minimum: 0, maximum: 17 };
     else props[h] = { type: 'string' };
     required.push(h);
   }
@@ -48,28 +41,28 @@ function rowToObj(sheet: Sheet): Record<string, string> {
   return obj;
 }
 
-/** 感情分析主入口：读表 → AI → 写回表格（单行表，row_id=1） */
-export async function runFeelAI(): Promise<感情结果> {
-  const sheet = getSheetSafe();
-  if (!sheet) return { ok: false, error: `表格里没有「${FEEL_SHEET_NAME}」，请先在「渐变带角色卡专用」或开局框架里建表并写入初始行`, 角色: FEEL_SHEET_NAME };
-  if (sheet.rows.length === 0) return { ok: false, error: `「${FEEL_SHEET_NAME}」还没有数据行`, 角色: FEEL_SHEET_NAME };
+/** 分析一张感情表（读表 → AI → 写回表格第 1 行） */
+async function runFeelForTable(tableName: string): Promise<感情结果> {
+  const def = getFeelTable(tableName);
+  const sheet = getSheetSafe(tableName);
+  if (!sheet) return { ok: false, error: `表格里没有「${tableName}」`, 表: tableName };
+  if (sheet.rows.length === 0) return { ok: false, error: `「${tableName}」还没有数据行`, 表: tableName };
 
-  const settings = loadSettings();
   const current = rowToObj(sheet);
-  // 提示词：表规则（note）+ 当前值 + 最近正文
-  const 字段说明 = sheet.sourceData.note || '（无表规则）';
+  const 字段说明 = (def?.note || sheet.sourceData.note || '（无表规则）');
   const 当前值 = sheet.headers.map(h => `- ${h}: ${current[h] ?? ''}`).join('\n');
-  const vars = { 角色: FEEL_SHEET_NAME, 字段说明, 当前值, 正文: recentStory(4) };
+  const vars = { 角色: tableName, 字段说明, 当前值, 正文: recentStory(4) };
+  const segments = getFeelPrompt(tableName);
+  const numCols = def?.numCols ?? [];
 
   try {
-    const raw = await callAI({ which: '感情AI', segments: settings.提示词.感情AI, vars, jsonSchema: sheetJSONSchema(sheet), generationId: `gb_feel_${Date.now()}` });
+    const raw = await callAI({ which: '感情AI', segments, vars, jsonSchema: sheetJSONSchema(sheet, numCols), generationId: `gb_feel_${Date.now()}` });
     const json = 抽取JSON(raw);
-    if (!json) return { ok: false, error: '感情AI输出无法解析', 角色: FEEL_SHEET_NAME };
+    if (!json) return { ok: false, error: '感情AI输出无法解析', 表: tableName };
 
-    // 按表头逐列取新值（数值 0-17 整数，坏值回退旧值）
     const cells: (string | null)[] = sheet.headers.map(h => {
       let v = json[h];
-      if (NUM_COLS.includes(h)) {
+      if (numCols.includes(h)) {
         v = Math.round(Number(v));
         if (!Number.isFinite(v)) v = Number(current[h] ?? 0);
         v = Math.max(0, Math.min(17, v));   // 0-17 硬约束
@@ -78,11 +71,19 @@ export async function runFeelAI(): Promise<感情结果> {
       return String(v ?? current[h] ?? '');
     });
 
-    // 写回表格第 1 行
     updateRow(`sheet_${sheet.uid}`, { rowId: 1, cells });
-    console.info(`[渐变带] 感情AI已更新「${FEEL_SHEET_NAME}」：${sheet.headers.map((h, i) => `${h}=${cells[i]}`).join('，')}`);
-    return { ok: true, 更新: { ...rowToObj(sheet), 依据: json['依据'] }, 角色: FEEL_SHEET_NAME };
+    console.info(`[渐变带] 感情AI已更新「${tableName}」：${sheet.headers.map((h, i) => `${h}=${cells[i]}`).join('，')}`);
+    return { ok: true, 更新: { ...rowToObj(sheet), 依据: json['依据'] }, 表: tableName };
   } catch (e: any) {
-    return { ok: false, error: '感情AI调用失败：' + (e?.message ?? e), 角色: FEEL_SHEET_NAME };
+    return { ok: false, error: '感情AI调用失败：' + (e?.message ?? e), 表: tableName };
   }
+}
+
+/** 逐张感情表分析（每轮调用；任一表失败不阻断其它表） */
+export async function runFeelAI(): Promise<{ ok: boolean; 结果: 感情结果[] }> {
+  const 结果: 感情结果[] = [];
+  for (const t of FEEL_TABLES) {
+    结果.push(await runFeelForTable(t.name));
+  }
+  return { ok: 结果.every(r => r.ok), 结果 };
 }

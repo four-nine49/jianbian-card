@@ -9,6 +9,7 @@ import { renderJianbandaiPage } from './pages/jianbandai-opening';
 import { renderGradbandPage } from './pages/gradband';
 import { renderGradbandPromptsPage } from './pages/gradband-prompts';
 import { renderGradbandDataPage } from './pages/gradband-data';
+import { renderGradbandFeelPage } from './pages/gradband-feel';
 import { renderChatPage } from './pages/chat';
 import { renderTablesPage } from './pages/tables';
 import { renderSheetConfigPage } from './pages/sheet-config';
@@ -44,6 +45,7 @@ export const PAGES: PageDef[] = [
   { name: 'gradband', label: '渐变带·自由回路', icon: '⚡', order: 6, render: renderGradbandPage, modes: ['gradband'] },
   { name: 'gradband-prompts', label: '渐变带·提示词', icon: '✍️', order: 7, render: renderGradbandPromptsPage, modes: ['gradband'] },
   { name: 'gradband-data', label: '渐变带·数据', icon: '🗂️', order: 8, render: renderGradbandDataPage, modes: ['gradband'] },
+  { name: 'gradband-feel', label: '渐变带·感情', icon: '💗', order: 9, render: renderGradbandFeelPage, modes: ['gradband'] },
   { name: 'settings', label: '设置', icon: '🔌', order: 40, render: renderSettingsPage, modes: ['gradband'] },
   { name: 'tools', label: '工具', icon: '🧰', order: 90, render: renderToolsPage, modes: ['gradband'] },
 ];

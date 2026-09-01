@@ -37,6 +37,7 @@ export interface Settings {
   api: { 数据AI: ApiConfig; 法术AI: ApiConfig; 感情AI: ApiConfig };
   感情角色: FeelCharacter[];
   提示词: { 数据AI: PromptSegment[]; 法术AI: PromptSegment[]; 感情AI: PromptSegment[] };
+  感情提示词?: Record<string, PromptSegment[]>;  // 每张感情表一套提示词（表名 → 段列表）
   窗口?: { x: number; y: number; w: number; h: number };   // 管理窗口位置尺寸（拖拽/缩放后持久化）
   悬浮球?: { x: number; y: number };                        // 悬浮球位置（拖拽后持久化）
 }
@@ -109,6 +110,7 @@ export function loadSettings(): Settings {
     api: { ...def.api, ...(raw.api || {}) },
     感情角色: raw.感情角色?.length ? raw.感情角色 : def.感情角色,
     提示词: { ...def.提示词, ...(raw.提示词 || {}) },
+    感情提示词: raw.感情提示词,
     窗口: raw.窗口,
     悬浮球: raw.悬浮球,
   };

@@ -51,11 +51,13 @@ async function runTurn(): Promise<回合报告> {
     report.log.push('（自动结算已关闭）');
   }
 
-  // 感情分析AI（走开局框架表格通道：陆安追踪表单行表，每轮一次）
+  // 感情分析AI（逐张感情表走开局框架表格通道）
   if (settings.开关.感情分析) {
     const r = await runFeelAI();
-    if (r.ok) report.log.push(`感情AI《${r.角色}》字段已更新`);
-    else report.notices.push(`感情AI《${r.角色}》失败：${r.error}`);
+    for (const one of r.结果) {
+      if (one.ok) report.log.push(`感情AI《${one.表}》字段已更新`);
+      else report.notices.push(`感情AI《${one.表}》失败：${one.error}`);
+    }
   }
 
   await saveGame(g);
