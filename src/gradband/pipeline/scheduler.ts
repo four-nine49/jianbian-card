@@ -5,6 +5,7 @@ import { loadGame, saveGame, syncSnapshot } from '../core/store';
 import { runDataAI } from './data-ai';
 import { runFeelAI } from './feel-ai';
 import { settle } from './settle';
+import { clearOps } from '../ops-table';
 
 const SYNCABLE_TYPES = ['normal', 'regenerate', 'continue', 'swipe'];
 let unsub: { stop: () => void } | null = null;
@@ -29,6 +30,9 @@ async function runTurn(): Promise<回合报告> {
   const settings = loadSettings();
   let g = loadGame();
   if (!g) { report.error = '未初始化存档（先完成开局）'; return report; }
+
+  // 每轮开始：清空上一轮操作表（状态栏手操配置不跨轮残留）
+  clearOps();
 
   // 数据AI + 契约校验 + ⑥结算
   if (settings.开关.自动结算) {

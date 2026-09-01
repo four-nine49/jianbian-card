@@ -683,11 +683,12 @@
 
     html += '<div class="row"><button class="btn pri" id="tgPanel">' + (panelOpen ? '收起面板 ▲' : '展开面板 ▼') + '</button></div>';
     html += '<div id="panel" style="display:' + (panelOpen ? '' : 'none') + '">';
-    html += '<div class="tabs">' + ['slots|槽位', 'build|构筑', 'lib|回路库', 'sup|补给', 'log|管线'].map(function (t) { var p = t.split('|'); return '<div class="tab' + (curTab === p[0] ? ' on' : '') + '" data-t="' + p[0] + '">' + p[1] + '</div>'; }).join('') + '</div>';
+    html += '<div class="tabs">' + ['slots|槽位', 'build|构筑', 'lib|回路库', 'sup|补给', 'ops|手操', 'log|管线'].map(function (t) { var p = t.split('|'); return '<div class="tab' + (curTab === p[0] ? ' on' : '') + '" data-t="' + p[0] + '">' + p[1] + '</div>'; }).join('') + '</div>';
     html += '<div class="page' + (curTab === 'slots' ? ' on' : '') + '" data-p="slots">' + pageSlots(g) + '</div>';
     html += '<div class="page' + (curTab === 'build' ? ' on' : '') + '" data-p="build">' + pageBuild(g) + '</div>';
     html += '<div class="page' + (curTab === 'lib' ? ' on' : '') + '" data-p="lib">' + pageLib(g) + '</div>';
     html += '<div class="page' + (curTab === 'sup' ? ' on' : '') + '" data-p="sup">' + pageSup(g) + '</div>';
+    html += '<div class="page' + (curTab === 'ops' ? ' on' : '') + '" data-p="ops">' + pageOps(g) + '</div>';
     html += '<div class="page' + (curTab === 'log' ? ' on' : '') + '" data-p="log">' + pageLog(g) + '</div>';
     html += '</div>';
     app.innerHTML = html;
@@ -867,6 +868,65 @@
     return h;
   }
 
+  /* ── 手操页：本轮用哪些回路、用几次；点确认后脚本扣费（存 chat 变量 渐变带.操作表）── */
+  function readOps() {
+    try { var v = getVariables({ type: 'chat' }); var o = v && v['渐变带'] && v['渐变带']['操作表']; return o || null; } catch (e) { return null; }
+  }
+  function pageOps(g) {
+    var o = readOps() || { manual: false, circuits: [], counts: [] };
+    var h = '<div class="card"><h3>手操（本轮行动，每轮自动清空）</h3>';
+    h += '<div class="lab"><label><input type="checkbox" id="opsManual" ' + (o.manual ? 'checked' : '') + '> 本轮手操（手动指定用哪些回路）</label></div>';
+    h += '<div class="lab"><b>选择回路与次数（默认 1 次）</b></div>';
+    ['fixed', 'free'].forEach(function (type) {
+      g.回路库.filter(function (c) { return c.type === type; }).forEach(function (c) {
+        var idx = o.circuits.indexOf(c.id);
+        var cnt = idx >= 0 && o.counts[idx] ? o.counts[idx] : 1;
+        h += '<div class="circuit"><label><input type="checkbox" data-opc="' + c.id + '"' + (idx >= 0 ? ' checked' : '') + '> ' + esc(c.名称) + ' <span class="dl">' + c.id + '</span></label> × <input type="number" min="1" max="9" style="width:42px" data-opn="' + c.id + '" value="' + cnt + '"></div>';
+      });
+    });
+    h += '<div class="row"><button class="btn pri" id="opsConfirm">确认操作（立即扣费）</button> <button class="btn" id="opsClear">清空</button></div>';
+    h += '<div class="hint" id="opsMsg"></div>';
+    h += '</div>';
+    return h;
+  }
+
+  function saveOps(o) {
+    try {
+      updateVariablesWith(function (v) { var g = v['渐变带']; if (g) g['操作表'] = o; return v; }, { type: 'chat' });
+    } catch (e) { alert('保存手操失败：' + e); }
+  }
+  /* 确认操作：挂待扣单 + 立即扣费（能量/精神）→ 落盘 → 清空操作表 */
+  function doOpsConfirm() {
+    var o = readOps() || { manual: false, circuits: [], counts: [] };
+    var msg = document.getElementById('opsMsg');
+    if (!o.manual || !o.circuits.length) { if (msg) msg.textContent = '未开启手操或未选回路'; return; }
+    writeGame(function (gg) {
+      var ctx = {
+        aff: affinityOf(gg),
+        scene: { wind: gg.场景.风力档, mat: gg.场景.可塑无机物kJ, water: gg.场景.水体在场 },
+        char: { burstKW: gg.主角.爆发线kW, sustainKW: gg.主角.持续线kW, speed: 1, eCur: gg.主角.能量kJ.当前, mCur: gg.主角.精神点.当前, mMax: gg.主角.精神点.上限, body: gg.主角.身体状态 },
+        tuned: tunedList(gg)
+      };
+      var totalBill = 0, totalMind = 0, names = [];
+      o.circuits.forEach(function (id, i) {
+        var c = gg.回路库.find(function (x) { return x.id === id; });
+        if (!c) return;
+        var count = o.counts[i] || 1;
+        for (var k = 0; k < count; k++) {
+          var q = E.quote({ fam: c.famKey, e: 0, c: Object.assign(E.initParams(c.famKey), c.参数向量) }, ctx);
+          if (!q) continue;
+          totalBill += q.bill; totalMind += q.mind;
+        }
+        names.push(c.名称 + '×' + count);
+      });
+      gg.主角.能量kJ.当前 = Math.max(0, gg.主角.能量kJ.当前 - totalBill);
+      gg.主角.精神点.当前 = Math.max(0, gg.主角.精神点.当前 - totalMind);
+      gg['操作表'] = { manual: false, circuits: [], counts: [] };
+      if (msg) msg.textContent = '已确认：' + (names.join('，') || '无') + ' 能量−' + totalBill + 'kJ 精神−' + totalMind + '（当场扣费，未挂待扣单）';
+    });
+    render();
+  }
+
   /* ── 管线页 ── */
   function readLog() {
     try { var v = getVariables({ type: 'chat' }); return (v && v['渐变带日志']) || null; } catch (e) { return null; }
@@ -951,6 +1011,30 @@
     }
     var dt = t.getAttribute && t.getAttribute('data-detail');
     if (dt) { var el = document.querySelector('[data-d="' + dt + '"]'); if (el) el.style.display = el.style.display === 'none' ? '' : 'none'; return; }
+
+    /* ── 手操：勾选/次数变更存 chat 变量 渐变带.操作表 ── */
+    if (t.id === 'opsManual') {
+      var om = readOps() || { manual: false, circuits: [], counts: [] };
+      om.manual = t.checked;
+      saveOps(om); return;
+    }
+    var opc = t.getAttribute && t.getAttribute('data-opc');
+    if (opc) {
+      var o1 = readOps() || { manual: false, circuits: [], counts: [] };
+      var i1 = o1.circuits.indexOf(opc);
+      if (t.checked && i1 < 0) { o1.circuits.push(opc); o1.counts.push(1); }
+      if (!t.checked && i1 >= 0) { o1.circuits.splice(i1, 1); o1.counts.splice(i1, 1); }
+      saveOps(o1); return;
+    }
+    var opn = t.getAttribute && t.getAttribute('data-opn');
+    if (opn) {
+      var o2 = readOps() || { manual: false, circuits: [], counts: [] };
+      var i2 = o2.circuits.indexOf(opn);
+      if (i2 >= 0) o2.counts[i2] = Math.max(1, Math.min(9, parseInt(t.value, 10) || 1));
+      saveOps(o2); return;
+    }
+    if (t.id === 'opsClear') { saveOps({ manual: false, circuits: [], counts: [] }); render(); return; }
+    if (t.id === 'opsConfirm') { doOpsConfirm(); return; }
     var use = t.getAttribute && t.getAttribute('data-use');
     if (use != null && use !== '') {
       var it = g.补给物品[+use];
