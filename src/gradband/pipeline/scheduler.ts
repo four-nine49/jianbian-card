@@ -1,9 +1,8 @@
-// pipeline/scheduler.ts — 回合调度：AI回复 → 数据AI → 契约校验 → 结算 → 感情AI → 快照/标记
+// pipeline/scheduler.ts — 回合调度：AI回复 → 数据AI → 契约校验 → 结算 → 快照/标记
 import { eventOn, getChatMessages, setChatMessages, getLastMessageId, updateVariablesWith } from '../../bridge/tavern';
 import { loadSettings, STATUS_MARKER } from '../core/settings';
 import { loadGame, saveGame, syncSnapshot } from '../core/store';
 import { runDataAI } from './data-ai';
-import { runFeelAI } from './feel-ai';
 import { settle } from './settle';
 import { clearOps } from '../ops-table';
 
@@ -52,14 +51,8 @@ async function runTurn(): Promise<回合报告> {
     report.log.push('（自动结算已关闭）');
   }
 
-  // 感情分析AI（逐张感情表走开局框架表格通道）
-  if (settings.开关.感情分析) {
-    const r = await runFeelAI();
-    for (const one of r.结果) {
-      if (one.ok) report.log.push(`感情AI《${one.表}》字段已更新`);
-      else report.notices.push(`感情AI《${one.表}》失败：${one.error}`);
-    }
-  }
+  // 感情追踪表：走开局框架标准自动填表流程（剑与汽水模板；enable 由表 updateConfig 控制），不再有独立"感情AI"管线
+  // （旧 runFeelAI 已移除——见提交历史；表如未参与自动填表，需到「表结构/配置」页开启该表）
 
   await saveGame(g);
   await syncSnapshot(g);
@@ -72,7 +65,7 @@ async function runTurn(): Promise<回合报告> {
   return report;
 }
 
-function shouldRun(settings: { 频率: { 数据AI: number; 感情AI: number } }): boolean {
+function shouldRun(settings: { 频率: { 数据AI: number } }): boolean {
   const n = Math.max(1, Math.round(settings.频率.数据AI || 1));
   aiReplyCount++;
   return aiReplyCount % n === 0 || aiReplyCount === 1 ? true : false;

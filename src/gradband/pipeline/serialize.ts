@@ -34,7 +34,7 @@ export function serialize正文AI(g: 游戏, recentOrders?: string[]): string {
   L.push('（主角能量/精神的具体数值对正文不可见，只以"伤势/负荷体感"定性描写）');
   if (recentOrders?.length) {
     L.push('');
-    L.push('【本回合出手单】');
+    L.push('【主角拥有的回路（仅固定/自由槽内）】');
     recentOrders.forEach(o => L.push(o));
   }
   return L.join('\n');
@@ -82,7 +82,8 @@ export function serialize场景(g: 游戏): string {
   return `风力：${g.场景.风力档}（${wind}）；可塑无机物：${g.场景.可塑无机物kJ}kJ；水体在场：${g.场景.水体在场 ? '有' : '无'}`;
 }
 
-/** 待扣单出手单文本（正文AI 注入用） */
+/** 主角拥有的回路文本（正文AI 注入用）：只列 待扣单 中 ref 仍在固定/自由槽内的回路（送审/删除/未装槽不处理） */
 export function 出手单文本(g: 游戏): string[] {
-  return g.待扣单.map(p => p.order);
+  const slotIds = new Set([...(g.槽位.固定槽 ?? []), ...(g.槽位.自由槽 ?? [])].filter(Boolean) as string[]);
+  return g.待扣单.filter(p => slotIds.has(p.ref)).map(p => p.order);
 }

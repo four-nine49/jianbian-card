@@ -1,7 +1,7 @@
 // core/schema.ts — 数据模型（zod）+ 缺省值
 //
 // 六表 + 管线暂存区，全部存在 chat 变量 `渐变带` 键下：
-//   { version, 主角, 补给物品, 回路库, 槽位, 亲和, 待扣单, 场景, 感情追踪 }
+//   { version, 主角, 补给物品, 回路库, 槽位, 亲和, 待扣单, 场景 }
 // 快照同步到 message 变量 stat_data.渐变带（剥掉 上次结算min —— 任何 AI 永不可见）。
 import { z } from 'zod';
 
@@ -102,9 +102,6 @@ export const 场景Schema = z.object({
   水体在场: z.boolean(),
 });
 
-/* ── 感情追踪（角色名 → {字段: 值}，角色可配置不写死）── */
-export const 感情Schema = z.record(z.string(), z.record(z.string(), z.union([z.number(), z.string(), z.boolean(), z.null()])));
-
 /* ── 整包 ── */
 export const 游戏Schema = z.object({
   version: z.number().default(2),
@@ -115,28 +112,10 @@ export const 游戏Schema = z.object({
   亲和: 亲和Schema,
   待扣单: z.array(待扣单Schema),
   场景: 场景Schema,
-  感情追踪: 感情Schema,
 });
 export type 游戏 = z.infer<typeof 游戏Schema>;
 export type 回路 = z.infer<typeof 回路Schema>;
 export type 补给 = z.infer<typeof 补给Schema>;
-
-/** 陆安默认感情字段（开局初始化用；字段模板可在设置里改，后续女主照加） */
-export const 默认感情角色 = [
-  {
-    名称: '陆安',
-    enabled: true,
-    fields: [
-      { 名: '自洽', 类型: 'number', 说明: '0-20 整数。<=6 破罐子破摔；7-12 拧巴完美主义；13-16 松动的标准件；>=17 坦然' },
-      { 名: '共情', 类型: 'number', 说明: '0-20 整数，对他人情感的开放程度' },
-      { 名: '解构', 类型: 'number', 说明: '0-20 整数，理性剖析自己与体制的能力' },
-      { 名: '对主角的信任度', 类型: 'number', 说明: '0-100 整数' },
-      { 名: '长期目标', 类型: 'string', 说明: '一句话' },
-      { 名: '短期目标', 类型: 'string', 说明: '一句话' },
-      { 名: '怎么看待主角', 类型: 'string', 说明: '一两句' },
-    ] as { 名: string; 类型: string; 说明: string }[],
-  },
-];
 
 /** 全新开局缺省存档 */
 export function 默认游戏(over?: Partial<游戏>): 游戏 {
@@ -158,7 +137,6 @@ export function 默认游戏(over?: Partial<游戏>): 游戏 {
     亲和: { 主分支: [], 次分支: [] },
     待扣单: [],
     场景: { 风力档: 40, 可塑无机物kJ: 3000, 水体在场: false },
-    感情追踪: {},
     ...over,
   });
 }

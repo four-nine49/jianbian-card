@@ -1,13 +1,9 @@
-// gradband/feel-tables.ts — 感情追踪表注册（多表，方便以后扩展多角色）
+// gradband/feel-tables.ts — 陆安追踪表定义（女主可选：由「开局界面」选项决定是否建表/种子）
 //
-// 每张感情表 = 一张开局框架表格（__of_tables__，列名 = 追踪字段）
-//   + 一套独立提示词（存渐变带 settings.感情提示词[表名]）
-// 默认注册：陆安追踪表（单行表：自洽/共情/解构/对主角的信任度 0-17）。
-// 以后加角色：在 FEEL_TABLES 里加一条 + 用「渐变带·感情」页建表即可。
-import { loadStore, getSheet, importTemplate } from '../store/table-store';
+// 该表 = 一张开局框架标准表（__of_tables__，列名 = 追踪字段），参与标准自动填表
+// （剑与汽水「提示词模板」页流程，updateConfig.enabled=true）。
+// 数值列 0-17 约束写在表 Note 里（由 AI 按规则填；脚本不硬钳制）。
 import type { TableDef } from '../store/types';
-import { loadSettings, saveSettings } from './core/settings';
-import type { PromptSegment } from './core/settings';
 
 export interface FeelTableDef {
   name: string;              // 表名
@@ -45,66 +41,16 @@ export function getFeelTable(name: string): FeelTableDef | null {
   return FEEL_TABLES.find(t => t.name === name) ?? null;
 }
 
-/** 表定义 → 开局框架 TableDef（建表用） */
-function toTableDef(t: FeelTableDef): TableDef {
+/** 表定义 → 开局框架 TableDef（建表/取回用；开局界面按此形状写入 __of_tables__） */
+export function toTableDef(t: FeelTableDef): TableDef {
   return {
     uid: t.uid,
     name: t.name,
-    purpose: `感情追踪表（${t.name}）：追踪角色心理状态，由感情AI按表规则更新。`,
+    purpose: `感情追踪表（${t.name}）：追踪角色心理状态，由自动填表按表规则更新。`,
     scope: 'always',
-    type: 'standard',   // 感情表 = standard：标准AI（感情）可见，标准页可编辑；不参与标准自动填表（enabled=false）
+    type: 'standard',   // 感情表 = standard：标准AI（感情）可见，标准页可编辑；参与标准自动填表（剑与汽水流程）
     headers: t.headers,
-    sourceData: { note: t.note, insertRule: '禁止。', updateRule: '感情AI按规则更新。', deleteRule: '禁止。' },
-    updateConfig: { enabled: false },
+    sourceData: { note: t.note, insertRule: '禁止。', updateRule: '自动填表按表规则更新。', deleteRule: '禁止。' },
+    updateConfig: { enabled: true },   // 参与自动填表：走开局框架标准填表流程（剑与汽水模板，按全局默认频率/分组）
   };
-}
-
-/** 确保所有感情表存在（开局时/首次访问时自动建） */
-export function ensureFeelTables(): void {
-  try {
-    const store = loadStore();
-    const missing = FEEL_TABLES.filter(t => !getSheet(store, t.name));
-    if (missing.length) {
-      importTemplate(missing.map(toTableDef));
-      console.info(`[渐变带] 感情表已创建：${missing.map(t => t.name).join('、')}`);
-    }
-  } catch (e) { console.warn('[渐变带] 感情表创建失败', e); }
-}
-
-// ──────────────────────────────────────────────
-// 每表一套提示词（存 settings.感情提示词[表名]）
-// ──────────────────────────────────────────────
-
-/** 某张感情表的默认提示词（剑与汽水占位符体系：{{instructions}}/{{table_data}}/{{messages}}） */
-export function 默认感情提示词(tableName: string): PromptSegment[] {
-  return [
-    { role: 'system', enabled: true, note: '任务与铁律（{{instructions}} 的内容）', content: `你是跑团系统的"感情分析AI"。你只负责跟踪「${tableName}」这个角色的内心状态，阅读最新正文，输出该表各追踪字段的最新值（JSON）。
-规则：
-1. 数值字段必须是整数，且只在有明确剧情依据时才变动（一般每次 ±1~3，重大事件可更大），严格遵循表 Note 里的 0-17 变化规则。
-2. 文本字段用一句话概括当前状态。
-3. 没有变化的字段原样输出旧值；字段必须齐全，禁止增删字段。
-4. 另给一个"依据"字段，引用正文依据（50字内）。` },
-    { role: 'system', enabled: true, note: '表数据（列定义+规则+当前行，脚本生成）', content: '【表数据】\n{{table_data}}' },
-    { role: 'system', enabled: true, note: '最近对话正文（脚本生成）', content: '【最近对话】\n{{messages}}' },
-    { role: 'user', enabled: true, note: '收尾指令', content: '请按上述表数据与对话，输出该表各字段的最新值 JSON（含所有字段 + "依据"）。' },
-  ];
-}
-
-/** 读取某张感情表的提示词（不存在初始化默认） */
-export function getFeelPrompt(tableName: string): PromptSegment[] {
-  const s = loadSettings();
-  if (!s.感情提示词 || !s.感情提示词[tableName] || !s.感情提示词[tableName].length) {
-    s.感情提示词 ??= {};
-    s.感情提示词[tableName] = 默认感情提示词(tableName);
-    saveSettings(s);
-  }
-  return s.感情提示词[tableName];
-}
-
-/** 写回某张感情表的提示词 */
-export function setFeelPrompt(tableName: string, segs: PromptSegment[]): void {
-  const s = loadSettings();
-  s.感情提示词 ??= {};
-  s.感情提示词[tableName] = segs.map(x => ({ ...x }));
-  saveSettings(s);
 }

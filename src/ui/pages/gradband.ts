@@ -1,6 +1,6 @@
 // ui/pages/gradband.ts — 渐变带·自由回路 管理页（开局框架面板内子 tab）
 //
-// 沿用业务自带的 5 个 tab（总览/设置/提示词/感情角色/工具），渲染与事件逻辑
+// 沿用业务自带的 4 个 tab（总览/设置/提示词/工具），渲染与事件逻辑
 // 从原 渐变带-自由回路/src/ui/window.ts 平移；DOM id/class 维持 gbfc- 前缀，
 // 样式由 gradband 的 gbfc 类提供（见 ui/styles.ts 的 gbfc 段）。
 import { loadSettings, saveSettings, type Settings, type ApiConfig } from '../../gradband/core/settings';
@@ -24,7 +24,7 @@ export function renderGradbandPage(el: HTMLElement): void {
   el.innerHTML = `<div class="gbfc-tabs" id="gbfc-tabs"></div><div class="gbfc-body" id="gbfc-body" style="padding:12px"></div>`;
   const tabBox = el.querySelector('#gbfc-tabs') as HTMLElement;
   const body = el.querySelector('#gbfc-body') as HTMLElement;
-  const tabs: [string, string][] = [['overview', '总览'], ['settings', '设置'], ['prompts', '提示词'], ['feel', '感情角色'], ['tools', '工具']];
+  const tabs: [string, string][] = [['overview', '总览'], ['settings', '设置'], ['prompts', '提示词'], ['tools', '工具']];
   tabBox.innerHTML = tabs.map(t => `<span class="gbfc-tab${t[0] === curTab ? ' on' : ''}" data-t="${t[0]}">${t[1]}</span>`).join('');
   tabBox.addEventListener('click', ev => {
     const t = (ev.target as HTMLElement).dataset?.t;
@@ -60,9 +60,8 @@ function renderBody(body: HTMLElement): void {
     });
     html += '<h4>结算频率（每 N 条 AI 回复一次）</h4>';
     html += `<label>数据AI <input type="number" min="1" step="1" data-freq="数据AI" value="${s.频率.数据AI}"></label>`;
-    html += `<label>感情AI <input type="number" min="1" step="1" data-freq="感情AI" value="${s.频率.感情AI}"></label>`;
     html += '<h4>API（三态：跟随酒馆 / 自定义）</h4>';
-    (['数据AI', '法术AI', '感情AI'] as const).forEach(w => {
+    (['数据AI', '法术AI'] as const).forEach(w => {
       const cfg = s.api[w];
       html += `<div class="gbfc-card"><b>${w}</b><div class="gbfc-row">
         <span class="gbfc-seg ${cfg.mode === 'tavern' ? 'on' : ''}" data-apimode="${w}|tavern">跟随酒馆</span>
@@ -78,16 +77,12 @@ function renderBody(body: HTMLElement): void {
     });
   } else if (curTab === 'prompts') {
     html += '<h4>提示词编辑</h4>';
-    html += '<div class="gbfc-hint">三套提示词（数据 / 法术 / 感情）已独立成页，段级编辑（ON/OFF、排序、增删、恢复默认）。</div>';
+    html += '<div class="gbfc-hint">两套提示词（数据 / 法术）已独立成页，段级编辑（ON/OFF、排序、增删、恢复默认）。</div>';
     html += '<button class="gbfc-btn" id="gbGotoPrompts">打开「渐变带·提示词」页</button>';
-  } else if (curTab === 'feel') {
-    html += '<h4>感情分析（陆安追踪表）</h4>';
-    html += '<div class="gbfc-hint">感情数据已统一走开局框架表格通道的「陆安追踪表」（单行表：长期目标/短期目标/怎么看待主角/自洽/共情/解构/对主角的信任度）。数值规则在表的 Note 里，由感情AI每轮按正文更新。</div>';
-    html += '<button class="gbfc-btn" id="gbGotoData">查看「渐变带·数据」页</button>';
   } else if (curTab === 'tools') {
     html += '<h4>工具</h4>';
     html += '<button class="gbfc-btn" id="gbInjectOpening2">注入开局面板标记到最新楼</button>';
-    html += '<button class="gbfc-btn" id="gbManualTurn2">手动结算一次（数据AI+感情AI+落盘）</button>';
+    html += '<button class="gbfc-btn" id="gbManualTurn2">手动结算一次（数据AI+落盘）</button>';
     html += '<button class="gbfc-btn" id="gbSync2">手动同步快照到最新楼</button>';
     html += '<button class="gbfc-btn" id="gbWipe">重置本局存档（危险）</button>';
     html += '<h4>状态栏 / 开局面板 HTML 模板</h4>';
@@ -113,7 +108,7 @@ function bindBody(body: HTMLElement): void {
   body.querySelectorAll('input[data-freq]').forEach(el => {
     (el as HTMLInputElement).addEventListener('change', () => {
       const s = loadSettings();
-      const which = (el as HTMLElement).dataset.freq as '数据AI' | '感情AI';
+      const which = (el as HTMLElement).dataset.freq as '数据AI';
       s.频率[which] = Math.max(1, Math.round(+(el as HTMLInputElement).value || 1));
       saveSettings(s);
     });

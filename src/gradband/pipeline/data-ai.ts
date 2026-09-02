@@ -2,7 +2,7 @@
 import { loadSettings } from '../core/settings';
 import { recentStoryLayered, callAI } from './ai-common';
 import { 抽取JSON, 校验变更包, type 变更包 } from './contract';
-import { serialize数据AI, serialize场景, 出手单文本 } from './serialize';
+import { serialize数据AI, serialize场景 } from './serialize';
 import type { 游戏 } from '../core/schema';
 
 const SCHEMA = {
@@ -104,7 +104,7 @@ export async function runDataAI(g: 游戏): Promise<数据AI结果> {
   const vars = {
     状态: serialize数据AI(g),
     场景: serialize场景(g),
-    出手单: g.待扣单.length ? g.待扣单.map(p => `${p.ref}《${p.名称}》`).join('\n') : '（本回合无施放）',
+    出手单: '',   // 已并入槽位清单（固定/自由槽在 {{状态}} 里可见）；保留空值兼容旧提示词里残留的 {{出手单}}
     正文,
   };
   let raw: string;

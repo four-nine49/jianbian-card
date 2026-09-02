@@ -1,6 +1,5 @@
 // core/settings.ts — 扩展设置（extensionSettings 全局；提示词模板/API三态/频率/开关）
 import { readExtensionSettings, writeExtensionSettings } from '../../bridge/tavern';
-import { 默认感情角色 } from './schema';
 
 export const SETTINGS_KEY = '渐变带自由回路';
 
@@ -20,31 +19,24 @@ export const 跟随酒馆: ApiConfig = { mode: 'tavern' };
 /* ── 提示词分段（可编辑，占位符由调用方替换）── */
 export interface PromptSegment { role: 'system' | 'user' | 'assistant'; content: string; enabled: boolean; note?: string }
 
-/* ── 感情分析角色（不写死，后续女主照加）── */
-export interface FeelCharacter {
-  名称: string;
-  enabled: boolean;
-  fields: { 名: string; 类型: string; 说明: string }[];
-}
+/* ── 提示词分段（可编辑，占位符由调用方替换）── */
+export interface PromptSegment { role: 'system' | 'user' | 'assistant'; content: string; enabled: boolean; note?: string }
 
 export interface Settings {
   开关: {
     自动结算: boolean;       // 数据AI + settle，每条AI回复后
-    感情分析: boolean;       // 感情分析AI
     状态栏标记: boolean;     // AI回复末尾追加 <StatusPlaceHolderImpl/>
   };
-  频率: { 数据AI: number; 感情AI: number };   // 每N条AI回复一次，默认1
-  api: { 数据AI: ApiConfig; 法术AI: ApiConfig; 感情AI: ApiConfig };
-  感情角色: FeelCharacter[];
-  提示词: { 数据AI: PromptSegment[]; 法术AI: PromptSegment[]; 感情AI: PromptSegment[] };
-  感情提示词?: Record<string, PromptSegment[]>;  // 每张感情表一套提示词（表名 → 段列表）
+  频率: { 数据AI: number };  // 每N条AI回复一次，默认1
+  api: { 数据AI: ApiConfig; 法术AI: ApiConfig };
+  提示词: { 数据AI: PromptSegment[]; 法术AI: PromptSegment[] };
   窗口?: { x: number; y: number; w: number; h: number };   // 管理窗口位置尺寸（拖拽/缩放后持久化）
   悬浮球?: { x: number; y: number };                        // 悬浮球位置（拖拽后持久化）
 }
 
 export const STATUS_MARKER = '<StatusPlaceHolderImpl/>';
 
-/** 默认提示词模板。占位符：{{状态}} {{正文}} {{出手单}} {{场景}} {{角色}} {{字段说明}} {{当前值}} {{描述}} {{参数}} {{亲和}} */
+/** 默认提示词模板。占位符：{{状态}} {{正文}} {{场景}} {{描述}} {{参数}} {{亲和}} */
 export function 默认提示词() {
   const 数据AI: PromptSegment[] = [
     { role: 'system', enabled: true, note: '任务与铁律', content: `你是跑团系统的"数据AI"。你的唯一职责：阅读最新一轮正文，把它翻译成结构化状态变更包（JSON）。
@@ -68,8 +60,8 @@ export function 默认提示词() {
 10. "战斗中"判定：仅当场面存在【有敌意的生物】时才为 true——追击、被追击、遭遇战均算；正常切磋/训练对练不算；无战斗场面输出 null。` },
     { role: 'system', enabled: true, note: '状态注入（脚本生成）', content: '【当前状态】\n{{状态}}' },
     { role: 'system', enabled: true, note: '场景（脚本生成）', content: '【场景】\n{{场景}}' },
-    { role: 'system', enabled: true, note: '本回合出手单（脚本生成）', content: '【本回合出手单（回路id供你引用）】\n{{出手单}}' },
     { role: 'system', enabled: true, note: '最近正文（脚本生成·分层：前文背景＝上一轮及更早｜本轮待结算正文＝最新一轮）', content: '【最近正文】\n{{正文}}' },
+    { role: 'system', enabled: true, note: '输出格式示例（示范 · 非校验）', content: '【输出格式示例（严格按此形状输出；没发生的字段用空值 []/{}/null，不要编造；仅列白名单/枚举值）】\n{"现在剧情时间": "2026年11月12日，21：12","本轮使用回路": [{"回路": "fx-01", "次数": 1}],"剧情数值变更": {},"身体": {"状态": "轻伤"},"战斗中": true,"新增补给": [{"名称": "魔素导液", "数量": 2, "纯度": 56.0, "容量ml": 13},{"名称": "快速生化止血喷雾", "数量": 1}],"场景变更": null,"剧情获得": []}' },
     { role: 'user', enabled: true, note: '收尾指令', content: '请按 schema 输出本轮状态变更包 JSON。没有发生的字段输出空值（[]/{}/null），不要编造。' },
   ];
   const 法术AI: PromptSegment[] = [
@@ -123,26 +115,14 @@ export function 默认提示词() {
     { role: 'system', enabled: true, note: '送审上下文注入（脚本生成）', content: '【玩家描述 / 剧情法术描述】\n{{描述}}\n\n【构筑参数明细 / 待填参数模板】\n{{参数}}\n\n【主角亲和分支（仅作背景认知参考，严禁作为审核门槛）】\n{{亲和}}\n\n【当前物理场景（用于校验介质、无机物与水体可行性）】\n{{场景}}' },
     { role: 'user', enabled: true, note: '触发审核指令', content: '请对本次送审回路进行物理可行性仲裁：\n1. 若输入为「明细文本」（场景 A）：核验描述与参数逻辑，通过时规范化回路输出 {"名称","一句话效果","效果文字稿"}。\n2. 若输入为「参数模板JSON」（场景 B）：通过时必须结合一句话效果，在规范化回路中补全合理的 {"名称","一句话效果","参数向量"}。\n3. 发现介质缺失（如真空声波、无水控浪）、凭空造物、物理不成立时，坚决输出驳回，并在「解释」中给出清晰的物理说服说明。\n请输出纯 JSON。' },
   ];
-  const 感情AI: PromptSegment[] = [
-    { role: 'system', enabled: true, note: '任务与铁律', content: `你是跑团系统的"感情分析AI"。你只负责跟踪一个角色的内心状态变化，阅读最新正文，输出该角色各追踪字段的最新值（JSON）。
-规则：
-1. 数值字段必须是整数，且只在有明确剧情依据时才变动（一般每次 ±1~3，重大事件可更大）。
-2. 文本字段用一句话概括当前状态。
-3. 没有变化的字段原样输出旧值；字段必须齐全，禁止增删字段。
-4. 另给一个"依据"字段，引用正文依据（50字内）。` },
-    { role: 'system', enabled: true, note: '角色与字段（脚本生成）', content: '【跟踪角色】{{角色}}\n\n【字段说明】\n{{字段说明}}\n\n【当前值】\n{{当前值}}' },
-    { role: 'system', enabled: true, note: '最近正文（脚本生成）', content: '【最近正文】\n{{正文}}' },
-    { role: 'user', enabled: true, note: '收尾指令', content: '请输出该角色的字段更新 JSON（含所有字段 + "依据"）。' },
-  ];
-  return { 数据AI, 法术AI, 感情AI };
+  return { 数据AI, 法术AI };
 }
 
 export function 默认设置(): Settings {
   return {
-    开关: { 自动结算: true, 感情分析: true, 状态栏标记: true },
-    频率: { 数据AI: 1, 感情AI: 1 },
-    api: { 数据AI: { mode: 'tavern' }, 法术AI: { mode: 'tavern' }, 感情AI: { mode: 'tavern' } },
-    感情角色: JSON.parse(JSON.stringify(默认感情角色)),
+    开关: { 自动结算: true, 状态栏标记: true },
+    频率: { 数据AI: 1 },
+    api: { 数据AI: { mode: 'tavern' }, 法术AI: { mode: 'tavern' } },
     提示词: 默认提示词(),
   };
 }
@@ -155,11 +135,15 @@ export function loadSettings(): Settings {
   const raw = readExtensionSettings<Partial<Settings>>(SETTINGS_KEY, {});
   cache = {
     开关: { ...def.开关, ...(raw.开关 || {}) },
-    频率: { ...def.频率, ...(raw.频率 || {}) },
-    api: { ...def.api, ...(raw.api || {}) },
-    感情角色: raw.感情角色?.length ? raw.感情角色 : def.感情角色,
-    提示词: { ...def.提示词, ...(raw.提示词 || {}) },
-    感情提示词: raw.感情提示词,
+    频率: { 数据AI: (raw.频率 && typeof raw.频率.数据AI === 'number' ? raw.频率.数据AI : def.频率.数据AI) },
+    api: {
+      数据AI: raw.api?.数据AI ?? def.api.数据AI,
+      法术AI: raw.api?.法术AI ?? def.api.法术AI,
+    },
+    提示词: {
+      数据AI: raw.提示词?.数据AI ?? def.提示词.数据AI,
+      法术AI: raw.提示词?.法术AI ?? def.提示词.法术AI,
+    },   // 感情AI 相关键已全删（旧档残留不读取）
     窗口: raw.窗口,
     悬浮球: raw.悬浮球,
   };

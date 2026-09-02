@@ -1822,10 +1822,9 @@
 
   // 可调参数集中营（世界书/数值策划改这里，其余代码零改动）
   const TUNE = {
-    regenE_kJ_h: 200,     // 非战斗能量恢复 kJ/剧情小时（⑥c）
-    regenMind_h: 3,       // 精神恢复 点/剧情小时
+    // regenE_kJ_h / regenMind_h 已废弃：⑥c 自动恢复改按上限连续充能（能量 满回小时=max(6,72-48/9800×(Emax-200))，每分钟=Emax/(T×60)；精神 每分钟=Mmax/900），旧固定值不再使用
     promoteN: 10,         // 自由回路转正次数阈值（⑥h）
-    injuryRegenMul: 0.5,  // 重伤恢复倍率；战斗中恒为0
+    injuryRegenMul: 0.5,  // 重伤恢复倍率；前后均战斗时恒为0
     supplyMaxKJ: 5000,    // 单件补给效果上限（钳制，防数据AI灌贴）
     supplyMaxPoint: 50    // 精神类补给上限（点）
   };
@@ -2334,10 +2333,10 @@
     return { 结论: '通过', 规范化回路: { 名: d.slice(0, 7) + '·自拟', 族: pk.fam, 实体: pk.entity || null, 参数向量: pk.params, 一句话效果: pk.effect } };
   }
 
-  /* ================= 编译：出手单文本（喂正文AI的唯一形态） ================= */
+  /* ================= 编译：主角拥有的回路文本（喂正文AI的唯一形态） ================= */
   function compileOrder(q) {
     const r = q.r, L = [];
-    L.push('【出手单｜主角·' + (q.tunedHit ? '固定招微调(' + q.tunedName + ')' : '自由回路·临时构建') + '】');
+    L.push('【主角拥有的回路｜' + (q.tunedHit ? '固定招微调(' + q.tunedName + ')' : '自由回路·临时构建') + '】');
     L.push('[ ' + r.F.name + '·分支[' + r.branch + ']·' + r.g.n + ' 精神×' + r.g.m + ' 能量×' + r.g.e + ' ]');
     L.push(' 能量 ' + r.out.toFixed(r.out < 10 ? 2 : 1) + 'kJ（' + anchorOf(r.out) + '）→ 计费 ' + q.bill.toFixed(1) + 'kJ，回合末从储量扣');
     L.push(' · 效果：' + (r.effect || '—'));

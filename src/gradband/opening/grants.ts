@@ -1,9 +1,8 @@
 // opening/grants.ts — 开局发放：把开局选择写进存档（新手包 / 自挑）
-import { 默认游戏, 默认感情角色, type 游戏, type 回路, type 补给 } from '../core/schema';
+import { 默认游戏, type 游戏, type 回路, type 补给 } from '../core/schema';
 import { 预设回路清单, 预设补给清单, 新手包 } from '../core/presets';
 import { 构建回路记录 } from '../pipeline/settle';
 import { 解析剧情时间 } from '../core/time';
-import type { FeelCharacter } from '../core/settings';
 
 export interface 开局选择 {
   性别: '男' | '女';
@@ -16,7 +15,7 @@ export interface 开局选择 {
 }
 
 /** 应用开局：返回全新存档（调用方负责落盘+快照） */
-export function 应用开局(sel: 开局选择, extra?: { 开场白?: string; 感情角色?: FeelCharacter[] }): 游戏 {
+export function 应用开局(sel: 开局选择, extra?: { 开场白?: string }): 游戏 {
   const t0 = 解析剧情时间(sel.剧情时间label) ?? 解析剧情时间('2026年9月1日，08：00')!;
   const g = 默认游戏();
   g.主角.剧情时间.label = sel.剧情时间label;
@@ -64,17 +63,7 @@ export function 应用开局(sel: 开局选择, extra?: { 开场白?: string; �
   }
   g.补给物品 = 补给条;
 
-  // 感情追踪初始化（按设置里的角色模板；无设置时用默认陆安）
-  g.感情追踪 = {};
-  for (const ch of (extra?.['感情角色'] as FeelCharacter[] | undefined) ?? 默认感情角色) {
-    g.感情追踪[ch.名称] = {};
-    for (const f of ch.fields) (g.感情追踪[ch.名称] as any)[f.名] = f.类型 === 'number' ? 0 : '';
-  }
-  // 陆安默认初始值
-  if (g.感情追踪['陆安']) {
-    Object.assign(g.感情追踪['陆安'], { 自洽: 10, 共情: 6, 解构: 10, 对主角的信任度: 5 });
-  }
-
+  // （感情追踪已全删：女主可选/陆安表由「开局界面」按选项写入标准表，不再进 chat 存档）
   void extra; // 开场白由调用方直接写 0 楼
   return g;
 }

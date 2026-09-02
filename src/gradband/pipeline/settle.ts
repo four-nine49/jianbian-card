@@ -128,18 +128,25 @@ export function settle(g: 游戏, pack: 变更包): 结算报告 {
     log.push('⑥b 本轮无回路使用报告');
   }
 
-  /* ── c 时间账：Δt 恢复（按结算前的战斗/身体状态） ── */
+  /* ── c 时间账：Δt 自动恢复 ──
+   战斗判定：只有「上次战斗中 且 本次也进入战斗」才不恢复；其它情况全部自动恢复。
+   能量：满回小时 T = max(6, 72 - 48/9800×(Emax-200))；每分钟 = Emax/(T×60) kJ（线性充能，Emax≥~13466 钳到 6h 保底）。
+   精神：每 15 点上限/小时恢复 1 点 → 每分钟 = Mmax/900 点。 */
   const nowMin = 解析剧情时间(pack.现在剧情时间)!;
   const dt = nowMin - 主角.上次结算min;
+  const isCombatNow = pack.战斗中 === true;                       // 本回合数据AI 报的新战斗旗
+  const bothCombat = 主角.战斗中 && isCombatNow;                   // 只有 上次∧本次都战斗 → 不恢复
   if (dt > 0) {
     let eMul = 1, mMul = 1;
-    if (主角.战斗中) { eMul = 0; mMul = 0; }
+    if (bothCombat) { eMul = 0; mMul = 0; }
     else if (主角.身体状态 === '重伤') { eMul = TUNE.injuryRegenMul; mMul = TUNE.injuryRegenMul; }
-    const dE = Math.round(TUNE.regenE_kJ_h / 60 * dt * eMul);
-    const dM = Math.round(TUNE.regenMind_h / 60 * dt * mMul * 10) / 10;
-    主角.能量kJ.当前 += dE;
-    主角.精神点.当前 += dM;
-    log.push(`⑥c Δt=${dt}min（${dt >= 60 ? (dt / 60).toFixed(1) + 'h' : dt + '分'}）非战斗恢复：能量+${dE}kJ 精神+${dM}${主角.战斗中 ? '（战斗中×0，实际未恢复）' : ''}`);
+    const Emax = 主角.能量kJ.上限, Mmax = 主角.精神点.上限;
+    const Th = Math.max(6, 72 - (48 / 9800) * (Emax - 200));       // 满回小时（保底 6h）
+    const dE = Math.round(Emax / (Th * 60) * dt * eMul);            // kJ/min
+    const dM = Math.round(Mmax / 900 * dt * mMul * 10) / 10;        // 点/min
+    主角.能量kJ.当前 = Math.min(Emax, 主角.能量kJ.当前 + dE);
+    主角.精神点.当前 = Math.min(Mmax, 主角.精神点.当前 + dM);
+    log.push(`⑥c Δt=${dt}min（${dt >= 60 ? (dt / 60).toFixed(1) + 'h' : dt + '分'}）自动恢复：能量+${dE}kJ（上限${Emax}·满回${Th.toFixed(1)}h） 精神+${dM}${bothCombat ? '（前后均战斗×0）' : 主角.身体状态 === '重伤' ? '（重伤×0.5）' : ''}`);
   } else {
     log.push(`⑥c Δt=${dt}min，无恢复`);
   }
@@ -275,7 +282,7 @@ export function 使用补给(g: 游戏, 名称: string, log: string[] = []): boo
   return true;
 }
 
-/** 面板"施放·挂待扣单"（②A）：重跑公式 → 生成账单 → 暂存待扣单 → 出手单文本 */
+/** 面板"施放·挂待扣单"（②A）：重跑公式 → 生成账单 → 暂存待扣单 → 主角拥有回路文本 */
 export function 施放挂单(g: 游戏, circuit: 回路, opts?: { e?: number; c?: Record<string, number>; 名称?: string }): { order: string; bill: number; mind: number; tell: number; risk: number; 锚点: string; tunedHit: string | null; tunedName: string | null } {
   const isTuned = circuit.type === 'fixed';
   const e = opts?.e ?? (isTuned ? 0 : 0);

@@ -226,7 +226,7 @@
     <div class="identity-grid">
       <div class="input-field">
         <span class="field-lbl">施法者姓名 // ACTOR NAME</span>
-        <input type="text" class="text-input" id="inputName" value="陆安" placeholder="输入施法者姓名...">
+        <input type="text" class="text-input" id="inputName" value="小王" placeholder="输入施法者姓名...">
       </div>
       <div class="input-field">
         <span class="field-lbl">性别 // GENDER</span>
@@ -236,6 +236,19 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- 01.5 女主（陆安）选项 -->
+  <div class="section-box">
+    <div class="section-hdr">
+      <div><span class="sec-num">01+</span><span class="sec-title">女主 // FEMALE LEAD（偏校园）</span></div>
+      <span class="sec-rule">默认关闭；开启后创建「陆安追踪表」并参与标准自动填表</span>
+    </div>
+    <div class="gender-radio-group" style="max-width:320px;">
+      <div class="gender-pill" data-female="1">要女主</div>
+      <div class="gender-pill active" data-female="0">不要女主</div>
+    </div>
+    <div class="hint">关闭（默认）时不建陆安表，并自动关闭「启用标准表格（自动填表）」（渐变带只用数据AI/法术AI，无标准表可填）；开启则写入陆安追踪表（单行：自洽/共情/解构/对主角的信任度 0-17），按剑与汽水标准流程自动填表。</div>
   </div>
 
   <!-- 02 难度与点数 -->
@@ -367,6 +380,7 @@
 
   /* ═══════════════════ 选择状态 ═══════════════════ */
   var gender = '男';
+  var wantFemale = false;   // 女主（陆安）：默认不要；开启=建陆安追踪表；关闭=关标准自动填表
   var difficulty = '普通';
   var mains = ['媒介波'];      // 分支名数组（有序，默认陆安主亲和）
   var subs = ['热', '晶体'];   // 默认两个次亲和
@@ -523,6 +537,11 @@
       renderSummary();
       return;
     }
+    if (t.dataset && t.dataset.female !== undefined) {
+      wantFemale = t.dataset.female === '1';
+      document.querySelectorAll('[data-female]').forEach(function (p) { p.classList.toggle('active', p.dataset.female === t.dataset.female); });
+      return;
+    }
     if (t.dataset && t.dataset.preset) {
       if (t.dataset.preset === 'custom') {
         presetMode = 'custom';
@@ -624,8 +643,7 @@
       槽位: { 固定槽: [null, null, null, null, null, null, null, null, null, null], 自由槽: [null, null, null] },
       亲和: { 主分支: mainsB, 次分支: subsB },
       待扣单: [],
-      场景: { 风力档: 40, 可塑无机物kJ: 3000, 水体在场: false },
-      感情追踪: { '陆安': { 自洽: 10, 共情: 6, 解构: 10, '对主角的信任度': 5, 长期目标: '', 短期目标: '', 怎么看待主角: '' } }
+      场景: { 风力档: 40, 可塑无机物kJ: 3000, 水体在场: false }
     };
     var slot = 0;
     mains.concat(subs).forEach(function (br) {
@@ -659,12 +677,46 @@
       var snap = JSON.parse(JSON.stringify(g)); if (snap['主角']) delete snap['主角']['上次结算min'];
       return Promise.resolve(updateVariablesWith(function (v) { v.stat_data = v.stat_data || {}; v.stat_data['渐变带'] = snap; return v; }, { type: 'message', message_id: 0 })).catch(function () {});
     }).then(function () {
-      toast(true, '✓ 开局完成！神经回路已烧录' + slot + ' 条，开场白写入第 0 楼。');
+      return 女主清单(wantFemale, name);
+    }).then(function () {
+      toast(true, '✓ 开局完成！神经回路已烧录' + slot + ' 条，开场白写入第 0 楼。' + (wantFemale ? '（已写入陆安追踪表）' : '（未启用女主，标准自动填表已关闭）'));
     }).catch(function (e) {
       toast(false, '失败：' + e);
       $('#btnFinishSetup').disabled = false;
     });
   });
+
+  /* 女主（陆安）：要 → 建「陆安追踪表」标准表并参与自动填表；不要 → 不建表并关闭开局框架「启用标准表格」 */
+  function 女主清单(wantFemale, name) {
+    return Promise.resolve().then(function () {
+      if (wantFemale) {
+        var sheet = {
+          uid: 'lu_an_zhui_zong_biao', name: '陆安追踪表',
+          purpose: '感情追踪表（陆安追踪表）：追踪角色心理状态，由自动填表按表规则更新。',
+          type: 'standard',
+          headers: ['姓名', '长期目标', '短期目标', '怎么看待主角', '自洽', '共情', '解构', '对主角的信任度'],
+          rows: [[name || '小王', '', '', '', '10', '6', '10', '5']],
+          sourceData: { note: '记录陆安的心理动态变化。此表有且仅有一行。\n\n■ 陆安数值变化规则（常驻）\n四条数值：自洽、共情、解构、对主角的信任度，范围0–17。\n一、基本规则：单次事件最多 ±2，不确定给 ±1。大多数日常交互是 ±0。同类事件递减（第一次给满，第二次-1，第三次起+0）。\n二、±1 还是 ±2：±1=日常交互短暂可控；±2=触及核心矛盾且事件后行为有持续变化；±0=积累条件。\n三、自洽/共情/解构（高分=好状态）：\n  自洽（她怎么对待自己）：被看见不被评判、风系魔法被认可、听懂"算了"和"接纳"的区别 加分；真实方向被否定、被迫更深入扮演面具、过载受伤被体系善待反而更走不了 扣分。\n  共情（她怎么对待他人）：保护弱者后多留一步、用自己的弯路指导被误判的新生 加分；保护时伤及无辜、对圈外人冷漠升级为主动嘲讽 扣分。\n  解构（她用语言面对世界）：拿自己开涮不带攻击性、主动提起自己的错路不带自毁式嘲讽 加分；幽默变伤人眼神是死的、拒绝严肃对话、拿别人的真实痛苦开玩笑 扣分。\n四、对主角的信任度：退缩时不追问但下次自然接上、记住她随口说过的事、不表演共情、她出事时第一个出现、不利用她的脆弱 加分；退缩时穷追不舍、她的脆弱被当筹码、表演共情说"我完全理解"、答应她又没来、对她的自欺报以说教 扣分。达到17后锁定，只有+2才可从15/16到17。\n五、多轴与门槛：同一事件可同时影响多条轴各轴独立判定，一场戏每条轴最多变动一次；信任度突破10需至少一个（自洽/共情/解构）≥6；任一轴12+的加分需此前有足够铺垫。\n【强制约束】此表有且仅有一行（row_id=1）；每轮交互后更新；四条数值 0-17 整数；所有 TEXT 字段不可为 NULL 或空串。', insertRule: '禁止。', updateRule: '自动填表按表规则更新。', deleteRule: '禁止。' },
+          updateConfig: { enabled: true }
+        };
+        return Promise.resolve(updateVariablesWith(function (v) {
+          v['__of_tables__'] = v['__of_tables__'] || { version: 1, sheets: {} };
+          v['__of_tables__'].sheets = v['__of_tables__'].sheets || {};
+          v['__of_tables__'].sheets['sheet_lu_an_zhui_zong_biao'] = sheet;
+          return v;
+        }, { type: 'chat' })).catch(function () {});
+      }
+      try {
+        var st = (typeof SillyTavern !== 'undefined' && SillyTavern.getContext) ? SillyTavern.getContext() : null;
+        if (st && st.extensionSettings) {
+          st.extensionSettings['opening-framework'] = st.extensionSettings['opening-framework'] || {};
+          st.extensionSettings['opening-framework'].autoFillEnabled = false;
+          if (typeof st.saveSettingsDebounced === 'function') st.saveSettingsDebounced();
+        }
+      } catch (e) {}
+      return Promise.resolve();
+    });
+  }
 
   /* ═══════════════════ 启动 ═══════════════════ */
   renderAll();

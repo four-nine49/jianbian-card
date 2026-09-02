@@ -30,7 +30,7 @@ export function customApiOf(cfg: ApiConfig): any | undefined {
 
 /** 调一次生成（json_schema 强制结构化），返回原始文本；失败抛错（调用方 try/catch 处理） */
 export async function callAI(opts: {
-  which: '数据AI' | '法术AI' | '感情AI';
+  which: '数据AI' | '法术AI';
   segments: PromptSegment[];
   vars: Record<string, string>;
   jsonSchema: { name: string; value: any };
@@ -63,7 +63,7 @@ function recentRounds(maxRounds: number): string[] {
   return rounds;
 }
 
-/** 最近正文（平铺，感情AI 等仍用此格式） */
+/** 最近正文（平铺） */
 export function recentStory(maxRounds = 4): string {
   return recentRounds(maxRounds).join('\n\n') || '（暂无正文）';
 }
