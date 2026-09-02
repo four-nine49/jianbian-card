@@ -1,78 +1,295 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>渐变带 · 开局初始化</title>
-<style>
-  :root{--bg:#10151c;--card:#171e28;--line:#243040;--ink:#c9d6e2;--dim:#77899b;--cyan:#4fc3f7;--g:#66bb6a;--y:#ffd54f;--r:#ef5350;}
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{background:var(--bg);color:var(--ink);font:13px/1.7 "Microsoft YaHei",system-ui,sans-serif;padding:10px;}
-  .wrap{max-width:720px;margin:0 auto;}
-  h2{text-align:center;color:var(--cyan);letter-spacing:2px;margin-bottom:2px;font-size:16px;}
-  .sub{text-align:center;color:var(--dim);font-size:11px;margin-bottom:10px;}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 11px;margin-bottom:8px;}
-  .card h4{font-size:12px;color:var(--cyan);letter-spacing:1px;border-bottom:1px dashed var(--line);padding-bottom:3px;margin-bottom:6px;}
-  .row{display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
-  .opt{border:1px solid var(--line);background:#131a24;color:var(--dim);border-radius:5px;padding:2px 12px;font-size:12px;cursor:pointer;}
-  .opt.on{color:var(--cyan);border-color:var(--cyan);}
-  .tri{display:inline-flex;border:1px solid var(--line);border-radius:5px;overflow:hidden;margin:2px 4px 2px 0;font-size:11px;}
-  .tri span{padding:1px 7px;color:var(--dim);cursor:pointer;border-right:1px solid var(--line);}
-  .tri span:last-child{border-right:0;}
-  .tri.main span.on{color:#fff;background:#2e7d32;}
-  .tri.subb span.on{color:#fff;background:#6f6f2e;}
-  .famname{color:var(--ink);margin-right:2px;}
-  .hint{font-size:10px;color:var(--dim);}
-  input[type=text],textarea{width:100%;background:#0b0f14;border:1px solid var(--line);color:var(--ink);border-radius:5px;padding:5px 7px;font:12px/1.6 inherit;}
-  label.ck{display:inline-flex;align-items:center;gap:4px;margin:2px 8px 2px 0;font-size:12px;color:var(--ink);cursor:pointer;}
-  .btn{border:1px solid var(--line);background:#1c2531;color:var(--ink);border-radius:5px;padding:4px 14px;font-size:13px;cursor:pointer;}
-  .btn.pri{border-color:var(--cyan);color:var(--cyan);}
-  .btn.big{padding:7px 26px;font-size:14px;}
-  .btn:disabled{opacity:.4;cursor:not-allowed;}
-  .center{text-align:center;margin-top:10px;}
-  #msg{text-align:center;font-size:12px;color:var(--y);min-height:18px;margin-top:6px;}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>渐变带 // 初始档案登记与神经回路烧录 [SETUP_PROTOCOL]</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
+    :root {
+      --bg: #030407;
+      --panel-bg: #070a10;
+      --font-mono: 'JetBrains Mono', Consolas, 'Courier New', monospace;
+      --font-display: 'Syne', 'Microsoft YaHei', sans-serif;
+      --acid-cyan: #00f0ff;
+      --acid-green: #c6ff00;
+      --acid-orange: #ff6600;
+      --acid-red: #f43f5e;
+      --acid-yellow: #eab308;
+      --border-dark: rgba(255, 255, 255, 0.08);
+    }
+
+    body {
+      background: var(--bg);
+      color: #cbd5e1;
+      font-family: var(--font-mono);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px 80px;
+      background-image:
+        radial-gradient(circle at 50% 10%, #0c1524 0%, #030407 65%),
+        repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 32px),
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 32px);
+    }
+
+    .protocol-sheet {
+      width: 100%;
+      max-width: 1080px;
+      background: var(--panel-bg);
+      border: 1.5px solid rgba(255, 255, 255, 0.12);
+      border-radius: 6px;
+      padding: 32px 36px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      position: relative;
+    }
+    .sheet-tape {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 160px;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(4px);
+    }
+    .sheet-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid #1e293b;
+      padding-bottom: 18px;
+      margin-bottom: 24px;
+    }
+    .header-code { font-size: 9px; color: #64748b; letter-spacing: 1.5px; font-weight: 800; }
+    .sheet-title { font-family: var(--font-display); font-size: 25px; font-weight: 900; color: #fff; margin-top: 4px; letter-spacing: -0.5px; }
+    .sheet-title b { color: var(--acid-cyan); }
+
+    .section-box {
+      margin-bottom: 26px;
+      background: rgba(255, 255, 255, 0.015);
+      border: 1px solid var(--border-dark);
+      border-radius: 4px;
+      padding: 18px 22px;
+    }
+    .section-hdr {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 8px;
+    }
+    .sec-num { font-size: 10px; font-weight: 900; color: #000; background: var(--acid-cyan); padding: 1px 6px; border-radius: 1px; }
+    .sec-title { font-family: var(--font-display); font-size: 15px; font-weight: 900; color: #fff; margin-left: 8px; }
+    .sec-rule { font-size: 10px; color: #64748b; font-weight: 700; }
+
+    /* 1. 身份 */
+    .identity-grid { display: grid; grid-template-columns: 2fr 2.4fr; gap: 20px; align-items: end; }
+    .input-field { display: flex; flex-direction: column; gap: 6px; }
+    .field-lbl { font-size: 9px; color: #8fa0b5; font-weight: 800; letter-spacing: 0.5px; }
+    .text-input {
+      background: #0d121c; border: 1.5px solid #1e293b; color: #fff;
+      font-family: var(--font-mono); font-size: 14px; font-weight: 800;
+      padding: 8px 12px; outline: none; border-radius: 2px; transition: all 0.2s;
+    }
+    .text-input:focus { border-color: var(--acid-cyan); box-shadow: 0 0 12px rgba(0, 240, 255, 0.25); }
+    .gender-radio-group { display: flex; gap: 8px; }
+    .gender-pill {
+      flex: 1; padding: 9px 0; background: #0d121c; border: 1.5px solid #1e293b;
+      color: #94a3b8; font-size: 11px; font-weight: 800; text-align: center;
+      cursor: pointer; border-radius: 2px; transition: all 0.2s;
+    }
+    .gender-pill.active { background: var(--acid-cyan); color: #000; border-color: var(--acid-cyan); box-shadow: 0 0 10px rgba(0, 240, 255, 0.3); }
+
+    /* 2. 难度 */
+    .difficulty-row { display: flex; gap: 10px; }
+    .diff-pill {
+      flex: 1; padding: 10px 0; background: #0d121c; border: 1.5px solid #1e293b;
+      color: #94a3b8; font-size: 12px; font-weight: 900; text-align: center;
+      cursor: pointer; border-radius: 2px; transition: all 0.2s; display: flex; flex-direction: column; gap: 3px;
+    }
+    .diff-pill small { font-size: 9px; font-weight: 700; opacity: 0.7; }
+    .diff-pill.active { border-color: var(--acid-orange); color: #fff; background: rgba(255, 102, 0, 0.12); box-shadow: 0 0 14px rgba(255, 102, 0, 0.35); }
+
+    /* 预设模板 */
+    .preset-row { display: flex; gap: 10px; margin-bottom: 14px; }
+    .preset-pill {
+      flex: 1; padding: 9px 0; background: #0a0e17; border: 1.5px dashed #334155;
+      color: #e2e8f0; font-size: 12px; font-weight: 900; text-align: center;
+      cursor: pointer; border-radius: 2px; transition: all 0.2s; display: flex; flex-direction: column; gap: 2px;
+    }
+    .preset-pill small { font-size: 8.5px; font-weight: 700; color: #64748b; }
+    .preset-pill.active { border-color: var(--acid-green); border-style: solid; background: rgba(198, 255, 0, 0.08); box-shadow: 0 0 14px rgba(198, 255, 0, 0.3); }
+    .preset-pill.active small { color: var(--acid-green); }
+
+    /* 3. 亲和（点数制） */
+    .affinity-picker-layout { display: flex; flex-direction: column; gap: 12px; }
+    .affinity-row-family {
+      display: flex; flex-direction: column; gap: 6px;
+      background: rgba(0, 0, 0, 0.3); padding: 10px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 3px;
+    }
+    .family-row-label { font-size: 9.5px; font-weight: 900; color: var(--fcolor, #94a3b8); display: flex; justify-content: space-between; }
+    .branches-badges-wrap { display: flex; gap: 10px; flex-wrap: wrap; }
+    .branch-btn {
+      padding: 6px 12px; background: #0a0e17; border: 1px solid #1f293d;
+      color: #64748b; font-size: 11px; font-weight: 800; cursor: pointer;
+      border-radius: 2px; display: flex; align-items: center; gap: 6px; transition: all 0.2s;
+    }
+    .branch-btn:hover { border-color: #475569; color: #e2e8f0; }
+    .branch-btn.state-primary {
+      border: 1.5px solid transparent;
+      background: linear-gradient(#090c12, #090c12) padding-box,
+                  linear-gradient(135deg, #ff007f, #00f0ff, #c6ff00, #ff00ea) border-box;
+      color: #fff; box-shadow: 0 0 14px rgba(0, 240, 255, 0.5), 0 0 24px rgba(255, 0, 128, 0.4);
+    }
+    .branch-btn.state-secondary { border-color: var(--fcolor, var(--acid-orange)); background: rgba(255, 102, 0, 0.08); color: #fff; }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #334155; }
+    .branch-btn.state-primary .status-dot { background: #c6ff00; box-shadow: 0 0 6px #c6ff00; }
+    .branch-btn.state-secondary .status-dot { background: var(--fcolor, var(--acid-orange)); box-shadow: 0 0 6px var(--fcolor, var(--acid-orange)); }
+    .branch-cost { font-size: 8px; opacity: 0.75; }
+
+    /* 4. 四维阶梯 */
+    .attr-row {
+      display: grid; grid-template-columns: 170px 1fr; gap: 10px; align-items: center;
+      padding: 8px 0; border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+    }
+    .attr-name { font-size: 10px; font-weight: 900; color: #e2e8f0; line-height: 1.4; }
+    .attr-name small { display: block; font-size: 8px; color: #64748b; font-weight: 700; }
+    .attr-grades { display: flex; gap: 6px; flex-wrap: wrap; }
+    .grade-pill {
+      padding: 5px 9px; background: #0a0e17; border: 1px solid #1f293d;
+      color: #94a3b8; font-size: 9.5px; font-weight: 800; cursor: pointer;
+      border-radius: 2px; text-align: center; line-height: 1.3; transition: all 0.2s; min-width: 58px;
+    }
+    .grade-pill small { display: block; font-size: 7.5px; color: #64748b; font-weight: 700; }
+    .grade-pill.active { border-color: var(--acid-cyan); color: #fff; background: rgba(0, 240, 255, 0.1); box-shadow: 0 0 10px rgba(0, 240, 255, 0.3); }
+    .grade-pill.active small { color: var(--acid-cyan); }
+
+    /* 5. 初始回路预览 */
+    .circuit-preview-list { display: flex; flex-direction: column; gap: 6px; }
+    .preview-item {
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 7px 12px; border-radius: 2px; font-size: 11px;
+    }
+    .preview-item b { color: #fff; }
+    .preview-item .pi-tag { font-size: 8.5px; font-weight: 900; padding: 1px 6px; border-radius: 2px; }
+    .pi-main { background: var(--acid-green); color: #000; }
+    .pi-sub { background: var(--acid-orange); color: #000; }
+
+    .submit-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      border-top: 2px solid #1e293b; padding-top: 20px; margin-top: 6px;
+    }
+    .summary-txt { font-size: 11px; color: #94a3b8; line-height: 1.6; }
+    .summary-txt b.points-ok { color: var(--acid-green); }
+    .summary-txt b.points-over { color: var(--acid-red); }
+    .btn-complete-setup {
+      background: var(--acid-green); color: #000; border: none; padding: 14px 34px;
+      font-family: var(--font-display); font-size: 14px; font-weight: 900; cursor: pointer;
+      border-radius: 3px; letter-spacing: 1px; box-shadow: 0 0 20px rgba(198, 255, 0, 0.4); transition: all 0.2s;
+    }
+    .btn-complete-setup:hover { box-shadow: 0 0 35px rgba(198, 255, 0, 0.8); transform: translateY(-2px); }
+    .btn-complete-setup:disabled { background: #1e2638; color: #48566e; cursor: not-allowed; box-shadow: none; transform: none; }
+    .hint { font-size: 9.5px; color: #64748b; margin-top: 8px; line-height: 1.6; }
+    #msg { text-align: center; font-size: 12px; color: var(--acid-yellow); min-height: 18px; margin-top: 10px; }
+  </style>
 </head>
 <body>
-<div class="wrap">
-  <h2>渐变带 · 开局初始化</h2>
-  <div class="sub">性别 → 亲和（主/次分支，不限族不限数量，核力场也可选）→ 开局发放 → 剧情时间 → 确认</div>
 
-  <div class="card"><h4>① 主角性别</h4>
-    <div class="row" id="genderRow">
-      <span class="opt" data-g="男">男</span>
-      <span class="opt" data-g="女">女</span>
+<div class="protocol-sheet">
+  <div class="sheet-tape"></div>
+
+  <div class="sheet-header">
+    <div>
+      <div class="header-code">SECTOR-09 INITIAL DOSSIER PROTOCOL // 2026.04</div>
+      <div class="sheet-title">初始档案登记与<b>神经回路烧录</b></div>
     </div>
-    <div class="hint">性别影响开场白版本。</div>
-  </div>
-
-  <div class="card"><h4>② 亲和选择（每族分支：无 / 主 / 次）</h4>
-    <div id="affTree"></div>
-    <div class="hint">主分支=施法×1/×1；同族其他分支与次分支=×2精神/×1.5能量；其余=×4/×4。可以做五族全主分支的龙傲天。</div>
-  </div>
-
-  <div class="card"><h4>③ 开局发放</h4>
-    <div class="row">
-      <span class="opt on" data-m="新手包">新手包（风切·标准发 + 魔素晶体×2）</span>
-      <span class="opt" data-m="自挑">自挑</span>
-    </div>
-    <div id="pickBox" style="display:none;margin-top:6px">
-      <div class="hint">预设固定回路：</div><div id="pkCircuits"></div>
-      <div class="hint">预设补给：</div><div id="pkSupplies"></div>
+    <div style="text-align:right;">
+      <div style="font-size:9px; color:#64748b;">档案校验戳记</div>
+      <div style="font-size:11px; font-weight:800; color:var(--acid-cyan);">REG-INIT-OK</div>
     </div>
   </div>
 
-  <div class="card"><h4>④ 剧情时间 与 开场白</h4>
-    <div class="hint">剧情时间格式：2026年9月1日，08：00（脚本据此自动恢复能量/精神）</div>
-    <input type="text" id="timeInput" value="2026年9月1日，08：00">
-    <div class="hint" style="margin-top:6px">开场白（写入第 0 楼，可修改）：</div>
-    <textarea id="openingBox" rows="6"></textarea>
+  <!-- 01 身份档案 -->
+  <div class="section-box">
+    <div class="section-hdr">
+      <div><span class="sec-num">01</span><span class="sec-title">身份档案 // CANDIDATE DOSSIER</span></div>
+      <span class="sec-rule">姓名自填 · 性别自选</span>
+    </div>
+    <div class="identity-grid">
+      <div class="input-field">
+        <span class="field-lbl">施法者姓名 // ACTOR NAME</span>
+        <input type="text" class="text-input" id="inputName" value="陆安" placeholder="输入施法者姓名...">
+      </div>
+      <div class="input-field">
+        <span class="field-lbl">性别 // GENDER</span>
+        <div class="gender-radio-group">
+          <div class="gender-pill active" data-gender="男">男 (M)</div>
+          <div class="gender-pill" data-gender="女">女 (F)</div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="center">
-    <button class="btn pri big" id="btnGo" disabled>确认开局</button>
-    <div id="msg"></div>
+  <!-- 02 难度与点数 -->
+  <div class="section-box">
+    <div class="section-hdr">
+      <div><span class="sec-num">02</span><span class="sec-title">预设模板 / 初始点数难度 // PRESETS · BUDGET TIER</span></div>
+      <span class="sec-rule" id="diffRuleTag">选择难度决定可用点数与亲和上限</span>
+    </div>
+    <div class="preset-row" id="presetRow">
+      <div class="preset-pill" data-preset="优等生">学院优等生<small>一键模板</small></div>
+      <div class="preset-pill" data-preset="拾荒者">地下拾荒者<small>一键模板</small></div>
+      <div class="preset-pill" data-preset="战略级">战略级<small>一键模板</small></div>
+      <div class="preset-pill active" data-preset="custom">自定义<small>点数自配</small></div>
+    </div>
+    <div class="difficulty-row" id="difficultyRow">
+      <div class="diff-pill" data-diff="普通"><span>普通</span><small>100 点</small></div>
+      <div class="diff-pill" data-diff="困难"><span>困难</span><small>65 点</small></div>
+      <div class="diff-pill" data-diff="爽文"><span>爽文</span><small>220 点</small></div>
+    </div>
+    <div class="hint">点数用于购买：能量上限 / 精神上限 / 持续输出功率 / 瞬时输出功率（四维阶梯）与 亲和（主/次，单价随数量递增）。亲和方向代表天然回路共振数量，每多开一个分支，体内回路冲突与塑形难度剧增。</div>
   </div>
+
+  <!-- 03 亲和光谱（点数制） -->
+  <div class="section-box">
+    <div class="section-hdr">
+      <div><span class="sec-num">03</span><span class="sec-title">亲和光谱标定 // AFFINITY SPECTRUM (18分支)</span></div>
+      <span class="sec-rule" id="affRuleCounter">加载中…</span>
+    </div>
+    <div class="affinity-picker-layout" id="affinityTreeContainer"></div>
+  </div>
+
+  <!-- 04 四维属性阶梯 -->
+  <div class="section-box">
+    <div class="section-hdr">
+      <div><span class="sec-num">04</span><span class="sec-title">四维属性阶梯 // ATTRIBUTE TIERS (E→S)</span></div>
+      <span class="sec-rule">每项独立选档 · 档位花费为累计值（E 0 / D 5 / C 12 / B 22 / A 36 / S 56）</span>
+    </div>
+    <div id="attrRows"></div>
+  </div>
+
+  <!-- 05 初始回路（按亲和自动授予，只读预览） -->
+  <div class="section-box">
+    <div class="section-hdr">
+      <div><span class="sec-num">05</span><span class="sec-title">初始固定回路 // AUTO-GRANT</span></div>
+      <span class="sec-rule">主亲和与次亲和逐一授予对应分支的最基础固定回路（无需自选）</span>
+    </div>
+    <div class="circuit-preview-list" id="circuitPreview"></div>
+  </div>
+
+  <!-- 底部 -->
+  <div class="submit-bar">
+    <div class="summary-txt" id="summaryNotice">• 初始状态校验中...</div>
+    <button class="btn-complete-setup" id="btnFinishSetup" disabled>确认档案并固化神经回路</button>
+  </div>
+  <div id="msg"></div>
 </div>
 
 <script>
@@ -699,104 +916,250 @@
   function $(s) { return document.querySelector(s); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
-  /* ── 预设清单（与扩展 core/presets.ts 保持一致）── */
-  var 预设回路 = [
-    { key: 'windcut', 名称: '风切·标准发', famKey: 'flow', e: 0, params: { mode: 1, sub: 1, fmed: 0, fa: 33, fv: 70, br: 100 }, 一句话效果: '风刃 A=0.049m² v=397m/s' },
-    { key: 'fireball', 名称: '火球·标准式', famKey: 'pour', e: 40, params: { phase: 2, pw: 55, th: 25 }, 一句话效果: '热爆轰·收窄束' },
-    { key: 'stonewall', 名称: '石肤壁垒', famKey: 'struct', e: 40, params: { base: 1, latt: 80, mass: 55, rate: 3, stress: 0, stressT: 10 }, 一句话效果: '土石壁垒·混相' },
-    { key: 'scan', 名称: '周界扫描', famKey: 'perce', e: 5, params: { rad: 30, res: 1, pert: 0, dwell: 0, dwellSec: 20 }, 一句话效果: '半径30m·标准' }
+  /* ═══════════════════ 静态数据 ═══════════════════ */
+  var AFFINITY_SCHEMA = [
+    { family: '倾泻', color: '#00f0ff', famKey: 'pour',  branches: ['光', '电', '热'] },
+    { family: '波动', color: '#c6ff00', famKey: 'flow',  branches: ['实体波', '媒介波', '电磁场', '引力场', '核力场'] },
+    { family: '结构', color: '#ff6600', famKey: 'struct', branches: ['晶体', '金属', '土石', '合金'] },
+    { family: '生机', color: '#f43f5e', famKey: 'life',   branches: ['植物', '动物(含人体)', '微生物'] },
+    { family: '感知', color: '#eab308', famKey: 'perce',  branches: ['五感延伸', '读心干扰', '信息伪造'] }
   ];
+  var FAMKEY = {}; AFFINITY_SCHEMA.forEach(function (g) { FAMKEY[g.family] = g.famKey; });
+
+  var DIFFICULTY = {
+    普通: { 点数: 100, maxMain: 2, maxSub: 3, rule: '亲和上限：最多 2 主 + 3 次（可少选）' },
+    困难: { 点数: 65,  maxMain: 1, maxSub: 2, rule: '亲和上限：最多 1 主 + 2 次' },
+    爽文: { 点数: 220, maxMain: 5, maxSub: 10, rule: '亲和不限量（5 主 10 次封顶，点够自便）' }
+  };
+  function 主收费(n) { return [10, 14, 18, 22, 26][n - 1]; }   // 第1~5个主亲和单价
+  function 次收费(n) { return n <= 2 ? 5 : n <= 4 ? 8 : n <= 6 ? 12 : n <= 8 ? 16 : 20; }
+  function 主累计(n) { var s = 0; for (var i = 1; i <= n; i++) s += 主收费(i); return s; }
+  function 次累计(n) { var s = 0; for (var i = 1; i <= n; i++) s += 次收费(i); return s; }
+
+  var ATTRIB_GRADES = [
+    { 档: 'E', cost: 0,  能量MJ: 0.2,  精神: 20,  持续W: 100,   瞬时kW: 1 },
+    { 档: 'D', cost: 5,  能量MJ: 0.5,  精神: 40,  持续W: 300,   瞬时kW: 5 },
+    { 档: 'C', cost: 12, 能量MJ: 2.0,  精神: 70,  持续W: 1500,  瞬时kW: 20 },
+    { 档: 'B', cost: 22, 能量MJ: 5.0,  精神: 100, 持续W: 5000,  瞬时kW: 60 },
+    { 档: 'A', cost: 36, 能量MJ: 10.0, 精神: 140, 持续W: 10000, 瞬时kW: 120 },
+    { 档: 'S', cost: 56, 能量MJ: 25.0, 精神: 200, 持续W: 25000, 瞬时kW: 300 }
+  ];
+  var ATTRS = [
+    { key: 'energy', name: '能量上限', sub: '人体蓄水', fmt: function (g) { return g.能量MJ + ' MJ'; } },
+    { key: 'mind',   name: '精神上限', sub: '阀门与抗压', fmt: function (g) { return g.精神 + ' 点'; } },
+    { key: 'sustain', name: '持续输出功率', sub: '巡航', fmt: function (g) { return (g.持续W >= 1000 ? (g.持续W / 1000).toFixed(1) + ' kW' : g.持续W + ' W'); } },
+    { key: 'burst',  name: '瞬时输出功率', sub: '单发爆发', fmt: function (g) { return g.瞬时kW + ' kW'; } }
+  ];
+
+  /* 18 分支 → 最基础固定回路（参数按引擎 FAMS/SUBS 校准，落地 branchOf 自动对齐分支） */
+  var BRANCH_CIRCUIT = {
+    '光':   { 名称: '光辐射微冲', famKey: 'pour', e: 10, params: { phase: 0, pw: 30, th: 15 }, fx: '定向光频脉冲·基础' },
+    '电':   { 名称: '电弧脉冲', famKey: 'pour', e: 10, params: { phase: 1, pw: 30, th: 25 }, fx: '高压电荷脉冲·基础' },
+    '热':   { 名称: '火球·基础', famKey: 'pour', e: 20, params: { phase: 2, pw: 40, th: 30 }, fx: '热爆轰·收窄束·基础' },
+    '实体波': { 名称: '电磁脉冲·基础', famKey: 'flow', e: 0, params: { mode: 0, sub: 0, band: 0, eknob: 0, pkw: 12, et: 0.5 }, fx: '无线电/微波能脉冲·基础' },
+    '媒介波': { 名称: '风刃·基础', famKey: 'flow', e: 0, params: { mode: 1, sub: 1, fmed: 0, fa: 20, fv: 50, br: 60 }, fx: '气流激波·基础' },
+    '电磁场': { 名称: '磁吸柔拂·基础', famKey: 'flow', e: 0, params: { mode: 2, sub: 0, mb: 50, mv: 30, mT: 0, mset: 10, mhold: 1 }, fx: '铁磁物件吸拂·基础' },
+    '引力场': { 名称: '悬浮·基础', famKey: 'flow', e: 0, params: { mode: 2, sub: 1, gk: 0, gm: 40, gh: 1 }, fx: '微重力悬浮·基础' },
+    '核力场': { 名称: '衰变微控·基础', famKey: 'flow', e: 0, params: { mode: 2, sub: 2, nmode: 0, nmass: 5, nctl: 0 }, fx: '弱核衰变微控·基础（禁区微档）' },
+    '晶体': { 名称: '晶壁·基础', famKey: 'struct', e: 20, params: { base: 0, latt: 75, mass: 40, rate: 3, stress: 0 }, fx: '晶界致密强化·基础' },
+    '金属': { 名称: '金属硬化·基础', famKey: 'struct', e: 20, params: { base: 0, latt: 40, mass: 45, rate: 3, stress: 0 }, fx: '金属晶格抗剪切·基础' },
+    '土石': { 名称: '岩刺·基础', famKey: 'struct', e: 20, params: { base: 1, latt: 60, mass: 50, rate: 4, stress: 0 }, fx: '地表岩晶尖刺·基础' },
+    '合金': { 名称: '合金装甲·基础', famKey: 'struct', e: 20, params: { base: 0, latt: 90, mass: 48, rate: 3, stress: 0 }, fx: '多元固溶体硬化·基础' },
+    '植物': { 名称: '藤蔓缠绕·基础', famKey: 'life', e: 10, params: { targ: 0, pen: 35, inten: 0, form2: 1, sel: 1, lat: 0, cat: 3 }, fx: '植物纤维缠绕·基础' },
+    '动物(含人体)': { 名称: '快速缝合·基础', famKey: 'life', e: 10, params: { targ: 1, pen: 40, inten: 0, form2: 1, sel: 1, lat: 0, cat: 3 }, fx: '创口肌肉闭合·基础' },
+    '微生物': { 名称: '发酵催化·基础', famKey: 'life', e: 10, params: { targ: 2, pen: 30, inten: 0, form2: 1, sel: 1, lat: 0, cat: 3 }, fx: '菌群生化催化·基础' },
+    '五感延伸': { 名称: '周界扫描·基础', famKey: 'perce', e: 5, params: { rad: 30, res: 1, pert: 0, dwell: 0, dwellSec: 20 }, fx: '超声多普勒周界·基础' },
+    '读心干扰': { 名称: '杂音注入·基础', famKey: 'perce', e: 5, params: { rad: 10, res: 1, pert: 0, dwell: 0, dwellSec: 20 }, fx: '突触电位杂音·基础' },
+    '信息伪造': { 名称: '幻象投射·基础', famKey: 'perce', e: 5, params: { rad: 15, res: 1, pert: 1, dwell: 0, dwellSec: 20 }, fx: '相位虚假投影·基础' }
+  };
+
   var 预设补给 = [
     { 名称: '魔素晶体', 数量: 2, 纯度: 64.2, 克数: 2.0, 效果: { 目标: '能量', 增加kJ: 500 } },
     { 名称: '魔素导液', 数量: 2, 纯度: 52, 容量ml: 30.0, 效果: { 目标: '精神', 增加点: 12 } },
     { 名称: '快速生化止血喷雾', 数量: 1, 效果: { 目标: '创伤', 身体状态: '正常' } },
     { 名称: '仿生神经桥接贴片', 数量: 1, 效果: { 目标: '创伤', 身体状态: '轻伤' } }
   ];
-  var FAMNAME = { pour: '倾泻', flow: '波动', struct: '结构', life: '生机', perce: '感知' };
-  var TREE = { 倾泻: ['光', '电', '热'], 波动: ['实体波', '媒介波', '电磁场', '引力场', '核力场'], 结构: ['晶体', '金属', '土石', '合金'], 生机: ['植物', '动物(含人体)', '微生物'], 感知: ['五感延伸', '读心干扰', '信息伪造'] };
-  var FAMKEY = { 倾泻: 'pour', 波动: 'flow', 结构: 'struct', 生机: 'life', 感知: 'perce' };
 
-  /* ── 选择状态 ── */
-  var sel = { gender: null, aff: {}, mode: '新手包', circuits: ['windcut'], supplies: ['魔素晶体'] };
-  // aff: {'波动·媒介波': 'main'|'sub'|null}
-  Object.keys(TREE).forEach(function (f) { TREE[f].forEach(function (b) { sel.aff[f + '·' + b] = null; }); });
+  /* ═══════════════════ 选择状态 ═══════════════════ */
+  var gender = '男';
+  var difficulty = '普通';
+  var mains = ['媒介波'];      // 分支名数组（有序，默认陆安主亲和）
+  var subs = ['热', '晶体'];   // 默认两个次亲和
+  var attrSel = { energy: 0, mind: 0, sustain: 0, burst: 0 };   // ATTRIB_GRADES 下标（E=0）
+  var capM = DIFFICULTY[difficulty].maxMain;
+  var capS = DIFFICULTY[difficulty].maxSub;
 
-  var DEFAULT_OPENING = {
-    '男': '2026年，魔素渗入这个世界的每个角落已经二十七年。路灯里淌着微光，换电站取代了旧时代的加油站，义务教育里的魔法课和体育课地位相当。今天是你进入魔法学院报到的日子……（可在上方编辑开场白）',
-    '女': '2026年，魔素渗入这个世界的每个角落已经二十七年。路灯里淌着微光，换电站取代了旧时代的加油站，义务教育里的魔法课和体育课地位相当。今天是你进入魔法学院报到的日子……（可在上方编辑开场白）'
+  function 亲和花费() {
+    return 主累计(mains.length) + 次累计(subs.length);
+  }
+  function 属性花费() {
+    var s = 0; ATTRS.forEach(function (a) { s += ATTRIB_GRADES[attrSel[a.key]].cost; }); return s;
+  }
+  function 总花费() { return 亲和花费() + 属性花费(); }
+  function 点预算() { return DIFFICULTY[difficulty].点数; }
+  function 余点() { return 点预算() - 总花费(); }
+
+  /* ═══════════════════ 预设模板（一键套用 · 官方模板不校验点数） ═══════════════════ */
+  var PRESETS = {
+    '优等生': { diff: '普通', mains: ['金属'], subs: ['电', '媒介波'], attr: { energy: 2, mind: 3, sustain: 3, burst: 4 } },
+    '拾荒者': { diff: '困难', mains: ['媒介波'], subs: [], attr: { energy: 1, mind: 2, sustain: 1, burst: 4 } },
+    '战略级': { diff: '爽文', mains: ['热', '电磁场', '晶体', '动物(含人体)', '读心干扰'], subs: [], attr: { energy: 4, mind: 5, sustain: 3, burst: 5 } }
   };
+  var presetMode = 'custom';
+  function setDifficulty(d, fromPreset) {
+    difficulty = d;
+    capM = DIFFICULTY[d].maxMain; capS = DIFFICULTY[d].maxSub;
+    if (!fromPreset) presetMode = 'custom';   // 手动切难度 = 回自定义
+    document.querySelectorAll('.diff-pill').forEach(function (p) { p.classList.toggle('active', p.dataset.diff === difficulty); });
+    document.querySelectorAll('.preset-pill').forEach(function (p) { p.classList.toggle('active', p.dataset.preset === presetMode); });
+    $('#diffRuleTag').textContent = DIFFICULTY[difficulty].rule;
+  }
+  function applyPreset(name) {
+    var P = PRESETS[name];
+    presetMode = name;
+    setDifficulty(P.diff, true);
+    mains = P.mains.slice(); subs = P.subs.slice();
+    attrSel = { energy: P.attr.energy, mind: P.attr.mind, sustain: P.attr.sustain, burst: P.attr.burst };
+    renderAll();
+  }
 
-  /* ── 渲染 ── */
-  function renderAff() {
-    var h = '';
-    Object.keys(TREE).forEach(function (f) {
-      h += '<div><span class="famname">' + f + '：</span>';
-      TREE[f].forEach(function (b) {
-        var key = f + '·' + b;
-        var st = sel.aff[key];
-        h += '<span class="tri ' + (st === 'main' ? 'main' : st === 'sub' ? 'subb' : '') + '" data-k="' + esc(key) + '">' +
-          '<span class="' + (st === 'main' ? 'on' : '') + '" data-v="main">主</span>' +
-          '<span class="' + (st === 'sub' ? 'on' : '') + '" data-v="sub">次</span>' +
-          '<span class="' + (!st ? 'on' : '') + '" data-v="null">无</span>' +
-          '</span>';
+  /* ═══════════════════ 渲染 ═══════════════════ */
+  function renderAffinity() {
+    var wrap = $('#affinityTreeContainer');
+    wrap.innerHTML = '';
+    AFFINITY_SCHEMA.forEach(function (grp) {
+      var row = document.createElement('div');
+      row.className = 'affinity-row-family';
+      row.style.setProperty('--fcolor', grp.color);
+      row.innerHTML = '<div class="family-row-label"><span>' + grp.family + '族</span><span style="font-size:8.5px;opacity:0.6;">' + grp.color + '</span></div><div class="branches-badges-wrap"></div>';
+      var w = row.querySelector('.branches-badges-wrap');
+      grp.branches.forEach(function (br) {
+        var isM = mains.indexOf(br) >= 0, isS = subs.indexOf(br) >= 0;
+        var costTxt = isM ? '主·' + 主收费(mains.indexOf(br) + 1) + '点' : isS ? '次·' + 次收费(subs.indexOf(br) + 1) + '点' : '';
+        var nextCost = (!isM && !isS) ? (mains.length < capM ? '→主 ' + 主收费(mains.length + 1) + '点' : (subs.length < capS ? '→次 ' + 次收费(subs.length + 1) + '点' : '')) : '';
+        var b = document.createElement('div');
+        b.className = 'branch-btn ' + (isM ? 'state-primary' : isS ? 'state-secondary' : 'state-none');
+        b.innerHTML = '<div class="status-dot"></div><span>' + br + '</span><span class="branch-cost">' + (isM ? '主亲和 ★' : isS ? '次亲和 ◐' : '[非亲和]') + '</span>' +
+          (costTxt ? '<b class="branch-cost" style="color:#fff;">' + costTxt + '</b>' : '') +
+          (nextCost ? '<b class="branch-cost" style="color:#ffcc66;">' + nextCost + '</b>' : '');
+        b.addEventListener('click', function () { cycleAffinity(br); });
+        w.appendChild(b);
       });
-      h += '</div>';
+      wrap.appendChild(row);
     });
-    $('#affTree').innerHTML = h;
+    $('#affRuleCounter').innerHTML =
+      '预算 <b style="color:var(--acid-orange)">' + 点预算() + '</b> 点 · 已用 <b style="color:' + (余点() >= 0 ? 'var(--acid-green)' : 'var(--acid-red)') + '">' + 总花费() + '</b> 点 · ' +
+      (mains.length ? '<b style="color:var(--acid-green)">主' + mains.length + '：' + mains.join('、') + '</b>' : '<b style="color:var(--acid-red)">未选主亲和</b>') +
+      ' | <b style="color:var(--acid-orange)">次' + subs.length + '：' + (subs.join('、') || '无') + '</b>（点击切换：主/次/非）';
   }
-  function renderPick() {
-    var h = '';
-    预设回路.forEach(function (p) {
-      h += '<label class="ck"><input type="checkbox" data-pk="' + p.key + '"' + (sel.circuits.indexOf(p.key) >= 0 ? ' checked' : '') + '>' + esc(p.名称) + '</label>';
-    });
-    $('#pkCircuits').innerHTML = h;
-    var h2 = '';
-    预设补给.forEach(function (s) {
-      h2 += '<label class="ck"><input type="checkbox" data-ps="' + esc(s.名称) + '"' + (sel.supplies.indexOf(s.名称) >= 0 ? ' checked' : '') + '>' + esc(s.名称) + '</label>';
-    });
-    $('#pkSupplies').innerHTML = h2;
+
+  function cycleAffinity(br) {
+    var iM = mains.indexOf(br), iS = subs.indexOf(br);
+    if (iM >= 0) {
+      // 主→次（次级未满则降级；已满则直接解除为非亲和）
+      mains.splice(iM, 1);
+      if (subs.length < capS) subs.push(br);
+    } else if (iS >= 0) {
+      subs.splice(iS, 1);                                           // 次→非
+    } else {
+      // 非→主（主未满升主，主满升次；都满则提示）
+      if (mains.length < capM) { mains.push(br); }
+      else if (subs.length < capS) { subs.push(br); }
+      else { alert('亲和已达上限（' + DIFFICULTY[difficulty].rule + '），请先点击已选亲和解除。'); }
+    }
+    renderAll();
   }
-  function updateGo() { $('#btnGo').disabled = !(sel.gender && mains().length >= 0); }
 
-  function mains() { return Object.keys(sel.aff).filter(function (k) { return sel.aff[k] === 'main'; }); }
-  function subs() { return Object.keys(sel.aff).filter(function (k) { return sel.aff[k] === 'sub'; }); }
-  function toBranch(k) { var p = k.split('·'); return { 族: p[0], 分支: p[1] }; }
+  function renderAttrs() {
+    var box = $('#attrRows');
+    box.innerHTML = '';
+    ATTRS.forEach(function (a) {
+      var row = document.createElement('div');
+      row.className = 'attr-row';
+      var gHtml = ATTRIB_GRADES.map(function (g, i) {
+        var active = attrSel[a.key] === i;
+        return '<div class="grade-pill' + (active ? ' active' : '') + '" data-attr="' + a.key + '" data-g="' + i + '">' + g.档 + (g.cost > 0 ? '<small>+' + g.cost + '点</small>' : '<small>0点</small>') + '</div>';
+      }).join('');
+      row.innerHTML = '<div class="attr-name">' + a.name + '<small>' + a.sub + '</small></div><div class="attr-grades">' + gHtml + '</div>';
+      box.appendChild(row);
+    });
+  }
 
-  /* ── 事件 ── */
+  function renderPreview() {
+    var list = [];
+    mains.concat(subs).forEach(function (br) {
+      var c = BRANCH_CIRCUIT[br];
+      if (!c) return;
+      var tag = mains.indexOf(br) >= 0 ? 'pi-main 主' : 'pi-sub 次';
+      var famName = '';
+      AFFINITY_SCHEMA.forEach(function (g) { if (g.branches.indexOf(br) >= 0) famName = g.family; });
+      list.push('<div class="preview-item"><span><b>' + esc(c.名称) + '</b>　' + famName + '·' + esc(br) + '　<span style="color:#64748b;">' + esc(c.fx) + '</span></span><span class="pi-tag ' + tag + '">' + (tag.indexOf('主') >= 0 ? '主亲和' : '次亲和') + '</span></div>');
+    });
+    $('#circuitPreview').innerHTML = list.length ? list.join('') : '<div class="preview-item"><span style="color:#64748b;">（未选择亲和，无初始回路）</span></div>';
+  }
+
+  function 四维档位() {
+    return ATTRIB_GRADES[attrSel.energy].档 + '/' + ATTRIB_GRADES[attrSel.mind].档 + '/' + ATTRIB_GRADES[attrSel.sustain].档 + '/' + ATTRIB_GRADES[attrSel.burst].档;
+  }
+  function renderSummary() {
+    var spend = 总花费(), budget = 点预算(), left = budget - spend;
+    var name = $('#inputName').value.trim();
+    var custom = presetMode === 'custom';
+    var ok = name.length > 0 && mains.length >= 1 && (!custom || (left >= 0 && subs.length <= capS && mains.length <= capM));
+    $('#btnFinishSetup').disabled = !ok;
+    var s;
+    if (!custom) {
+      s = '• 预设模板「' + presetMode + '」已套用：' + gender + ' | 四维 ' + 四维档位() + ' | 亲和 主' + mains.length + '次' + subs.length + ' | 总花费 <b class="points-ok">' + spend + '</b> 点（官方模板 · 不校验点数）';
+    } else {
+      s = '• 当前选档：' + gender + ' [' + difficulty + ' ' + budget + '点] | 四维 ' + 四维档位() + ' | 亲和 主' + mains.length + '次' + subs.length + ' | 已用 <b class="' + (left >= 0 ? 'points-ok' : 'points-over') + '">' + spend + '</b> 点 · 剩余 <b class="' + (left >= 0 ? 'points-ok' : 'points-over') + '">' + left + '</b> 点';
+    }
+    if (!name) s += '<br>• 尚未填写施法者姓名。';
+    else if (mains.length < 1) s += '<br>• 必须至少选定 1 个主亲和。';
+    else if (custom && left < 0) s += '<br>• 点数超支 ' + (-left) + ' 点！请降低档位或减少亲和。';
+    else s += '<br>• 将为全部主/次亲和分支自动授予基础固定回路（合计 ' + (mains.length + subs.length) + ' 条）。';
+    $('#summaryNotice').innerHTML = s;
+  }
+
+  function renderAll() { renderAffinity(); renderAttrs(); renderPreview(); renderSummary(); }
+
+  /* ═══════════════════ 事件 ═══════════════════ */
   document.body.addEventListener('click', function (ev) {
     var t = ev.target;
-    if (t.dataset && t.dataset.g) {
-      sel.gender = t.dataset.g;
-      document.querySelectorAll('#genderRow .opt').forEach(function (o) { o.classList.toggle('on', o.dataset.g === sel.gender); });
-      $('#openingBox').value = DEFAULT_OPENING[sel.gender];
-      updateGo(); return;
-    }
-    if (t.dataset && t.dataset.m) {
-      sel.mode = t.dataset.m;
-      document.querySelectorAll('[data-m]').forEach(function (o) { o.classList.toggle('on', o.dataset.m === sel.mode); });
-      $('#pickBox').style.display = sel.mode === '自挑' ? '' : 'none';
+    if (t.dataset && t.dataset.gender) {
+      gender = t.dataset.gender;
+      document.querySelectorAll('.gender-pill').forEach(function (p) { p.classList.toggle('active', p.dataset.gender === gender); });
+      renderSummary();
       return;
     }
-    var tri = t.parentElement;
-    if (tri && tri.classList && tri.classList.contains('tri') && t.dataset.v) {
-      sel.aff[tri.dataset.k] = t.dataset.v === 'null' ? null : t.dataset.v;
-      renderAff(); return;
+    if (t.dataset && t.dataset.preset) {
+      if (t.dataset.preset === 'custom') {
+        presetMode = 'custom';
+        document.querySelectorAll('.preset-pill').forEach(function (p) { p.classList.toggle('active', p.dataset.preset === 'custom'); });
+        renderAll();
+      } else {
+        applyPreset(t.dataset.preset);
+      }
+      return;
     }
-    if (t.id === 'btnGo') { doOpen(); return; }
+    if (t.dataset && t.dataset.diff) {
+      setDifficulty(t.dataset.diff, false);
+      if (mains.length > capM) mains = mains.slice(0, capM);
+      if (subs.length > capS) subs = subs.slice(0, capS);
+      renderAll();
+      return;
+    }
+    var gp = t.closest('.grade-pill');
+    if (gp && gp.dataset.attr) {
+      attrSel[gp.dataset.attr] = parseInt(gp.dataset.g, 10);
+      renderAll();
+      return;
+    }
   });
-  document.body.addEventListener('change', function (ev) {
-    var t = ev.target;
-    if (t.dataset && t.dataset.pk) {
-      if (t.checked) { if (sel.circuits.indexOf(t.dataset.pk) < 0) sel.circuits.push(t.dataset.pk); }
-      else sel.circuits = sel.circuits.filter(function (k) { return k !== t.dataset.pk; });
-    }
-    if (t.dataset && t.dataset.ps) {
-      if (t.checked) { if (sel.supplies.indexOf(t.dataset.ps) < 0) sel.supplies.push(t.dataset.ps); }
-      else sel.supplies = sel.supplies.filter(function (k) { return k !== t.dataset.ps; });
-    }
-  });
+  $('#inputName').addEventListener('input', renderSummary);
 
-  /* ── 时间解析（与扩展 core/time.ts 一致）── */
+  /* ═══════════════════ 时间/开场白（沿用扩展，可改） ═══════════════════ */
+  var DEFAULT_TIME = '2026年9月1日，08：00';
+  var DEFAULT_OPENING = '2026年，魔素渗入这个世界的每个角落已经二十七年。路灯里淌着微光，换电站取代了旧时代的加油站，义务教育里的魔法课和体育课地位相当。今天是你开启身份档案的第一天……';
   function parseTime(label) {
     var s = String(label || '').replace(/[，,]/g, ',').replace(/[：:]/g, ':').replace(/\s+/g, '').trim();
     var m = s.match(/^(\d{1,4})年(\d{1,2})月(\d{1,2})日,(\d{1,2}):(\d{2})$/);
@@ -805,28 +1168,60 @@
     return Number.isNaN(t) ? null : Math.round(t / 60000);
   }
 
-  /* ── 确认开局 ── */
-  function toast(ok, text) { var m = $('#msg'); m.style.color = ok ? 'var(--g)' : 'var(--r)'; m.textContent = text; }
+  /* ═══════════════════ 确认开局（点数制 → 存档 → 落盘） ═══════════════════ */
+  function toast(ok, text) { var m = $('#msg'); m.style.color = ok ? '#c6ff00' : '#f43f5e'; m.textContent = text; }
 
-  function doOpen() {
-    if (!sel.gender) { toast(false, '请先选择性别'); return; }
+  function circuitFor(gr, br, idx) {
+    var p = BRANCH_CIRCUIT[br];
+    if (!p || !E) return null;
+    var params = Object.assign(E.initParams(p.famKey), p.params);
+    var q = E.quote({ fam: p.famKey, e: p.e, c: params }, ctxRef());
+    var budget = E.budgetFrom ? E.budgetFrom(p.famKey, params, q.E_out) : null;
+    return {
+      id: 'fx-' + (idx < 9 ? '0' + (idx + 1) : idx + 1),
+      名称: p.名称, type: 'fixed', 族: gr.family, famKey: p.famKey,
+      分支: E.branchOf(p.famKey, params),
+      实体: p.famKey === 'flow' ? String(E.curKey(params)) : null,
+      参数向量: params, 注册e: p.e,
+      参数明细: E.readableParams(p.famKey, params),
+      微调预算: budget, 微调预算明细: E.readableBudget ? E.readableBudget(budget) : null,
+      基线账单: { 输出kJ: q.E_out, 计费kJ: q.bill, 精神: q.mind, 一句话效果: p.fx },
+      uses: null, 来源: '开局预设', 审核存档: null, 审核状态: '免审'
+    };
+  }
+
+  var ctxRef = function () {
+    var mainsB = mains.map(function (b) { var f = ''; AFFINITY_SCHEMA.forEach(function (g) { if (g.branches.indexOf(b) >= 0) f = g.family; }); return { 族: f, 分支: b }; });
+    var subsB = subs.map(function (b) { var f = ''; AFFINITY_SCHEMA.forEach(function (g) { if (g.branches.indexOf(b) >= 0) f = g.family; }); return { 族: f, 分支: b }; });
+    var E0 = ATTRIB_GRADES[attrSel.energy], M0 = ATTRIB_GRADES[attrSel.mind], S0 = ATTRIB_GRADES[attrSel.sustain], B0 = ATTRIB_GRADES[attrSel.burst];
+    var eKJ = Math.round(E0.能量MJ * 1000), sp = M0.精神;
+    return {
+      aff: { main: mainsB, subs: subsB },
+      scene: { wind: 40, mat: 3000, water: false },
+      char: { burstKW: B0.瞬时kW, sustainKW: S0.持续W / 1000, speed: 1, eCur: eKJ, mCur: sp, mMax: sp, body: '正常' },
+      tuned: []
+    };
+  };
+
+  $('#btnFinishSetup').addEventListener('click', function () {
+    var name = $('#inputName').value.trim();
+    if (!gender || !name) { toast(false, '请填写姓名并选择性别'); return; }
+    if (mains.length < 1) { toast(false, '至少选定 1 个主亲和'); return; }
+    if (presetMode === 'custom' && 总花费() > 点预算()) { toast(false, '点数超支 ' + (总花费() - 点预算()) + ' 点'); return; }
     if (typeof getVariables !== 'function') { toast(false, '需要酒馆助手环境'); return; }
-    var timeLabel = $('#timeInput').value.trim();
-    if (!parseTime(timeLabel)) { toast(false, '剧情时间格式应为：2026年9月1日，08：00'); return; }
-    var opening = $('#openingBox').value.trim();
-    if (!opening) { toast(false, '开场白为空'); return; }
+    var timeLabel = DEFAULT_TIME;
+    if (!parseTime(timeLabel)) { toast(false, '剧情时间格式错误'); return; }
 
-    var mainsB = mains().map(toBranch);
-    var subsB = subs().map(toBranch);
-    var circuitKeys = sel.mode === '新手包' ? ['windcut'] : sel.circuits;
-    var supplyNames = sel.mode === '新手包' ? ['魔素晶体'] : sel.supplies;
+    var mainsB = mains.map(function (b) { var f = ''; AFFINITY_SCHEMA.forEach(function (g) { if (g.branches.indexOf(b) >= 0) f = g.family; }); return { 族: f, 分支: b }; });
+    var subsB = subs.map(function (b) { var f = ''; AFFINITY_SCHEMA.forEach(function (g) { if (g.branches.indexOf(b) >= 0) f = g.family; }); return { 族: f, 分支: b }; });
+    var E0 = ATTRIB_GRADES[attrSel.energy], M0 = ATTRIB_GRADES[attrSel.mind], S0 = ATTRIB_GRADES[attrSel.sustain], B0 = ATTRIB_GRADES[attrSel.burst];
+    var eKJ = Math.round(E0.能量MJ * 1000), sp = M0.精神;
 
-    // 组存档（固定回路的基线账单由引擎现算）
     var g = {
       version: 2,
       主角: {
-        能量kJ: { 当前: 5000, 上限: 10000 }, 精神点: { 当前: 80, 上限: 90 },
-        爆发线kW: 300, 持续线kW: 50,
+        能量kJ: { 当前: eKJ, 上限: eKJ }, 精神点: { 当前: sp, 上限: sp },
+        爆发线kW: B0.瞬时kW, 持续线kW: S0.持续W / 1000,
         战斗中: false, 身体状态: '正常',
         剧情时间: { label: timeLabel }, 上次结算min: parseTime(timeLabel)
       },
@@ -837,71 +1232,48 @@
       场景: { 风力档: 40, 可塑无机物kJ: 3000, 水体在场: false },
       感情追踪: { '陆安': { 自洽: 10, 共情: 6, 解构: 10, '对主角的信任度': 5, 长期目标: '', 短期目标: '', 怎么看待主角: '' } }
     };
-    var ctx = {
-      aff: { main: mainsB, subs: subsB },
-      scene: { wind: 40, mat: 3000, water: false },
-      char: { burstKW: 300, sustainKW: 50, speed: 1, eCur: 5000, mCur: 80, mMax: 90, body: '正常' },
-      tuned: []
-    };
     var slot = 0;
-    circuitKeys.forEach(function (key) {
-      var p = null;
-      for (var i = 0; i < 预设回路.length; i++) if (预设回路[i].key === key) p = 预设回路[i];
-      if (!p || slot >= 10 || !E) return;
-      var params = Object.assign(E.initParams(p.famKey), p.params);
-      var q = E.quote({ fam: p.famKey, e: p.e, c: params }, ctx);
-      var budget = E.budgetFrom(p.famKey, params, q.E_out);
-      var famName = FAMNAME[p.famKey] || p.famKey;
-      g.回路库.push({
-        id: 'fx-' + (slot < 9 ? '0' + (slot + 1) : slot + 1),
-        名称: p.名称, type: 'fixed', 族: famName, famKey: p.famKey,
-        分支: E.branchOf(p.famKey, params),
-        实体: p.famKey === 'flow' ? String(E.curKey(params)) : null,
-        参数向量: params, 注册e: p.e,
-        参数明细: E.readableParams(p.famKey, params),
-        微调预算: budget, 微调预算明细: E.readableBudget(budget),
-        基线账单: { 输出kJ: q.E_out, 计费kJ: q.bill, 精神: q.mind, 一句话效果: p.一句话效果 },
-        uses: null, 来源: '开局预设', 审核存档: null, 审核状态: '免审'
-      });
-      g.槽位.固定槽[slot] = g.回路库[g.回路库.length - 1].id;
+    mains.concat(subs).forEach(function (br) {
+      var gr = null;
+      AFFINITY_SCHEMA.forEach(function (x) { if (x.branches.indexOf(br) >= 0) gr = x; });
+      if (!gr) return;
+      var c = circuitFor(gr, br, slot);
+      if (!c) return;
+      g.回路库.push(c);
+      if (slot < 10) g.槽位.固定槽[slot] = c.id;
       slot++;
     });
-    // 补给发放：晶体/导液=库存型（整条入，桌面滑杆用）；创伤补给=一补给一牌（uid 区分）
-    supplyNames.forEach(function (n) {
-      for (var i = 0; i < 预设补给.length; i++) {
-        if (预设补给[i].名称 !== n) continue;
-        var ps = 预设补给[i];
-        if (n === '魔素晶体' || n === '魔素导液') {
-          g.补给物品.push(JSON.parse(JSON.stringify(ps)));   // 库存型：保留原数量/纯度/克数或容量ml
-        } else {
-          for (var k = 0; k < ps.数量; k++) {
-            var one = JSON.parse(JSON.stringify(ps));
-            one.数量 = 1;
-            one.uid = n + (one.纯度 != null ? '-' + one.纯度 : '') + '#开局' + k;
-            g.补给物品.push(one);
-          }
+    // 新手包补给（固定发放 4 种库存：晶体/导液=库存型整条入；创伤=一补给一牌）
+    预设补给.forEach(function (ps) {
+      if (ps.名称 === '魔素晶体' || ps.名称 === '魔素导液') {
+        g.补给物品.push(JSON.parse(JSON.stringify(ps)));
+      } else {
+        for (var k = 0; k < ps.数量; k++) {
+          var one = JSON.parse(JSON.stringify(ps));
+          one.数量 = 1;
+          one.uid = ps.名称 + '#开局' + k;
+          g.补给物品.push(one);
         }
       }
     });
 
-    // 落盘 + 写 0 楼开场白 + 快照
-    $('#btnGo').disabled = true; toast(true, '正在写入…');
+    $('#btnFinishSetup').disabled = true; toast(true, '正在写入…');
     Promise.resolve(updateVariablesWith(function (v) { v['渐变带'] = g; return v; }, { type: 'chat' })).then(function () {
-      return Promise.resolve(setChatMessages([{ message_id: 0, message: opening }], { refresh: 'all' })).catch(function () {});
+      return Promise.resolve(setChatMessages([{ message_id: 0, message: DEFAULT_OPENING }], { refresh: 'all' })).catch(function () {});
     }).then(function () {
       var snap = JSON.parse(JSON.stringify(g)); if (snap['主角']) delete snap['主角']['上次结算min'];
       return Promise.resolve(updateVariablesWith(function (v) { v.stat_data = v.stat_data || {}; v.stat_data['渐变带'] = snap; return v; }, { type: 'message', message_id: 0 })).catch(function () {});
     }).then(function () {
-      toast(true, '✓ 开局完成！开场白已写入第 0 楼，开始冒险吧。');
+      toast(true, '✓ 开局完成！神经回路已烧录' + slot + ' 条，开场白写入第 0 楼。');
     }).catch(function (e) {
       toast(false, '失败：' + e);
-      $('#btnGo').disabled = false;
+      $('#btnFinishSetup').disabled = false;
     });
-  }
+  });
 
-  /* ── 启动 ── */
-  renderAff(); renderPick(); updateGo();
-  $('#openingBox').value = DEFAULT_OPENING['男'];
+  /* ═══════════════════ 启动 ═══════════════════ */
+  renderAll();
+  setDifficulty('普通', false);
   if (typeof getVariables !== 'function') toast(false, '需要酒馆助手环境（请在酒馆消息楼层内打开本页）');
 })();
 </script>

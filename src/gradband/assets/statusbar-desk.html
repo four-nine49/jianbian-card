@@ -1580,7 +1580,6 @@
           </label>
           <button class="btn-slot-mod" id="btnConfirmOps" style="border-color:#334155; color:#64748b; opacity:0.5;" disabled>确认使用（圈选槽位）</button>
           <button class="btn-slot-mod" id="btnManualRecalc" style="border-color:#38bdf8; color:#38bdf8;" title="按脚本重算全部回路的过载率 / 过载风险">⟳ 手动更新过载</button>
-          <span style="font-size:10px; color:#94a3b8;" id="slotCapTag">--</span>
         </div>
       </div>
       <div class="slots-container" id="slotsContainer"></div>
@@ -2056,7 +2055,6 @@
 
   /* ═══════════════════ 桌面1：槽位 + 回路卡渲染 ═══════════════════ */
   var slotsContainer = $('#slotsContainer');
-  var slotCapTag = $('#slotCapTag');
   var surfaceDesk1 = $('#surfaceDesk1');
   var SOCKET_COORDS = [];  // 槽位锚点（写死）：进槽卡的 left/top 固定用这份坐标；zoom/pan 不影响，仅布局变化时重算
   var REVIEW_ANCHOR = { x: 0, y: 0 };   // 送审槽锚点（写死，同槽位锚点口径）
@@ -2161,10 +2159,6 @@
     alert('手操确认：' + (names.join('，') || '无') + ' 已挂入待扣单（回合末 settle ⑥a 统一扣费；数据AI 只计次不重复扣）');
   });
 
-  function slotCapText() {
-    var m = (g && g.主角 && g.主角.精神点 && g.主角.精神点.上限) || 30;
-    return FIXED_CAP + ' 固定(仅固化) + ' + FREE_CAP + ' 自由(固化/自由均可)（精神上限 ' + m + '：10点1固定槽 · 30点1自由槽）';
-  }
   function buildSlots() {
     slotsContainer.innerHTML = '';
     var total = FIXED_CAP + FREE_CAP;
@@ -2181,7 +2175,6 @@
         '<button class="slot-use-btn" id="useBtn_' + i + '" data-slot="' + i + '" disabled>○ 使用</button>';
       slotsContainer.appendChild(socket);
     }
-    slotCapTag.textContent = slotCapText() + ' (在桌 ' + ON_DESK_CARDS.length + ')';
     updateSlotUseButtons();
   }
 
@@ -2218,15 +2211,15 @@
       DELETE_ANCHOR.x = Math.round((dr.left - surfaceRect.left) / zoom1 + (dr.width / zoom1 - CARD_W) / 2);
       DELETE_ANCHOR.y = Math.round((dr.top - surfaceRect.top) / zoom1 + (dr.height / zoom1 - CARD_H) / 2);
     }
-    // 补给匣定位：槽位模块右侧空地（最后一个 socket 右缘 + 间距），桌面绝对定位（zoom/pan 随桌面缩放平移）
+    // 补给匣定位：固定槽（socket_0）左侧空地，桌面绝对定位（zoom/pan 随桌面缩放平移）
     var rack = document.getElementById('supplyRack');
-    var lastSock = document.getElementById('socket_' + (slotsContainer.children.length - 1));
-    if (rack && lastSock) {
-      var wL = lastSock.querySelector('.slot-well') || lastSock;
-      var rL = wL.getBoundingClientRect();
+    var sock0 = document.getElementById('socket_0');
+    if (rack && sock0) {
+      var w0 = sock0.querySelector('.slot-well') || sock0;
+      var r0 = w0.getBoundingClientRect();
       var rw = rack.offsetWidth || 236;
-      rack.style.left = Math.round((rL.left - surfaceRect.left) / zoom1 + (rL.width / zoom1) + 26) + 'px';
-      rack.style.top = Math.round((rL.top - surfaceRect.top) / zoom1) + 'px';
+      rack.style.left = Math.round((r0.left - surfaceRect.left) / zoom1 - rw - 26) + 'px';
+      rack.style.top = Math.round((r0.top - surfaceRect.top) / zoom1) + 'px';
     }
   }
 
@@ -2292,7 +2285,6 @@
       bindFreeDragAndSnap(cardEl, c);
       surfaceDesk1.appendChild(cardEl);
     });
-    slotCapTag.textContent = slotCapText() + ' (在桌 ' + ON_DESK_CARDS.length + ')';
     updateSlotUseButtons();
     updateReviewDock();
     updateDeleteDock();
