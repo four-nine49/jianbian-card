@@ -1,8 +1,8 @@
 // pipeline/serialize.ts — 三视角序列化（§3.3 可见性矩阵的实现）
 //
 // 正文AI：槽内摘要（名+一句效果+锚点）+ 身体状态文本 + 剧情时间 + 出手单 —— 永不见 JSON 明细/库/账本/数值
-// 数据AI：主角数值（无上次结算min）+ 槽位展开（含参数明细/微调预算明细/基线账单）+ 补给 + 场景
-// 法术AI：亲和分支名 + 场景子集 + 全库索引（查重用）
+// 数据AI：主角数值（无上次结算min）+ 槽位摘要（id/名称/族·分支/一句话效果）+ 场景（补给物品不下发）
+// 法术AI：亲和分支名 + 场景子集（库索引已不再下发，见 serialize库索引 保留备用）
 import type { 游戏, 回路 } from '../core/schema';
 import { anchorOf } from '../engine/engine';
 
@@ -40,15 +40,14 @@ export function serialize正文AI(g: 游戏, recentOrders?: string[]): string {
   return L.join('\n');
 }
 
-/** 数据AI 视角：槽位展开成完整条目（回路库本体不下发） */
+/** 数据AI 视角：槽位摘要（回路库本体与补给物品不下发） */
 export function serialize数据AI(g: 游戏): string {
   const slots = 槽位展开(g);
+  // 数据AI 只需"认得这条回路"（认领 id 用），不下发参数明细/微调预算/账单/次数（那些归法术AI 与脚本）
+  // 补给物品也不下发（数据AI 只负责"新增补给"认领，不需知道已有库存）
   const view = (c: 回路 | null, i: number, kind: string) => c == null ? null : {
     序号: i, 类型: kind, id: c.id, 名称: c.名称, 族: c.族, 分支: c.分支,
-    参数: c.参数明细,
-    微调预算: c.微调预算明细 ?? undefined,
-    基线: c.基线账单,
-    使用次数: c.uses ?? undefined,
+    一句话效果: c.基线账单?.一句话效果 ?? '',
   };
   const payload = {
     主角: {
@@ -60,7 +59,6 @@ export function serialize数据AI(g: 游戏): string {
       固定槽: slots.固定槽.map((c, i) => view(c, i + 1, 'fixed')).filter(Boolean),
       自由槽: slots.自由槽.map((c, i) => view(c, i + 1, 'free')).filter(Boolean),
     },
-    补给物品: g.补给物品,
     场景: g.场景,
   };
   return JSON.stringify(payload, null, 1);

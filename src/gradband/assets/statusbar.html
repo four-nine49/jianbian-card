@@ -146,6 +146,8 @@
 
   /* ── 槽位页 ── */
   function circuitById(g, id) { for (var i = 0; i < g.回路库.length; i++) if (g.回路库[i].id === id) return g.回路库[i]; return null; }
+  /* 送审闸门：只有免审（预设/转正/剧情授技）或已通过（法术AI送审）才可装配/施放 */
+  function 可用(c) { return !!c && (c.审核状态 === '免审' || c.审核状态 === '已通过'); }
   function pageSlots(g) {
     var h = '';
     var inBattle = g.主角.战斗中;
@@ -355,6 +357,7 @@
       o.circuits.forEach(function (id, i) {
         var c = gg.回路库.find(function (x) { return x.id === id; });
         if (!c) return;
+        if (!可用(c)) return;   // 未送审通过的回路不参与手操
         var count = o.counts[i] || 1;
         for (var k = 0; k < count; k++) {
           var q = E.quote({ fam: c.famKey, e: 0, c: Object.assign(E.initParams(c.famKey), c.参数向量) }, ctx);
@@ -444,6 +447,7 @@
     if (mo) {
       var c = circuitById(g, mo);
       if (!c) return;
+      if (!可用(c)) { alert('该回路未送审通过，不能装配'); return; }
       if (g.主角.战斗中 && c.type === 'fixed') { alert('战斗中固定槽整排上锁'); return; }
       writeGame(function (gg) {
         var arr = c.type === 'fixed' ? gg.槽位.固定槽 : gg.槽位.自由槽;
@@ -519,6 +523,7 @@
   function doCast(g, id) {
     var c = circuitById(g, id);
     if (!c) return;
+    if (!可用(c)) { alert('该回路未送审通过，不能施放'); return; }
     writeGame(function (gg) {
       var cc = circuitById(gg, id); if (!cc) return;
       var ctx = {
@@ -642,13 +647,14 @@
           族: ({ pour: '倾泻', flow: '波动', struct: '结构', life: '生机', perce: '感知' })[S.fam],
           famKey: S.fam, 分支: E.branchOf(S.fam, params),
           实体: S.fam === 'flow' ? String(E.curKey(params)) : null,
-          参数向量: params, 注册e: S.e,
+          参数向量: params, 注册e: S.fam === 'flow' ? 0 : S.e,
           参数明细: E.readableParams(S.fam, params),
           微调预算: budget, 微调预算明细: E.readableBudget(budget),
           基线账单: { 输出kJ: q.E_out, 计费kJ: q.bill, 精神: q.mind, 一句话效果: effect },
           uses: targetType === 'free' ? 0 : null,
           来源: targetType === 'fixed' ? '剧情授技' : '面板送审',
-          审核存档: { 原始描述: desc, 规范化结果: json.规范化回路 }
+          审核存档: { 原始描述: desc, 规范化结果: json.规范化回路 },
+          审核状态: '已通过'
         });
       });
       out.textContent = (prefix || '') + '【通过】《' + name + '》已入' + (targetType === 'fixed' ? '固' : '自') + '定库（不自动占槽，去回路库页装上）。';

@@ -153,7 +153,8 @@
       { k: 'mb', label: '磁通量 B', type: 'range', min: 0, max: 100, step: 1, def: 61, fmt: v => logv(v, 0.01, 20).toFixed(2) + ' T' },
       { k: 'mv', label: '场体积 V', type: 'range', min: 0, max: 100, step: 1, def: 50, fmt: v => logv(v, 0.01, 100).toFixed(2) + ' m³' },
       { k: 'mT', label: '用途', type: 'seg', opts: ['吸拂·铁磁物件', '磁约束·带电粒子/等离子体', '偏转·精密微操'], def: 0 },
-      { k: 'mset', label: '场建立时长', type: 'range', min: 1, max: 60, step: 1, def: 20, fmt: v => v + ' s' }] },
+      { k: 'mset', label: '场建立时长', type: 'range', min: 1, max: 60, step: 1, def: 20, fmt: v => v + ' s' },
+      { k: 'mhold', label: '维持时长', type: 'range', min: 0.1, max: 60, step: 0.5, def: 1, fmt: v => v + ' s' }] },
     '2-1': { n: '引力场 · 悬浮与撕裂', mm: 2, d: 0.9, ctrls: [
       { k: 'gk', label: '调什么', type: 'seg', opts: ['调g·宏观搬物(便宜!)', '调梯度·潮汐撕裂'], def: 0 },
       { k: 'gm', label: '质量', type: 'range', min: 0, max: 100, step: 1, def: 60, show: c => c.gk === 0, fmt: v => logv(v, 0.1, 2000).toFixed(1) + ' kg' },
@@ -214,6 +215,8 @@
   function syncParams(fam, cIn) {
     if (fam !== 'flow') return Object.assign({}, cIn);
     const c = Object.assign({}, cIn);
+    const ks = SUBKEYS[c.mode];
+    if (ks) c.sub = Math.max(0, Math.min(Number(c.sub) || 0, ks.length - 1));   // sub 越界回落（切 mode 后残留防御）
     for (const ctl of (SUBS[curKey(c)] || { ctrls: [] }).ctrls) if (!(ctl.k in c)) c[ctl.k] = ctl.def;
     return c;
   }
@@ -327,17 +330,20 @@
       }
       else if (key === '0-1') {
         const h = 1e-21 * Math.pow(10, 15 * c.gwh / 100); const raw = 1e14 * Math.pow(h / 1e-6, 2);
-        E = Math.max(500, raw); o.relT = 1; mind += 6; o.tell = 5; spec = '应变h=' + exp10(h);
-        o.lines.push(['四极矩公式', 'E≈1e14kJ×(h/10⁻⁶)²' + (raw < 500 ? ' → 触到基建下限' : ''), anchorOf(E)]);
+        E = raw;                    // 真实破坏能量（不再保底 500）
+        o.gravCost = 500;           // 引力波激发起步能耗（进账单，不做功）
+        o.relT = 1; mind += 6; o.tell = 5; spec = '应变h=' + exp10(h);
+        o.lines.push(['四极矩公式', 'E≈1e14kJ×(h/10⁻⁶)²' + (raw < 0.1 ? ' · 实战破坏≈0' : ''), anchorOf(raw)]);
         o.chips.push({ t: '引力操纵·战略级征状（军方监控阵列会看向这里）', w: 15, l: 'r' });
         if (h < 1e-12) o.chips.push({ t: '涟漪活人毫无知觉——只有干涉仪知道你出手了', w: 8, l: 'o' });
         else if (h >= 1e-7) o.chips.push({ t: '肉眼可见空间抖动=国家级事件', w: 30, l: 'r' });
-        o.effect = spec + (h < 1e-12 ? '（实战意义≈0）' : '');
+        o.effect = spec + (h < 1e-12 ? '（实战破坏≈0，纯信号源）' : '');
       }
       else if (key === '1-0') {
-        if (c.sknob === 0) { const I = 1e4 * Math.pow(10, (c.db - 200) / 10); E = I * 0.5 * c.st / 1000; o.relT = Math.max(0.05, c.st);
+        if (c.sknob === 0) { const I = 1e-12 * Math.pow(10, c.db / 10); E = I * 0.5 * c.st / 1000; o.relT = Math.max(0.05, c.st);
           spec = c.db + 'dB声压×' + c.st + 's'; mind += (c.db - 120) / 40;
-          o.lines.push(['公式', 'E=I×0.5m²(胸腔)×t', E < 1 ? (E * 1000).toFixed(0) + 'J' : E.toFixed(1) + 'kJ']);
+          o.lines.push(['公式', 'E=I×0.5m²(胸腔)×t（基准10⁻¹²W/m²）', E < 1 ? (E * 1000).toFixed(0) + 'J' : E.toFixed(1) + 'kJ']);
+          if (c.db >= 194) o.chips.push({ t: '194dB+ 空气非线性·声压失真转为激波', w: 10, l: 'o' });
           if (c.db >= 190) { o.lines.push(['共振条款', '体表无伤、内脏出血——死法认定由裁判判']); o.tell = 3; }
         } else if (c.sknob === 1) { const L = logv(c.svol, 0.1, 1000); E = 100 * L * c.st / 1000; o.relT = Math.max(0.1, c.st);
           spec = '超声空化' + L.toFixed(1) + 'L×' + c.st + 's'; mind += 1;
@@ -350,8 +356,11 @@
       }
       else if (key === '1-1') {
         if (c.fmed === 0) { const A = logv(c.fa, 0.005, 5), v = logv(c.fv, 30, 1200);
-          E = 0.5 * 1.2 * A * v * v / 1000 * (v / 340); o.relT = 0.3; spec = '风刃 A=' + A.toFixed(3) + 'm² v=' + v.toFixed(0) + 'm/s';
-          o.lines.push(['公式', 'E=½ρ空气Av²×激波系数(v/340)', E.toFixed(1) + 'kJ']);
+          o.relT = 0.3;
+          const shockFactor = v > 340 ? (v / 340) : 1.0;   // 跨音速激波额外耗能
+          E = (0.5 * 1.2 * A * Math.pow(v, 3) * o.relT / 1000) * shockFactor;   // 动能流率 ½ρAv³ × 持续时间
+          spec = '风刃 A=' + A.toFixed(3) + 'm² v=' + v.toFixed(0) + 'm/s';
+          o.lines.push(['公式', 'E=½ρAv³×t×激波系数', E.toFixed(1) + 'kJ']);
           if (v > 340) o.chips.push({ t: '跨音速·激波爆鸣=自带开团广播', w: 6, l: 'o' });
           mind += 0.025 * c.fv;
         } else { const A = logv(c.fA, 1, 10000); E = 4.9 * A * c.fh * c.fh; o.relT = c.fbuild; mind += 1.5;
@@ -372,9 +381,12 @@
       }
       else if (key === '2-0') {
         const B = logv(c.mb, 0.01, 20), V = logv(c.mv, 0.01, 100);
-        E = B * B * 397.9 * V; o.relT = c.mset;
+        E = B * B * 397.9 * V;
+        o.relT = c.mhold ?? 1;    // 维持时长（作用时长）
+        o.chargeT = c.mset;       // 场建立时长（进 readyT，导引/充能）
         spec = B.toFixed(2) + 'T×' + V.toFixed(2) + 'm³·' + ['吸拂', '磁约束', '偏转微操'][c.mT];
         o.lines.push(['磁场能公式', 'E=B²/2μ₀·V（B平方·V线性）', anchorOf(E)]);
+        o.lines.push(['建立/维持', c.mset + 's 建立 · ' + (o.relT) + 's 维持']);
         if (B >= 8) o.chips.push({ t: '10T实验室级：铁磁物全压饼（植入物？裁判判）', w: 15, l: 'r' });
         if (c.mT === 1) { mind += 1.5; } if (c.mT === 2) mind += 2.5;
       }
@@ -388,15 +400,15 @@
         }
       }
       else if (key === '2-2') {
-        /* v2.1 核力场 · 方案A占位公式【可调】：
-         *   结合能释放：E = 质量 × 8×10⁴ kJ/g（铀核裂变量级；0.1g→8e3kJ≈2kgTNT，1kg→8e7kJ≈战术核弹）
+        /* v2.1 核力场 · 方案B（异能设定收敛）：
+         *   结合能释放：E = 质量 × 8×10⁴ kJ/g（可控微裂变，截面转化率 0.1% —— 规避"1g 铀≈2kg 汽油"的物理破绽）
          *   衰变加速：  E = 质量 × 400 kJ/g（跨越衰变势垒的活化能，效果=放射性污染缓发） */
         const gm = 0.1 * Math.pow(10000, c.nmass / 100); // 0.1g ~ 1000g
         o.nmass_g = gm;
         if (c.nmode === 1) {
           E = gm * 8e4; o.relT = 3;
           spec = '核素点燃' + (gm < 1 ? (gm * 1000).toFixed(0) + 'mg' : gm.toFixed(1) + 'g');
-          o.lines.push(['结合能公式', 'E≈8×10⁴kJ/g（铀核裂变量级）', anchorOf(E)]);
+          o.lines.push(['微裂变公式', 'E=8×10⁴kJ/g（可控截面转化率0.1%）', anchorOf(E)]);
           mind += 8;
           o.chips.push({ t: '核爆征状·使用即国家级事件，全球监控阵列看向这里', w: 30, l: 'r' });
           if (E >= 1e7) o.chips.push({ t: '战术核弹当量门槛·压箱底同归于尽招', w: 15, l: 'r' });
@@ -413,7 +425,7 @@
         o.effect = spec;
       }
       else { E = 0; o.relT = 1; mind = 99; spec = '未解锁'; }
-      o.out = Math.round(E * 100) / 100; o.bill = o.out / ampF * sv * g.e; o.effect = spec;
+      o.out = Math.round(E * 100) / 100; o.bill = (o.out / ampF * sv + (o.gravCost || 0)) * g.e; o.effect = spec;
       o.entity = key;
       o.lines.unshift([MODES[c.mode].n + '→' + def.n + '·分支[' + br + ']', '']);
     }
@@ -457,7 +469,7 @@
       o.bill = o.out * g.e;
       o.effect = '半径' + c.rad + 'm·' + ['广域', '标准', '锐分'][c.res];
     }
-    o.readyT = Math.max(0.15, (F.baseTime + (fam === 'struct' ? c.rate : 0)) / speed);
+    o.readyT = Math.max(0.15, (F.baseTime + (fam === 'struct' ? c.rate : 0) + (o.chargeT || 0)) / speed);
     o.mind = mind * g.m;
     o.lines.unshift([F.name + '·分支[' + br + ']→' + g.n, '精神×' + g.m + ' 能量×' + g.e]);
     return o;
@@ -466,6 +478,8 @@
   /* ================= 陌生系数（§5.7 前半） ================= */
   function unfOf(fam, cIn, r) {
     const c = syncParams(fam, cIn); let d = 0, parts = [];
+    const isMain = r && r.g && r.g.t === 'main';   // 是否为主修分支（豁免大类地形固有陌生度）
+
     if (fam === 'flow') {
       const key = curKey(c);
       if (SUBS[key] && SUBS[key].d) { d += SUBS[key].d; parts.push(SUBS[key].n.split(' ')[0]); }
@@ -476,10 +490,13 @@
       if (key === '0-0' && c.eknob === 1) { d += 0.25; parts.push('调相·精密活'); }
       if (key === '2-0' && c.mT === 2) { d += 0.2; parts.push('偏转微操'); }
       if (key === '1-0' && c.sknob === 2) { d += 0.2; parts.push('声相位'); }
-    } else if (fam === 'struct') { d += 0.45; parts.push('结构·陌生场'); if (c.base === 2) { d += 0.3; parts.push('粉尘'); } if (c.stress) { d += 0.2; parts.push('应力'); } }
-    else if (fam === 'pour') { d += 0.8; parts.push('倾泻·全新地形'); }
-    else if (fam === 'life') { d += 0.7; parts.push('生机·全新地形'); }
-    else { d += 0.6; parts.push('感知·全新地形'); }
+    } else if (fam === 'struct') {
+      if (!isMain) { d += 0.45; parts.push('结构·陌生场'); }
+      if (c.base === 2) { d += 0.3; parts.push('粉尘'); }
+      if (c.stress) { d += 0.2; parts.push('应力'); }
+    } else if (fam === 'pour') { if (!isMain) { d += 0.8; parts.push('倾泻·全新地形'); } }
+    else if (fam === 'life') { if (!isMain) { d += 0.7; parts.push('生机·全新地形'); } }
+    else { if (!isMain) { d += 0.6; parts.push('感知·全新地形'); } }
     if (r.g.t === 'far' && !parts.length) { parts.push('全陌族'); d = Math.max(d, 0.5); }
     return { d: Math.min(d, 4), unf: 1 + 0.25 * Math.min(d, 4), parts };
   }
@@ -518,25 +535,58 @@
     if (tuned) mind = Math.max(0.5, mind * 0.3);
     mind = +mind.toFixed(1); bill = Math.round(bill * 10) / 10;
     const exhaust = bill > (ch.eCur ?? Infinity);
-    const power = bill / r.relT;
+    // 过载率用"真实做功功率"（out/relT），不用含门控/伤势损耗溢价的账单功率（避免全陌三重惩罚）
+    const power = (r.out || 0.1) / r.relT;
     const burst = ch.burstKW ?? 300, sus = ch.sustainKW ?? 50;
     const overBurst = power > burst, overSustain = r.relT >= 1 && power > sus;
     const mMax = ch.mMax ?? 90, mCur = ch.mCur ?? 90;
     const frac = mind / mMax;
     const zone = frac < 1 / 3 ? { n: '绿·轻度', c: 'g' } : frac < 2 / 3 ? { n: '黄·中度', c: 'y' } : frac < 0.9 ? { n: '红·重荷', c: 'r' } : { n: '紫·断线区', c: 'p' };
     let tell = Math.max(1, Math.min(5, Math.round(r.tell + (r.g.t === 'far' ? 1 : 0))));
-    let risk = 5; const chips = r.chips.slice();
-    for (const cc of chips) risk += cc.w;
-    if (r.g.t === 'far') risk += 15;
-    risk += (U.unf - 1) * 25;
-    if (im.sev) chips.push({ t: '伤势[' + (ch.body || '正常') + '] 精神×' + im.mM.toFixed(2) + ' 能量×' + im.eM.toFixed(2), w: im.sev * 5, l: 'y' });
-    if (overSustain) { risk += 8; chips.push({ t: '超持续线·' + power.toFixed(0) + 'kW>' + sus + ' → 冲刺数秒后段衰减', w: 0, l: 'o' }); }
-    if (overBurst) { risk += 30; chips.push({ t: '超爆发上限' + burst + 'kW·断线', w: 0, l: 'r' }); }
-    if (frac >= 2 / 3) { risk += 10; chips.push({ t: '负荷区≥⅔·手抖冷汗视线发毛', w: 0, l: 'r' }); }
-    if (mind > mCur) { risk += 25; chips.push({ t: '精神余量不足·失败形态由裁判挑', w: 0, l: 'r' }); }
-    if (exhaust) { risk += 20; chips.push({ t: '储量透支·过载灼伤烧在接触处', w: 0, l: 'r' }); }
-    risk = Math.min(85, Math.round(risk));
+
+    /* ── 过载率（无上限）：短脉冲比爆发线，长脉冲比持续线 ── */
+    const 基准线 = r.relT >= 1 ? (sus || 1) : (burst || 1);
+    const overloadRate = +((power / 基准线) * 100).toFixed(1);
+
+    /* 精神状态因子 */
+    const safeMMax = Math.max(1, mMax);
+    const P = Math.max(0, Math.min(1, mCur / safeMMax));   // 当前精神比例 0~1
+    const beta = Math.pow(100 / safeMMax, 0.5);            // 精神上限底蕴系数（100 标准=1）
+    const gamma = 0.8 + (1 - P) * 1.2;                     // 疲劳系数 0.8~2.0
+    const omegaMental = 0.6 + 1.4 * Math.pow(1 - P, 2);    // 认知精力压制曲线 0.6~2.0
+
+    /* 模块 A：瞬时功率过载冲击 Φ_power = f(R) × β × γ */
+    let fR = 0;
+    if (overloadRate > 150) fR = 35 + (overloadRate - 150) * 1.0;
+    else if (overloadRate > 100) fR = 5 + (overloadRate - 100) * 0.6;
+    else if (overloadRate > 80) fR = (overloadRate - 80) * 0.25;
+    const phiPower = fR * beta * gamma;
+
+    /* 模块 B：认知壁垒反噬 Φ_barrier = D_base × β × Ω(P)（亲和 + 陌生） */
+    const affinityPenalty = r.g.t === 'far' ? 18 : r.g.t === 'mid' ? 6 : 0;
+    const unfPenalty = (Math.max(1, U.unf) - 1) * 20;
+    let rawBarrier = affinityPenalty + unfPenalty;
+    if (tuned) rawBarrier *= 0.3;   // 微调命中：本命回路排异惩罚降低 70%
+    const phiBarrier = rawBarrier * beta * omegaMental;
+
+    /* 模块 C：生理与条款硬性代价 Φ_body（不受精神抵消） */
+    const chips = r.chips.slice();
+    const chipSum = r.chips.reduce((s, c) => s + (c.w || 0), 0);
+    const phiBody = chipSum + im.sev * 5 + (exhaust ? 20 : 0);
+
+    /* 过载风险（0-100） */
+    const risk = Math.min(100, Math.max(0, Math.round(phiPower + phiBarrier + phiBody)));
+
+    /* 展示用的状态 chips（伤势/超爆发/超持续/高负荷/精神不足——w 仅展示，不计分） */
+    if (im.sev) chips.push({ t: '伤势[' + (ch.body || '正常') + '] 精神×' + im.mM.toFixed(2) + ' 能量×' + im.eM.toFixed(2), w: 0, l: 'y' });
+    if (overSustain) chips.push({ t: '超持续线·' + power.toFixed(0) + 'kW>' + sus + ' → 冲刺数秒后段衰减', w: 0, l: 'o' });
+    if (overBurst) chips.push({ t: '超爆发上限' + burst + 'kW·断线', w: 0, l: 'r' });
+    if (frac >= 2 / 3) chips.push({ t: '负荷区≥⅔·手抖冷汗视线发毛', w: 0, l: 'r' });
+    if (mind > mCur) chips.push({ t: '精神余量不足·失败形态由裁判挑', w: 0, l: 'r' });
+    if (exhaust) chips.push({ t: '储量透支·过载灼伤烧在接触处', w: 0, l: 'r' });
+
     return { r, E_out: r.out, bill, mind, relT: r.relT, readyT: r.readyT, power, tell, risk, zone,
+      overloadRate, beta, gamma,
       unf: U, chips, tunedHit: tuned ? tuned.id : null, tunedName: tuned ? (tuned['名'] || tuned.name) : null,
       exhaust, overBurst, overSustain };
   }
@@ -578,7 +628,7 @@
       schema: 'cast_out/1', time: timeLabel || null, fam: r.fam, branch: r.branch,
       entity: r.fam === 'flow' ? (r.entity || null) : null, params: r.c,
       energy: { E_kJ: r.out, bill_kJ: q.bill, anchor: anchorOf(r.out), derived: !!r.F.derived },
-      power: { relT_s: r.relT, P_kW: +(q.bill / r.relT).toFixed(1) },
+      power: { relT_s: r.relT, P_kW: +q.power.toFixed(1) },
       mind: { cost: q.mind, unf: +q.unf.unf.toFixed(2) },
       tell_lv: q.tell, risk_pct: q.risk, chips: q.chips.map(c => c.t),
       tuned_via: q.tunedHit || null,
@@ -597,9 +647,19 @@
     };
   }
 
+  /* ================= 结算末尾：批量重算回路库过载率/过载风险 ================= */
+  function settleCircuitLibrary(circuitLibrary, ctx) {
+    if (!Array.isArray(circuitLibrary)) return [];
+    return circuitLibrary.map(item => {
+      const req = { fam: item.famKey, e: item.注册e || 0, c: item.参数向量 || {} };
+      const q = quote(req, ctx);
+      return Object.assign({}, item, { 过载率: q.overloadRate, 过载风险: q.risk });
+    });
+  }
+
   return {
     // 主流程
-    quote, calcCircuit, localJudge, compileOrder, buildCastOut, makePending,
+    quote, calcCircuit, localJudge, compileOrder, buildCastOut, makePending, settleCircuitLibrary,
     // 参数与向量
     initParams, syncParams, branchOf, curKey, tierOf, gateOf, injuryMod, unfOf, findTuned,
     // v2.1 可读翻译件
@@ -702,6 +762,8 @@
 
   /* ── 槽位页 ── */
   function circuitById(g, id) { for (var i = 0; i < g.回路库.length; i++) if (g.回路库[i].id === id) return g.回路库[i]; return null; }
+  /* 送审闸门：只有免审（预设/转正/剧情授技）或已通过（法术AI送审）才可装配/施放 */
+  function 可用(c) { return !!c && (c.审核状态 === '免审' || c.审核状态 === '已通过'); }
   function pageSlots(g) {
     var h = '';
     var inBattle = g.主角.战斗中;
@@ -911,6 +973,7 @@
       o.circuits.forEach(function (id, i) {
         var c = gg.回路库.find(function (x) { return x.id === id; });
         if (!c) return;
+        if (!可用(c)) return;   // 未送审通过的回路不参与手操
         var count = o.counts[i] || 1;
         for (var k = 0; k < count; k++) {
           var q = E.quote({ fam: c.famKey, e: 0, c: Object.assign(E.initParams(c.famKey), c.参数向量) }, ctx);
@@ -1000,6 +1063,7 @@
     if (mo) {
       var c = circuitById(g, mo);
       if (!c) return;
+      if (!可用(c)) { alert('该回路未送审通过，不能装配'); return; }
       if (g.主角.战斗中 && c.type === 'fixed') { alert('战斗中固定槽整排上锁'); return; }
       writeGame(function (gg) {
         var arr = c.type === 'fixed' ? gg.槽位.固定槽 : gg.槽位.自由槽;
@@ -1075,6 +1139,7 @@
   function doCast(g, id) {
     var c = circuitById(g, id);
     if (!c) return;
+    if (!可用(c)) { alert('该回路未送审通过，不能施放'); return; }
     writeGame(function (gg) {
       var cc = circuitById(gg, id); if (!cc) return;
       var ctx = {
@@ -1198,13 +1263,14 @@
           族: ({ pour: '倾泻', flow: '波动', struct: '结构', life: '生机', perce: '感知' })[S.fam],
           famKey: S.fam, 分支: E.branchOf(S.fam, params),
           实体: S.fam === 'flow' ? String(E.curKey(params)) : null,
-          参数向量: params, 注册e: S.e,
+          参数向量: params, 注册e: S.fam === 'flow' ? 0 : S.e,
           参数明细: E.readableParams(S.fam, params),
           微调预算: budget, 微调预算明细: E.readableBudget(budget),
           基线账单: { 输出kJ: q.E_out, 计费kJ: q.bill, 精神: q.mind, 一句话效果: effect },
           uses: targetType === 'free' ? 0 : null,
           来源: targetType === 'fixed' ? '剧情授技' : '面板送审',
-          审核存档: { 原始描述: desc, 规范化结果: json.规范化回路 }
+          审核存档: { 原始描述: desc, 规范化结果: json.规范化回路 },
+          审核状态: '已通过'
         });
       });
       out.textContent = (prefix || '') + '【通过】《' + name + '》已入' + (targetType === 'fixed' ? '固' : '自') + '定库（不自动占槽，去回路库页装上）。';

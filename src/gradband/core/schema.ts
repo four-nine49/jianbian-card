@@ -17,17 +17,24 @@ export const 主角Schema = z.object({
   上次结算min: z.number(),                      // 仅脚本可读，快照剥除
 });
 
-/* ── 补给物品（只允许带恢复效果的补给）── */
+/* ── 补给物品（只允许带恢复/治疗效果的补给）── */
 export const 补给效果Schema = z.object({
-  目标: z.enum(['能量', '精神']),
-  增加kJ: z.number().optional(),
-  增加点: z.number().optional(),
+  目标: z.enum(['能量', '精神', '创伤']),
+  增加kJ: z.number().optional(),                    // 目标=能量
+  增加点: z.number().optional(),                    // 目标=精神
+  身体状态: z.enum(['正常', '轻伤']).optional(),    // 目标=创伤：重置为这个状态（只能减轻，不能加重）
 });
 export const 补给Schema = z.object({
   名称: z.string().min(1),
   数量: z.number().int().min(1),
+  uid: z.string().optional(),                       // 一补给一牌的唯一编号（同名补给区分；旧数据无此字段）
+  纯度: z.number().min(0).max(99.99).optional(),    // 魔素晶体/导液 的纯度（决定恢复量档位）
   效果: 补给效果Schema,
+  桌面位置: z.object({ x: z.number(), y: z.number() }).optional(),  // 补给卡在回路配置桌的自由位置
 });
+
+/** 数据AI 只允许报这 4 类补给 */
+export const 补给白名单 = ['魔素晶体', '魔素导液', '快速生化止血喷雾', '仿生神经桥接贴片'];
 
 /* ── 回路库（fixed/free 同构一表）── */
 export const 回路Schema = z.object({
@@ -47,6 +54,17 @@ export const 回路Schema = z.object({
   uses: z.number().int().nullable(),             // 仅 free 计数
   来源: z.enum(['面板送审', '转正', '剧情授技', '开局预设']),
   审核存档: z.object({ 原始描述: z.string(), 规范化结果: z.any() }).nullable(),
+  // 审核状态（对 AI 不可见；只有免审/已通过 才可装槽/施放）
+  //   免审：开局预设 / 转正（系统固化，不经法术AI）
+  //   待送审：剧情获得（先入牌库，用户手动点送审，法术AI 填参数后转"已通过"）
+  //   已通过：玩家面板自创 / 剧情获得（经法术AI 送审通过）
+  审核状态: z.enum(['免审', '待送审', '已通过']).optional(),
+  // 过载率（无上限，%）：功率相对主角输出上限（短脉冲比爆发线 / 长脉冲比持续线）的比值
+  过载率: z.number().optional(),
+  // 过载风险（0-100，%）：综合过载风险 = (过载率映射 + 客观修正) × 精神上限系数β × 当前精神乘数γ
+  过载风险: z.number().optional(),
+  // 桌面自由放置位置（回路配置桌的自由坐标；无此字段=吸附槽位显示）
+  桌面位置: z.object({ x: z.number(), y: z.number() }).optional(),
 });
 
 /* ── 槽位 ── */

@@ -15,6 +15,7 @@ export const localJudge = E.localJudge.bind(E);
 export const compileOrder = E.compileOrder.bind(E);
 export const buildCastOut = E.buildCastOut.bind(E);
 export const makePending = E.makePending.bind(E);
+export const settleCircuitLibrary = E.settleCircuitLibrary.bind(E);
 // 参数与向量
 export const initParams = E.initParams.bind(E);
 export const syncParams = E.syncParams.bind(E);

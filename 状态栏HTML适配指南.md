@@ -208,3 +208,18 @@ writeGame(function (gg) { gg.待扣单.push(...); });
 - **quote 必须传 ctx**：缺 ctx 会拿默认值，数值全错
 - **手操确认只扣费不挂单**：这是用户明确要求，别改
 - **状态栏是独立脚本**：没有 `import`、没有扩展的 API，只有酒馆变量 + `window.CircuitEngine`
+
+---
+
+## 9. 双桌工作台（desk）的流式内嵌契约（v1.5.0 定稿）
+
+`statusbar-desk.html` 是整页应用视觉（GRADIENT ZONE 主题、3400×2200 画布），但要**内联进聊天消息**显示。参考实现：剑与汽水「状态栏电脑」（`E:\deepseek\角色卡\状态栏电脑，其他线用.html`）——它的经验是"**fixed 只用于弹窗与装饰、主体全流式**"。
+
+**铁律（改 desk 布局时遵守）**：
+
+- **`body`/`html` 一条 CSS 都不许写**（尺寸/overflow/背景全归 `#gdesk` 容器；写 body 会把酒馆整页锁死或涂黑）
+- 结构：`<div id="gdesk">` 包住 顶部切换条 + HUD 提示 + 侧栏弹窗 + 两个 `.tabletop-viewport`
+- 画布视口：`.tabletop-viewport { position:relative; width:100%; height:860px; overflow:hidden }`（高度用户定，宽不锁随消息）；画布表面保持 absolute + 平移/缩放——JS 全是运行时测量（getBoundingClientRect/事件坐标），不依赖视口尺寸，别动
+- 侧栏：`.screen-sidebar` 是 fixed 居中弹窗（`translate(-50%,-50%) scale(.92)` → `.open` 显示，`opacity/pointer-events` 控制显隐）；`.sidebar-handle` 是右下角浮动开关；所有 ID 与 JS 逻辑不动
+- 未开局兜底：`document.getElementById('gdesk').innerHTML = ...`（**禁止 `document.body.innerHTML`**——会清空整个酒馆页面）
+- **曾否决的两个方案别再用**：① 内联布局小修（容器化/absolute 化）当时视觉仍不对；② iframe srcdoc 包裹（墨月工坊模式）被用户明确否决

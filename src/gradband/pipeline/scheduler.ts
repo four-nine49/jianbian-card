@@ -38,6 +38,7 @@ async function runTurn(): Promise<回合报告> {
   if (settings.开关.自动结算) {
     const res = await runDataAI(g);
     for (const ig of res.忽略的回路) report.notices.push(`回路报告忽略：${ig.回路}×${ig.次数}（${ig.原因}）`);
+    for (const ig of res.忽略的剧情) report.notices.push(ig);
     if (!res.ok) {
       report.error = res.error;
       report.log.push('⑤ 契约校验拒绝：' + res.error);

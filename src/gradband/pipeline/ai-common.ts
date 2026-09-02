@@ -48,8 +48,8 @@ export async function callAI(opts: {
   return r.text;
 }
 
-/** 最近正文（按"轮"取，默认 4 轮；剥掉状态栏标记与 HTML 码块） */
-export function recentStory(maxRounds = 4): string {
+/** 按"轮"取最近正文（默认 4 轮；剥掉状态栏标记与 HTML 码块），返回按时间正序的轮数组 */
+function recentRounds(maxRounds: number): string[] {
   const msgs = getChatMessages('0-{{lastMessageId}}') || [];
   const rounds: string[] = [];
   let count = 0;
@@ -60,5 +60,21 @@ export function recentStory(maxRounds = 4): string {
     rounds.unshift((m.is_user ? '【玩家】' : '【AI】') + text.slice(0, 3000));
     if (!m.is_user) count++;   // 一个 AI 楼算一轮结束
   }
-  return rounds.join('\n\n') || '（暂无正文）';
+  return rounds;
+}
+
+/** 最近正文（平铺，感情AI 等仍用此格式） */
+export function recentStory(maxRounds = 4): string {
+  return recentRounds(maxRounds).join('\n\n') || '（暂无正文）';
+}
+
+/**
+ * 分层正文（数据AI 用）：前文背景 + 本轮待结算正文。
+ * 理由：只给 1 轮会丢玩家施法意图（跨回合生效）；无差别给多轮会导致"历史重复清算/回声结算"（前几轮动作被重复提取）。
+ * 解法：背景轮仅供理解意图/因果/时间差，最新一轮单独标记为唯一提取源（配合提示词"事件范围铁律"）。
+ */
+export function recentStoryLayered(maxRounds = 4): { bg: string; latest: string } {
+  const rounds = recentRounds(maxRounds);
+  const latest = rounds.pop() || '';   // 最新一轮（含最新玩家动作 + AI 判定）
+  return { bg: rounds.join('\n\n'), latest };
 }

@@ -53,7 +53,7 @@
 
   <div class="card"><h4>③ 开局发放</h4>
     <div class="row">
-      <span class="opt on" data-m="新手包">新手包（风切·标准发 + 管控晶×2）</span>
+      <span class="opt on" data-m="新手包">新手包（风切·标准发 + 魔素晶体×2）</span>
       <span class="opt" data-m="自挑">自挑</span>
     </div>
     <div id="pickBox" style="display:none;margin-top:6px">
@@ -91,17 +91,17 @@
     { key: 'scan', 名称: '周界扫描', famKey: 'perce', e: 5, params: { rad: 30, res: 1, pert: 0, dwell: 0, dwellSec: 20 }, 一句话效果: '半径30m·标准' }
   ];
   var 预设补给 = [
-    { 名称: '管控晶（80%纯度魔素晶体）', 数量: 2, 效果: { 目标: '能量', 增加kJ: 200 } },
-    { 名称: '民用晶（低纯度魔素晶体）', 数量: 3, 效果: { 目标: '能量', 增加kJ: 50 } },
-    { 名称: '安神剂', 数量: 1, 效果: { 目标: '精神', 增加点: 5 } },
-    { 名称: '应急精神稳定剂', 数量: 1, 效果: { 目标: '精神', 增加点: 15 } }
+    { 名称: '魔素晶体', 数量: 2, 纯度: 64.2, 效果: { 目标: '能量', 增加kJ: 500 } },
+    { 名称: '魔素导液', 数量: 2, 纯度: 52, 效果: { 目标: '精神', 增加点: 12 } },
+    { 名称: '快速生化止血喷雾', 数量: 1, 效果: { 目标: '创伤', 身体状态: '正常' } },
+    { 名称: '仿生神经桥接贴片', 数量: 1, 效果: { 目标: '创伤', 身体状态: '轻伤' } }
   ];
   var FAMNAME = { pour: '倾泻', flow: '波动', struct: '结构', life: '生机', perce: '感知' };
   var TREE = { 倾泻: ['光', '电', '热'], 波动: ['实体波', '媒介波', '电磁场', '引力场', '核力场'], 结构: ['晶体', '金属', '土石', '合金'], 生机: ['植物', '动物(含人体)', '微生物'], 感知: ['五感延伸', '读心干扰', '信息伪造'] };
   var FAMKEY = { 倾泻: 'pour', 波动: 'flow', 结构: 'struct', 生机: 'life', 感知: 'perce' };
 
   /* ── 选择状态 ── */
-  var sel = { gender: null, aff: {}, mode: '新手包', circuits: ['windcut'], supplies: ['管控晶（80%纯度魔素晶体）'] };
+  var sel = { gender: null, aff: {}, mode: '新手包', circuits: ['windcut'], supplies: ['魔素晶体'] };
   // aff: {'波动·媒介波': 'main'|'sub'|null}
   Object.keys(TREE).forEach(function (f) { TREE[f].forEach(function (b) { sel.aff[f + '·' + b] = null; }); });
 
@@ -203,7 +203,7 @@
     var mainsB = mains().map(toBranch);
     var subsB = subs().map(toBranch);
     var circuitKeys = sel.mode === '新手包' ? ['windcut'] : sel.circuits;
-    var supplyNames = sel.mode === '新手包' ? ['管控晶（80%纯度魔素晶体）'] : sel.supplies;
+    var supplyNames = sel.mode === '新手包' ? ['魔素晶体'] : sel.supplies;
 
     // 组存档（固定回路的基线账单由引擎现算）
     var g = {
@@ -245,13 +245,22 @@
         参数明细: E.readableParams(p.famKey, params),
         微调预算: budget, 微调预算明细: E.readableBudget(budget),
         基线账单: { 输出kJ: q.E_out, 计费kJ: q.bill, 精神: q.mind, 一句话效果: p.一句话效果 },
-        uses: null, 来源: '开局预设', 审核存档: null
+        uses: null, 来源: '开局预设', 审核存档: null, 审核状态: '免审'
       });
       g.槽位.固定槽[slot] = g.回路库[g.回路库.length - 1].id;
       slot++;
     });
+    // 一补给一牌：预设数量 N → N 条独立记录（uid 区分）
     supplyNames.forEach(function (n) {
-      for (var i = 0; i < 预设补给.length; i++) if (预设补给[i].名称 === n) g.补给物品.push(JSON.parse(JSON.stringify(预设补给[i])));
+      for (var i = 0; i < 预设补给.length; i++) {
+        if (预设补给[i].名称 !== n) continue;
+        for (var k = 0; k < 预设补给[i].数量; k++) {
+          var one = JSON.parse(JSON.stringify(预设补给[i]));
+          one.数量 = 1;
+          one.uid = n + (one.纯度 != null ? '-' + one.纯度 : '') + '#开局' + k;
+          g.补给物品.push(one);
+        }
+      }
     });
 
     // 落盘 + 写 0 楼开场白 + 快照

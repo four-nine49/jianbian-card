@@ -42,11 +42,20 @@ export function 应用开局(sel: 开局选择, extra?: { 开场白?: string; �
     slot++;
   }
 
-  // 发放补给
+  // 发放补给（一补给一牌：预设数量 N → N 条独立记录，uid 区分）
   const supplies = sel.发放模式 === '新手包'
     ? 预设补给清单.filter(s => 新手包.补给.includes(s.名称))
     : 预设补给清单.filter(s => sel.自挑补给.includes(s.名称));
-  g.补给物品 = supplies.map(s => ({ ...s, 效果: { ...s.效果 } }) as 补给);
+  const 补给条: 补给[] = [];
+  for (const s of supplies) {
+    for (let k = 0; k < s.数量; k++) {
+      补给条.push({
+        名称: s.名称, 数量: 1, 纯度: s.纯度, 效果: { ...s.效果 },
+        uid: `${s.名称}${s.纯度 != null ? '-' + s.纯度 : ''}#开局${k}`,
+      } as 补给);
+    }
+  }
+  g.补给物品 = 补给条;
 
   // 感情追踪初始化（按设置里的角色模板；无设置时用默认陆安）
   g.感情追踪 = {};

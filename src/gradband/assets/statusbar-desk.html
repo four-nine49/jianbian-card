@@ -21,20 +21,33 @@
       --acid-red: #f43f5e;
       --acid-yellow: #eab308;
       --acid-purple: #c084fc;
+      /* 灯箱灯光（精神辉光引擎动态改写 r/g/b） */
+      --light-r: 56;
+      --light-g: 189;
+      --light-b: 248;
+      --light-primary: rgb(var(--light-r), var(--light-g), var(--light-b));
+      --light-glow-subtle: rgba(var(--light-r), var(--light-g), var(--light-b), 0.12);
+      --light-glow-strong: rgba(var(--light-r), var(--light-g), var(--light-b), 0.35);
+      --light-backlight: rgba(var(--light-r), var(--light-g), var(--light-b), 0.18);
+      /* 桌面 3D 倾斜角；已废弃（3D 倾斜全是 bug，改为纯 2D 平铺，--tilt 恒 0） */
+      --tilt: 0deg;
     }
 
-    body {
+    #gdesk {
+      position: relative;
       background-color: var(--desk-wood);
       color: #cbd5e1;
       font-family: var(--font-mono);
-      overflow: hidden;
-      width: 100vw;
-      height: 100vh;
+      width: 100%;
+      border: 1px solid #1e293b;
+      border-radius: 6px;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
     }
 
     /* ================= 顶端切换条 ================= */
     .top-desk-switcher {
-      position: fixed;
+      position: relative;
       top: 0;
       left: 0;
       right: 0;
@@ -73,6 +86,7 @@
       height: 100%;
     }
     .nav-tab-btn {
+      position: relative;
       height: 100%;
       padding: 0 24px;
       display: flex;
@@ -111,13 +125,12 @@
 
     /* ================= 视口结构 ================= */
     .tabletop-viewport {
-      width: 100vw;
-      height: 100vh;
+      width: 100%;
+      height: 860px;
       overflow: hidden;
-      position: absolute;
-      top: 0;
-      left: 0;
+      position: relative;
       display: none;
+      /* 3D 透视内联到 .table-surface 的 transform（perspective()），避免与 zoom 重排冲突导致卡牌反旋失效/陷入桌面 */
     }
     .tabletop-viewport.active { display: block; }
 
@@ -131,43 +144,65 @@
       left: 50%;
       transform-origin: 50% 50%;
       transform-style: preserve-3d;
+      border-radius: 12px;
+      /* 多层发光灯箱质感：背光漫射 + 刻线阴极光 + 物理边缘（灯光颜色随精神状态演变） */
       background: 
-        radial-gradient(circle at 50% 45%, #131928 0%, #080a10 75%),
-        linear-gradient(var(--grid-line) 1px, transparent 1px),
-        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-      box-shadow: inset 0 0 200px rgba(0, 0, 0, 0.95);
-      border: 8px solid #050608;
+        radial-gradient(circle at 50% 45%, var(--light-backlight) 0%, rgba(10, 14, 22, 0.96) 65%, #05070b 100%),
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.02) 0px, rgba(255, 255, 255, 0.02) 1px, transparent 1px, transparent 24px),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0px, rgba(255, 255, 255, 0.02) 1px, transparent 1px, transparent 24px);
+      box-shadow: 
+        0 0 120px var(--light-glow-strong),
+        inset 0 0 100px rgba(0, 0, 0, 0.85),
+        inset 0 0 0 2px rgba(255, 255, 255, 0.08);
+      border: 8px solid #0a0d13;
+      transition: box-shadow 0.4s ease, border-color 0.4s ease;
+    }
+    /* 示波台毫米标尺与十字校准准星 */
+    .table-surface::before {
+      content: "";
+      position: absolute;
+      inset: 20px;
+      border: 1px solid rgba(var(--light-r), var(--light-g), var(--light-b), 0.2);
+      pointer-events: none;
+      background-image: 
+        radial-gradient(circle at 50% 50%, var(--light-primary) 1.5px, transparent 2px),
+        radial-gradient(circle at 25% 25%, var(--light-primary) 1.5px, transparent 2px),
+        radial-gradient(circle at 75% 25%, var(--light-primary) 1.5px, transparent 2px),
+        radial-gradient(circle at 25% 75%, var(--light-primary) 1.5px, transparent 2px),
+        radial-gradient(circle at 75% 75%, var(--light-primary) 1.5px, transparent 2px);
+      background-size: 100% 100%, 200px 200px, 200px 200px, 200px 200px, 200px 200px;
+      opacity: 0.35;
+      transition: border-color 0.3s;
     }
 
     /* 桌面 1 画布大小 */
     #surfaceDesk1 {
       width: 3400px;
       height: 2200px;
-      background-size: 100% 100%, 48px 48px, 48px 48px;
     }
 
     /* 桌面 2 画布大小：大尺寸漫游桌面 */
     #surfaceDesk2 {
       width: 2800px;
       height: 2000px;
-      background-size: 100% 100%, 40px 40px, 40px 40px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 100px 40px 60px;
+      justify-content: center;
+      padding: 40px;
     }
 
     /* 屏幕 HUD 提示条 */
     .hud-controls-hint {
-      position: fixed;
-      bottom: 12px;
-      left: 16px;
+      position: relative;
       font-size: 10px;
       color: #64748b;
       z-index: 100;
       pointer-events: none;
       display: flex;
-      gap: 12px;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      padding: 8px 14px;
     }
     .hud-controls-hint em {
       font-style: normal;
@@ -177,10 +212,19 @@
     }
 
     /* ================= 桌面1：回路配置桌 ================= */
-    .desk-monitors {
+    /* 桌面 1 内容居中容器（监视器 + 槽位托盘整体居中） */
+    .desk1-center {
       position: absolute;
-      top: 80px;
-      left: 100px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+    }
+    .desk-monitors {
+      position: static;
       display: flex;
       gap: 16px;
       background: rgba(8, 10, 15, 0.94);
@@ -216,9 +260,7 @@
     }
 
     .slot-matrix-grid {
-      position: absolute;
-      top: 190px;
-      left: 100px;
+      position: static;
       padding: 22px;
       background: rgba(12, 16, 24, 0.45);
       border: 1px dashed rgba(255, 255, 255, 0.08);
@@ -257,34 +299,190 @@
       max-width: 1000px;
     }
     .slot-socket {
-      width: 148px;
-      height: 220px;
-      border: 1px dashed rgba(255, 255, 255, 0.12);
-      border-radius: 4px;
-      background: rgba(255, 255, 255, 0.015);
+      width: 152px;
+      height: 276px;
       position: relative;
+      border-radius: 4px;
+      padding: 6px 6px 5px;
       display: flex;
       flex-direction: column;
+      justify-content: space-between;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+    }
+    /* 固定槽：硬化冷轧金属导轨 */
+    .slot-socket.is-fixed {
+      background: #080a0f;
+      border: 1.5px solid #1a2332;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.9);
+    }
+    .slot-socket.is-fixed .slot-meta b { color: #2b3a4f; }
+    /* 自由槽：外挂绝缘跳线端子台 */
+    .slot-socket.is-free {
+      background: #0a0704;
+      border: 1.5px dashed #3a2212;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.9);
+    }
+    .slot-socket.is-free .slot-meta b { color: #4a2810; }
+    .slot-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 7.5px;
+      font-weight: 800;
+      padding: 0 2px 3px;
+      letter-spacing: 0.5px;
+      color: #64748b;
+      transition: color 0.25s ease;
+    }
+    .slot-meta b { font-weight: 900; }
+    .slot-well {
+      width: 140px;
+      height: 210px;
+      flex: none;
+      align-self: center;
+      position: relative;
+      background: #030406;
+      border-radius: 3px;
+      border: 1px solid #0d121a;
+      box-shadow: inset 0 6px 16px rgba(0, 0, 0, 0.98), inset 0 0 0 1px rgba(0,0,0,0.9);
+      display: flex;
       justify-content: center;
       align-items: center;
+      overflow: hidden;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+    .well-rail-l, .well-rail-r {
+      display: none;
+    }
+    .bus-gold-fingers {
+      display: none;
+    }
+    .standby-crosshair {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       gap: 4px;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
       color: #374151;
-      font-size: 9px;
+    }
+    .standby-crosshair .cross-circle {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 1px dashed rgba(255, 255, 255, 0.18);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 13px;
+    }
+    .standby-crosshair span { font-size: 7.5px; font-weight: 800; letter-spacing: 0.5px; }
+    .slot-use-btn {
+      position: relative;
+      z-index: 40;   /* 高于卡牌(z-index 10)，确保可点（否则被卡牌盖住） */
+      background: transparent;
+      border: 1px solid rgba(198, 255, 0, 0.4);
+      color: #c6ff00;
+      font-family: var(--font-mono);
+      font-size: 8.5px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 5px;
+      pointer-events: auto;
+    }
+    .slot-use-btn:not(:disabled):hover {
+      background: rgba(198, 255, 0, 0.12);
+      border-color: var(--acid-green);
+    }
+    /* ================= 法案审核台（送审槽；与固定/自由槽物理隔离） ================= */
+    .review-dock {
+      width: 100%;
+      max-width: 1000px;
+      background: rgba(28, 20, 6, 0.55);
+      border: 1px dashed rgba(255, 170, 60, 0.4);
+      border-radius: 6px;
+      padding: 10px 16px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.8);
+    }
+    .review-dock-head { display: flex; align-items: center; gap: 8px; }
+    .review-dock-body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .slot-socket.is-review {
+      background: #150f06;
+      border: 1.5px dashed #7c4a12;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.9);
+    }
+    .slot-socket.is-review .slot-meta b { color: #b45309; }
+    .slot-socket.is-review.is-occupied {
+      border-color: var(--card-accent) !important;
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.95), 0 0 25px var(--card-glow), inset 0 0 15px var(--card-glow) !important;
+    }
+    .slot-socket.is-review.is-occupied .slot-well {
+      border-color: var(--card-accent);
+      box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.9), 0 0 15px var(--card-glow);
+    }
+    .slot-socket.is-review.drag-hover {
+      border-color: rgba(255, 170, 60, 0.9) !important;
+      box-shadow: 0 0 20px rgba(255, 170, 60, 0.35) !important;
+    }
+    .review-btn {
+      background: rgba(255, 170, 60, 0.08);
+      border: 1px solid rgba(255, 170, 60, 0.45);
+      color: #fbbf24;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      padding: 6px 18px;
+      border-radius: 3px;
+      cursor: pointer;
       transition: all 0.2s;
     }
+    .review-btn:not(:disabled):hover {
+      background: rgba(255, 170, 60, 0.2);
+      color: #fff;
+      box-shadow: 0 0 14px rgba(255, 170, 60, 0.35);
+    }
+    .review-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    /* 手操模式滑块切换 */
+    .ops-switch-wrap { display: flex; align-items: center; gap: 5px; font-size: 9px; color: #94a3b8; cursor: pointer; letter-spacing: 0.5px; }
+    .ops-switch-box { position: relative; width: 38px; height: 19px; border-radius: 10px; background: #1e293b; border: 1px solid #334155; display: inline-block; transition: all 0.25s; flex-shrink: 0; }
+    .ops-switch-box input { position: absolute; inset: 0; opacity: 0; cursor: pointer; z-index: 5; margin: 0; width: 100%; height: 100%; }
+    .ops-switch-box i { position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: #64748b; transition: all 0.25s; }
+    .ops-switch-box input:checked ~ i { left: 21px; background: var(--acid-green); box-shadow: 0 0 8px var(--acid-green); }
+    /* 拖拽悬停吸附预备高亮 */
     .slot-socket.drag-hover {
-      border-color: var(--acid-green);
-      background: rgba(198, 255, 0, 0.06);
-      box-shadow: 0 0 15px rgba(198, 255, 0, 0.25);
+      border-color: rgba(255, 255, 255, 0.5) !important;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.25) !important;
     }
-    .socket-label {
-      position: absolute;
-      top: 6px;
-      left: 8px;
-      font-size: 8px;
-      color: #4b5563;
-      font-weight: 700;
+    /* 通电装载态：槽位颜色完全对应卡牌颜色（--card-accent） */
+    .slot-socket.is-occupied {
+      border-color: var(--card-accent) !important;
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.95), 0 0 25px var(--card-glow), inset 0 0 15px var(--card-glow) !important;
     }
+    .slot-socket.is-fixed.is-occupied {
+      background: linear-gradient(145deg, #101620 0%, #090e16 50%, #05070c 100%);
+    }
+    .slot-socket.is-free.is-occupied {
+      border-style: dashed !important;
+      background: linear-gradient(145deg, #181008 0%, #0d0804 50%, #070402 100%);
+    }
+    .slot-socket.is-occupied .slot-meta { color: var(--card-accent); }
+    .slot-socket.is-occupied .slot-meta b { color: var(--card-accent); }
+    .slot-socket.is-occupied .slot-well {
+      border-color: var(--card-accent);
+      box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.9), 0 0 15px var(--card-glow);
+    }
+    .slot-socket.is-occupied .standby-crosshair { opacity: 0; }
 
     /* 回路卡牌式样 */
     .card-token {
@@ -321,6 +519,159 @@
       overflow: hidden;
       transition: all 0.2s ease;
     }
+
+    /* ================= 补给卡（照抄 mana_purity_supplies 纯度分级美术） ================= */
+    .supply-token {
+      width: 150px;
+      height: 260px;
+      position: absolute;
+      cursor: grab;
+      z-index: 9;
+      transition: box-shadow 0.2s ease, transform 0.12s ease-out;
+    }
+    .supply-token.dragging {
+      cursor: grabbing;
+      z-index: 998 !important;
+      transform: scale(1.05);
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.95);
+    }
+    .supply-shell {
+      width: 100%;
+      height: 100%;
+      background: #090d14;
+      border-radius: 5px;
+      border: 1.5px solid var(--sup-theme, #334155);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 9px 8px;
+      box-shadow: 0 18px 36px rgba(0,0,0,0.9), 0 0 25px var(--sup-glow, transparent), inset 0 1px 0 rgba(255,255,255,0.25);
+    }
+    .foil-reflection {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.08) 48%, var(--sup-glow, transparent) 52%, transparent 60%);
+      background-size: 260% 260%;
+      mix-blend-mode: overlay;
+    }
+    .pkg-hole {
+      width: 28px;
+      height: 6px;
+      background: #040609;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 3px;
+      margin: 0 auto 6px;
+    }
+    .hazard-stripe {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: repeating-linear-gradient(45deg, var(--sup-theme), var(--sup-theme) 8px, #000 8px, #000 16px);
+    }
+    .supply-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 8px;
+      font-weight: 800;
+      color: #64748b;
+      border-bottom: 1px dashed rgba(255,255,255,0.12);
+      padding-bottom: 4px;
+    }
+    .supply-cat { font-weight: 900; letter-spacing: 0.5px; color: var(--sup-theme); }
+    .supply-tierbadge {
+      font-size: 7.5px;
+      font-weight: 900;
+      padding: 1px 4px;
+      border-radius: 1px;
+      letter-spacing: 0.5px;
+      display: inline-block;
+      margin-bottom: 2px;
+      color: var(--sup-theme);
+      border: 1px solid var(--sup-theme);
+      background: rgba(255,255,255,0.03);
+    }
+    .supply-name {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.1;
+      letter-spacing: -0.3px;
+    }
+    .sup-uid-n {
+      display: inline-block;
+      margin-left: 5px;
+      font-family: var(--font-mono);
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      color: var(--sup-theme);
+      border: 1px solid rgba(255,255,255,0.28);
+      border-radius: 2px;
+      padding: 0 3px;
+      opacity: 0.85;
+      vertical-align: 1px;
+    }
+    .supply-quantum {
+      margin-top: 4px;
+      background: rgba(255,255,255,0.03);
+      border-left: 3px solid var(--sup-theme);
+      padding: 4px 8px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+    .supply-purity { font-size: 18px; font-weight: 900; color: #fff; line-height: 1; }
+    .supply-purity span { font-size: 11px; color: var(--sup-theme); margin-left: 1px; }
+    .supply-add { font-size: 12px; font-weight: 800; color: var(--sup-theme); }
+    .supply-art {
+      height: 72px;
+      background: #05080e;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 3px;
+      margin: 6px 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      position: relative;
+    }
+    .supply-art::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 12px),
+                        repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 12px);
+      pointer-events: none;
+    }
+    .supply-specs {
+      background: rgba(0,0,0,0.45);
+      padding: 4px 6px;
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 2px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 7.5px;
+    }
+    .supply-spec-r { display: flex; justify-content: space-between; color: #94a3b8; }
+    .supply-spec-r b { color: #fff; }
+    .supply-footer {
+      margin-top: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-top: 1px dashed rgba(255,255,255,0.1);
+      padding-top: 6px;
+    }
+    .supply-barcode { height: 14px; opacity: 0.6; }
+    .supply-pips { display: flex; gap: 3px; align-items: center; }
+    .supply-pip { width: 6px; height: 6px; border: 1px solid var(--sup-theme); background: var(--sup-theme); border-radius: 1px; }
+    .supply-pip.empty { background: transparent; opacity: 0.3; }
     .card-token.spent .card-inner {
       border-color: #334155 !important;
       background: #090b0e !important;
@@ -328,6 +679,24 @@
       filter: grayscale(0.9);
       box-shadow: 0 4px 10px rgba(0,0,0,0.8);
     }
+    /* 手操圈选后：卡牌 + 槽位变灰不发光 */
+    .card-token.used .card-inner {
+      border-color: #334155 !important;
+      background: #0a0c10 !important;
+      opacity: 0.5;
+      filter: grayscale(0.95);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.75) !important;
+    }
+    .slot-socket.used.is-occupied {
+      border-color: #334155 !important;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.8) !important;
+    }
+    .slot-socket.used.is-occupied .slot-well {
+      border-color: #26303f !important;
+      box-shadow: inset 0 4px 12px rgba(0,0,0,0.85) !important;
+    }
+    .slot-socket.used.is-occupied .slot-meta { color: #4b5a6b !important; }
+    .slot-socket.used.is-occupied .slot-meta b { color: #4b5a6b !important; }
     .card-token.spent .spent-overlay-stamp { display: flex; }
     .spent-overlay-stamp {
       display: none;
@@ -547,9 +916,10 @@
       cursor: pointer;
       transition: transform 0.2s ease, box-shadow 0.25s ease;
       overflow: hidden;
+      transform: rotateX(calc(-1 * var(--tilt)));
     }
     .affinity-card:hover {
-      transform: translateY(-4px) scale(1.02);
+      transform: rotateX(calc(-1 * var(--tilt))) translateY(-4px) scale(1.02);
       z-index: 20;
     }
 
@@ -722,12 +1092,39 @@
     }
     .sidebar-handle:hover { background: var(--acid-green); color: #000; }
 
+    /* 待送审红点（牌库/侧栏/配置桌导航，有剧情获得待送审的牌时点亮） */
+    .pending-dot {
+      position: absolute;
+      top: 4px;
+      right: 6px;
+      min-width: 15px;
+      height: 15px;
+      border-radius: 8px;
+      background: #f43f5e;
+      color: #fff;
+      font-size: 9px;
+      font-weight: 900;
+      line-height: 15px;
+      text-align: center;
+      padding: 0 4px;
+      box-shadow: 0 0 8px rgba(244, 63, 94, 0.9);
+      z-index: 30;
+      pointer-events: none;
+    }
+    .sidebar-handle .pending-dot {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      right: auto;
+    }
+
     .sidebar-tabs {
       display: flex;
       border-bottom: 2px solid rgba(255, 255, 255, 0.08);
       background: #0b0e15;
     }
     .tab-btn {
+      position: relative;
       flex: 1;
       padding: 14px 10px;
       font-size: 11px;
@@ -806,9 +1203,104 @@
       color: #fff;
       box-shadow: 0 0 15px rgba(244, 63, 94, 0.4);
     }
+
+    /* ================= 桌面3：自由施法桌 // 临时回路构筑台 ================= */
+    .forge-layout { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; gap: 28px; align-items: flex-start; }
+    .forge-preset-panel { width: 240px; background: rgba(10, 14, 22, 0.94); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 18px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 15px 40px rgba(0,0,0,0.6); }
+    .preset-btn { padding: 8px 10px; border: 1px solid #1e293b; background: rgba(255,255,255,0.02); border-radius: 4px; cursor: pointer; text-align: left; transition: all 0.2s; }
+    .preset-btn:hover { border-color: var(--acid-green); background: rgba(198,255,0,0.06); }
+    .preset-btn.active { border-color: var(--acid-green); background: rgba(198,255,0,0.08); }
+    .preset-btn .pn { font-size: 11px; font-weight: 800; color: #fff; }
+    .preset-btn .pe { font-size: 8.5px; color: #64748b; }
+    .forge-family-panel { width: 240px; background: rgba(10, 14, 22, 0.94); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 15px 40px rgba(0,0,0,0.6); transform: rotateX(calc(-1 * var(--tilt))); }
+    .forge-panel-title { font-family: var(--font-display); font-size: 13px; font-weight: 900; color: #fff; letter-spacing: 1.5px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px; }
+    .fam-switch-item { padding: 12px 14px; border: 1px solid #1e293b; background: rgba(255,255,255,0.02); border-radius: 4px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
+    .fam-switch-item:hover { border-color: #64748b; background: rgba(255,255,255,0.04); }
+    .fam-switch-item.active { border-color: var(--fcolor, var(--acid-green)); background: rgba(255,255,255,0.06); box-shadow: inset 0 0 12px rgba(255,255,255,0.05), 0 0 10px var(--fglow, rgba(198,255,0,0.3)); }
+    .fam-switch-item .fn { font-family: var(--font-display); font-size: 15px; font-weight: 900; color: #fff; }
+    .fam-switch-item .fs { font-size: 8.5px; color: #64748b; }
+    .forge-tuning-rack { width: 580px; background: rgba(12, 16, 24, 0.94); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 24px; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 15px 40px rgba(0,0,0,0.6); transform: rotateX(calc(-1 * var(--tilt))); }
+    .rack-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--cur-fam-color, var(--acid-green)); padding-bottom: 8px; }
+    .rack-title { font-family: var(--font-display); font-size: 16px; font-weight: 900; color: #fff; }
+    .rack-sub { font-size: 10px; color: #64748b; }
+    .ctrl-item { display: flex; flex-direction: column; gap: 6px; }
+    .ctrl-label-row { display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; }
+    .ctrl-label-row .lbl { color: #8fa0b5; }
+    .ctrl-label-row .val { color: var(--cur-fam-color, var(--acid-green)); font-family: var(--font-mono); font-weight: 800; }
+    .seg-btn-group { display: flex; gap: 6px; flex-wrap: wrap; }
+    .seg-opt-btn { flex: 1; min-width: 90px; background: rgba(255,255,255,0.03); border: 1px solid #1e293b; color: #94a3b8; font-size: 10px; font-weight: 800; padding: 6px 8px; border-radius: 3px; cursor: pointer; text-align: center; font-family: var(--font-mono); transition: all 0.15s; }
+    .seg-opt-btn:hover { border-color: #475569; color: #fff; }
+    .seg-opt-btn.active { background: var(--cur-fam-color, var(--acid-green)); color: #000; border-color: var(--cur-fam-color, var(--acid-green)); box-shadow: 0 0 10px rgba(0,0,0,0.4); }
+    input[type=range].acid-slider { -webkit-appearance: none; width: 100%; height: 6px; background: #1e293b; border-radius: 3px; outline: none; }
+    input[type=range].acid-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 2px; background: var(--cur-fam-color, var(--acid-green)); cursor: pointer; box-shadow: 0 0 8px var(--cur-fam-color, var(--acid-green)); }
+    .forge-telemetry-hud { width: 440px; background: rgba(8, 10, 15, 0.96); border: 2px solid #232c3d; border-radius: 6px; padding: 22px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); transform: rotateX(calc(-1 * var(--tilt))); }
+    .tele-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px; }
+    .tele-title { font-family: var(--font-display); font-size: 14px; font-weight: 900; color: #fff; }
+    .gate-badge { font-size: 9.5px; font-weight: 900; padding: 2px 6px; border-radius: 2px; }
+    .gate-badge.main { background: var(--acid-green); color: #000; }
+    .gate-badge.mid { background: var(--acid-orange); color: #000; }
+    .gate-badge.far { background: var(--acid-red); color: #fff; }
+    .tele-quantum-box { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 12px; display: flex; flex-direction: column; gap: 4px; }
+    .tele-q-lbl { font-size: 8.5px; color: #64748b; letter-spacing: 1px; }
+    .tele-q-num { font-family: var(--font-mono); font-size: 30px; font-weight: 900; color: #fff; line-height: 1; }
+    .tele-q-anchor { font-size: 11px; color: var(--acid-green); font-weight: 700; margin-top: 4px; }
+    .tele-grid-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stat-card-mini { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); padding: 8px 10px; }
+    .stat-card-mini .k { font-size: 8.5px; color: #64748b; }
+    .stat-card-mini .v { font-size: 14px; font-weight: 800; color: #fff; margin-top: 2px; }
+    .tuned-alert-box { display: none; padding: 8px 10px; border: 1px solid var(--acid-green); background: rgba(198, 255, 0, 0.08); color: var(--acid-green); font-size: 9.5px; font-weight: 800; }
+    .tuned-alert-box.active { display: block; }
+    .chips-flow { display: flex; flex-direction: column; gap: 4px; max-height: 140px; overflow-y: auto; padding-right: 2px; scrollbar-width: thin; scrollbar-color: rgba(100,116,139,0.6) transparent; }
+    .chips-flow::-webkit-scrollbar { width: 5px; }
+    .chips-flow::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 3px; }
+    .chips-flow::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.5); border-radius: 3px; }
+    .chips-flow::-webkit-scrollbar-thumb:hover { background: var(--acid-green); }
+    .chip-line { font-size: 9px; padding: 3px 6px; border-radius: 2px; background: rgba(255,255,255,0.03); color: #94a3b8; border-left: 2px solid #64748b; }
+    .chip-line.r { border-color: var(--acid-red); color: #fca5a5; }
+    .chip-line.o { border-color: var(--acid-orange); color: #fdba74; }
+    .chip-line.y { border-color: var(--acid-yellow); color: #fde047; }
+    .intent-input-wrap { display: flex; flex-direction: column; gap: 6px; }
+    .intent-textarea { width: 100%; height: 48px; background: #0d121c; border: 1px solid #1e293b; color: #fff; font-family: var(--font-mono); font-size: 11px; padding: 8px; resize: none; outline: none; }
+    .intent-textarea:focus { border-color: var(--acid-green); }
+    .forge-action-btns { display: flex; gap: 10px; }
+    .btn-forge-submit { flex: 1; padding: 10px; font-family: var(--font-display); font-size: 12px; font-weight: 900; cursor: pointer; border: none; border-radius: 2px; transition: all 0.2s; }
+    .btn-forge-submit.save { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.2); color: #fff; }
+    .btn-forge-submit.save:hover { background: #fff; color: #000; }
+    .btn-forge-submit.cast { background: var(--acid-green); color: #000; box-shadow: 0 0 15px rgba(198, 255, 0, 0.4); }
+    .btn-forge-submit.cast:hover { box-shadow: 0 0 25px rgba(198, 255, 0, 0.8); }
+
+    /* 主亲和卡牌全彩：图案 / 左上角族名 / 左侧竖线 全部上色（叠加在外壳霓虹之上） */
+    .affinity-card.status-primary .aff-head { color: var(--accent); }
+    .affinity-card.status-primary .aff-svg-wrap svg { color: var(--accent); filter: drop-shadow(0 0 8px var(--accent-glow)); }
+    .affinity-card.status-primary .aff-title-box { border-left-color: var(--accent); }
+    .affinity-card.status-primary .aff-sub { color: var(--accent); opacity: 0.9; }
+
+    /* 桌面 3 画布大小 */
+    #surfaceDesk3 {
+      width: 3200px;
+      height: 2200px;
+    }
+
+    /* 顶栏精神力能级显示 */
+    .top-mental-dialer {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0 14px;
+      border-left: 1px solid rgba(255,255,255,0.08);
+    }
+    .mental-label-group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 9px;
+      align-items: flex-end;
+    }
   </style>
 </head>
 <body>
+<div id="gdesk">
 
 <!-- 0. 屏幕最顶端：工作桌切换导航条 -->
 <nav class="top-desk-switcher">
@@ -821,11 +1313,23 @@
     <button class="nav-tab-btn active" id="btnNavDesk1" data-target="desk1">
       <span class="tab-num">[1]</span>
       <span>回路配置桌</span>
+      <span class="pending-dot" id="dotDesk1" style="display:none"></span>
     </button>
     <button class="nav-tab-btn" id="btnNavDesk2" data-target="desk2">
       <span class="tab-num">[2]</span>
       <span>角色桌 // 亲和光谱</span>
     </button>
+    <button class="nav-tab-btn" id="btnNavDesk3" data-target="desk3">
+      <span class="tab-num">[3]</span>
+      <span>自由施法桌 // 临时回路构筑</span>
+    </button>
+  </div>
+
+  <div class="top-mental-dialer">
+    <div class="mental-label-group">
+      <span style="color:#64748b;">精神力能级 // MENTAL LIGHT</span>
+      <span style="font-weight:900; color:var(--light-primary);" id="mentalFaderVal">--</span>
+    </div>
   </div>
 
   <div class="top-status-indicator" id="topActorSummary">
@@ -836,16 +1340,18 @@
 <div class="hud-controls-hint">
   <span>[ <em>顶部切换工作台</em> ]</span>
   <span>[ <em>滚轮</em> 缩放桌台景深 ]</span>
-  <span>[ <em>双桌台均支持自由抓取拖拽平移与滚轮缩放</em> ]</span>
+  <span>[ <em>三张桌面均支持自由抓取拖拽平移与滚轮缩放</em> ]</span>
   <span>[ <em>点击任意卡牌</em> 侧栏展开详细档案 ]</span>
+  <span>[ <em>构筑台参数</em> 由引擎纯函数刚性报价 ]</span>
 </div>
 
 <!-- 屏幕固定右侧栏 -->
 <aside class="screen-sidebar" id="screenSidebar">
-  <div class="sidebar-handle" id="sidebarHandle">侧栏 // HUD</div>
+  <div class="sidebar-handle" id="sidebarHandle">侧栏 // HUD<span class="pending-dot" id="dotHandle" style="display:none"></span></div>
 
   <div class="sidebar-tabs">
-    <button class="tab-btn" id="tabBtnRepo" data-tab="tabRepo">回路牌库</button>
+    <button class="tab-btn" id="tabBtnRepo" data-tab="tabRepo">回路牌库<span class="pending-dot" id="dotRepo" style="display:none"></span></button>
+    <button class="tab-btn" id="tabBtnSupply" data-tab="tabSupply">补给品库</button>
     <button class="tab-btn active" id="tabBtnDetail" data-tab="tabDetail">卡牌档案显示</button>
   </div>
 
@@ -854,6 +1360,13 @@
       RESERVE CIRCUITS // 备选回路库（自由回路）
     </div>
     <div id="repoListContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
+  </div>
+
+  <div class="tab-content-panel" id="tabSupply">
+    <div style="font-size:10px; color:#64748b; letter-spacing:1px; margin-bottom:6px;">
+      SUPPLY DECK // 补给品库（点卡放到回路配置桌）
+    </div>
+    <div id="supplyListContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
   </div>
 
   <div class="tab-content-panel active" id="tabDetail">
@@ -869,6 +1382,7 @@
 <div class="tabletop-viewport active" id="viewportDesk1">
   <div class="table-surface" id="surfaceDesk1">
 
+    <div class="desk1-center">
     <div class="desk-monitors">
       <div class="dial-block">
         <span class="dial-title">身体状态 // VITALS</span>
@@ -882,6 +1396,10 @@
         <span class="dial-title">剧情锚点 // TIME</span>
         <span class="dial-val" id="valTime">--</span>
       </div>
+      <div class="dial-block">
+        <span class="dial-title">脑神经负荷 // BURDEN</span>
+        <span class="dial-val" id="valBurden">--</span>
+      </div>
       <div class="dial-block" style="justify-content:center;">
         <button class="combat-switch" id="btnCombatToggle">非战斗 [槽位自由]</button>
       </div>
@@ -889,12 +1407,33 @@
 
     <div class="slot-matrix-grid" id="slotMatrixGrid">
       <div class="matrix-header">
-        <span class="matrix-title">固定回路托盘 // 固定槽 (10) + 自由槽 (3)</span>
+        <span class="matrix-title">固定回路托盘 // 槽位随精神上限（固定 10点1槽 · 自由 30点1槽）</span>
         <div class="matrix-ctrls">
+          <label class="ops-switch-wrap">
+            <span>非手操</span>
+            <span class="ops-switch-box"><input type="checkbox" id="chkManualOps"><i></i></span>
+            <span>手操</span>
+          </label>
+          <button class="btn-slot-mod" id="btnConfirmOps" style="border-color:#334155; color:#64748b; opacity:0.5;" disabled>确认使用（圈选槽位）</button>
+          <button class="btn-slot-mod" id="btnManualRecalc" style="border-color:#38bdf8; color:#38bdf8;" title="按脚本重算全部回路的过载率 / 过载风险">⟳ 手动更新过载</button>
           <span style="font-size:10px; color:#94a3b8;" id="slotCapTag">--</span>
         </div>
       </div>
       <div class="slots-container" id="slotsContainer"></div>
+    </div>
+
+    <div class="review-dock" id="reviewDock">
+      <div class="review-dock-head">
+        <span class="matrix-title">法案审核台 // 送审槽（与固定/自由槽隔离 · 仅接受「待送审」回路 · 送审完毕自动回牌库）</span>
+      </div>
+      <div class="review-dock-body">
+        <div class="slot-socket is-review" id="socket_review">
+          <div class="slot-meta"><span>REV 01 [审核]</span><b>JUDGE GATE</b></div>
+          <div class="slot-well"><div class="standby-crosshair"><div class="cross-circle">⚖</div><span>拖入待送审回路 → 点下方送审</span></div></div>
+        </div>
+        <button class="review-btn" id="btnReviewDock" disabled>⚖ 送审（送审槽为空）</button>
+      </div>
+    </div>
     </div>
 
   </div>
@@ -931,6 +1470,114 @@
   </div>
 </div>
 
+<!-- ================= 视口 3：自由施法桌（临时回路构筑） ================= -->
+<div class="tabletop-viewport" id="viewportDesk3">
+  <div class="table-surface" id="surfaceDesk3">
+
+    <div class="forge-layout">
+      <!-- 0. 预设回路快捷参数（免审，系统内置完整参数） -->
+      <div class="forge-preset-panel">
+        <div class="forge-panel-title">预设回路 // PRESETS（免送审）</div>
+        <div id="presetButtons" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+      <!-- 1. 五族核能电闸选择器 -->
+      <div class="forge-family-panel">
+        <div class="forge-panel-title">五系选择 // FAMILIES</div>
+        <div class="fam-switch-item" data-fam="pour" style="--fcolor:var(--acid-cyan); --fglow:rgba(0,240,255,0.4);">
+          <div>
+            <div class="fn">倾泻系</div>
+            <div class="fs">热 / 电 / 光 · 瞬态直接相变</div>
+          </div>
+          <span style="width:10px;height:10px;border-radius:50%;background:var(--fcolor);box-shadow:0 0 8px var(--fglow);"></span>
+        </div>
+        <div class="fam-switch-item active" data-fam="flow" style="--fcolor:var(--acid-green); --fglow:rgba(198,255,0,0.4);">
+          <div>
+            <div class="fn">波动系</div>
+            <div class="fs">波与场 · 介质借用与共振</div>
+          </div>
+          <span style="width:10px;height:10px;border-radius:50%;background:var(--fcolor);box-shadow:0 0 8px var(--fglow);"></span>
+        </div>
+        <div class="fam-switch-item" data-fam="struct" style="--fcolor:var(--acid-orange); --fglow:rgba(255,102,0,0.4);">
+          <div>
+            <div class="fn">结构系</div>
+            <div class="fs">分子重排 · 固化零维持费</div>
+          </div>
+          <span style="width:10px;height:10px;border-radius:50%;background:var(--fcolor);box-shadow:0 0 8px var(--fglow);"></span>
+        </div>
+        <div class="fam-switch-item" data-fam="life" style="--fcolor:var(--acid-red); --fglow:rgba(244,63,94,0.4);">
+          <div>
+            <div class="fn">生机系</div>
+            <div class="fs">有机过程 · 渗透催化愈合</div>
+          </div>
+          <span style="width:10px;height:10px;border-radius:50%;background:var(--fcolor);box-shadow:0 0 8px var(--fglow);"></span>
+        </div>
+        <div class="fam-switch-item" data-fam="perce" style="--fcolor:var(--acid-yellow); --fglow:rgba(234,179,8,0.4);">
+          <div>
+            <div class="fn">感知系</div>
+            <div class="fs">只读不写 · 纯信息相位矩阵</div>
+          </div>
+          <span style="width:10px;height:10px;border-radius:50%;background:var(--fcolor);box-shadow:0 0 8px var(--fglow);"></span>
+        </div>
+      </div>
+
+      <!-- 2. 中置参数调制机架 -->
+      <div class="forge-tuning-rack" id="forgeTuningRack">
+        <div class="rack-header">
+          <div>
+            <div class="rack-title" id="rackTitle">波动系 // 物理量调制插槽</div>
+            <div class="rack-sub" id="rackSub">插槽=物理量，E=公式刚性导出</div>
+          </div>
+          <div id="rackEnergySliderWrap" style="display:none; width:180px;">
+            <div style="font-size:8.5px; color:#64748b; display:flex; justify-content:space-between;">
+              <span>能量滑杆</span><span id="sliderEVal">40 kJ</span>
+            </div>
+            <input type="range" class="acid-slider" id="inputE" min="0" max="100" value="40">
+            <label style="display:flex; align-items:center; gap:4px; font-size:8.5px; color:#8fa0b5; cursor:pointer; margin-top:5px;">
+              <input type="checkbox" id="chkUnlockE"> 限制解除（上限 = 主角能量上限）
+            </label>
+          </div>
+        </div>
+        <div id="rackControlsList" style="display:flex; flex-direction:column; gap:14px;"></div>
+      </div>
+
+      <!-- 3. 右侧实时核算报价仪 (ENGINE HUD) -->
+      <div class="forge-telemetry-hud">
+        <div class="tele-header">
+          <div class="tele-title">核算报价仪 // TELEMETRY</div>
+          <div class="gate-badge main" id="gateBadge">--</div>
+        </div>
+        <div class="tele-quantum-box">
+          <div class="tele-q-lbl">OUTPUT QUANTUM // 输出标尺</div>
+          <div class="tele-q-num" id="teleOutputNum">--<span style="font-size:14px; margin-left:4px; color:var(--acid-green);">kJ</span></div>
+          <div class="tele-q-anchor" id="teleOutputAnchor">--</div>
+        </div>
+        <div class="tele-grid-stats">
+          <div class="stat-card-mini"><div class="k">计费能量 (账单)</div><div class="v" id="teleBillVal">--</div></div>
+          <div class="stat-card-mini"><div class="k">精神负荷 (脑力)</div><div class="v" id="teleMindVal" style="color:var(--acid-green);">--</div></div>
+          <div class="stat-card-mini"><div class="k">脉宽/时长</div><div class="v" id="teleTimeVal">--</div></div>
+          <div class="stat-card-mini"><div class="k">过载风险率</div><div class="v" id="teleRiskVal" style="color:#fdba74;">--</div></div>
+        </div>
+        <div class="tuned-alert-box" id="tunedAlertBox">
+          &gt;&gt; 命中已装槽回路【<span id="tunedCircuitName">--</span>】微调区间！脑力消耗享 0.3x 豁免！
+        </div>
+        <div>
+          <div style="font-size:8.5px; color:#64748b; margin-bottom:4px;">风险条款与征状 (Lv <span id="teleTellLv">--</span>)</div>
+          <div class="chips-flow" id="chipsFlow"></div>
+        </div>
+        <div class="intent-input-wrap">
+          <div style="font-size:8.5px; color:#8fa0b5;">构筑意图 (作用对象 + 作用方式)：</div>
+          <textarea class="intent-textarea" id="intentDesc" placeholder="例如：借由身旁强风流体，塑形高周波风刃切断铁锁"></textarea>
+        </div>
+        <div class="forge-action-btns">
+          <button class="btn-forge-submit save" id="btnSaveToRepo">申报入自由库</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
 <script>
 /*@ENGINE@*/
 (function () {
@@ -956,6 +1603,8 @@
     } catch (e) { alert('写入失败：' + e); return false; }
   }
   function circuitById(g, id) { for (var i = 0; i < g.回路库.length; i++) if (g.回路库[i].id === id) return g.回路库[i]; return null; }
+  /* 送审闸门：只有免审（预设/转正/剧情授技）或已通过（法术AI送审）才可装配/施放 */
+  function 可用(c) { return !!c && (c.审核状态 === '免审' || c.审核状态 === '已通过'); }
   function affinityOf(g) { return { main: Array.isArray(g.亲和.主分支) ? g.亲和.主分支 : (g.亲和.主分支 ? [g.亲和.主分支] : []), subs: g.亲和.次分支 || [] }; }
   function tunedList(g) {
     var out = [];
@@ -983,6 +1632,45 @@
   var CURRENT_ACTOR = { name: '—', title: '', department: '', truth: '', affinityMap: {} };
   var isCombat = false;
   var selectedEntity = null;
+  var FIXED_CAP = 2, FREE_CAP = 1;   // 槽位容量（loadFromSave 按精神上限计算）
+  var FORGE_STATE = { fam: 'flow', e: 40, c: null, preset: null };   // 构筑台状态（preset=点选的预设回路，非 null 时申报免审）
+
+  /* ═══════════════════ 预设回路（免审，参数完整，物理正确后已重调） ═══════════════════ */
+  var PRESET_CIRCUITS = [
+    { name: '风刃·轻', fam: 'flow', e: 0, params: { mode: 1, sub: 1, fmed: 0, fa: 20, fv: 45, br: 80 }, effect: '风刃 A≈0.02m² v≈158m/s' },
+    { name: '风刃·强', fam: 'flow', e: 0, params: { mode: 1, sub: 1, fmed: 0, fa: 30, fv: 58, br: 90 }, effect: '风刃 A≈0.04m² v≈256m/s' },
+    { name: '火球·标准', fam: 'pour', e: 40, params: { phase: 2, pw: 55, th: 25 }, effect: '热爆轰·收窄束' },
+    { name: '激光·穿甲', fam: 'pour', e: 50, params: { phase: 0, pw: 75, th: 10 }, effect: '光辐射·针状穿甲' },
+    { name: '石肤壁垒', fam: 'struct', e: 40, params: { base: 1, latt: 80, mass: 55, rate: 3, stress: 0, stressT: 10 }, effect: '土石壁垒·混相' },
+    { name: '电磁脉冲', fam: 'flow', e: 0, params: { mode: 0, sub: 0, band: 2, eknob: 0, pkw: 40, et: 1 }, effect: '激光 1.6kW×1s' },
+    { name: '引力悬浮', fam: 'flow', e: 0, params: { mode: 2, sub: 1, gk: 0, gm: 60, gh: 1 }, effect: '悬浮 38kg×1m' },
+    { name: '周界扫描', fam: 'perce', e: 5, params: { rad: 30, res: 1, pert: 0, dwell: 0, dwellSec: 20 }, effect: '半径30m·标准' },
+  ];
+  function renderPresetButtons() {
+    var wrap = document.getElementById('presetButtons');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    PRESET_CIRCUITS.forEach(function (p) {
+      var btn = document.createElement('div');
+      btn.className = 'preset-btn';
+      btn.innerHTML = '<div class="pn">' + p.name + '</div><div class="pe">' + p.effect + '</div>';
+      btn.addEventListener('click', function () { applyPreset(p); });
+      wrap.appendChild(btn);
+    });
+  }
+  function applyPreset(p) {
+    FORGE_STATE.fam = p.fam;
+    FORGE_STATE.e = p.e;
+    FORGE_STATE.c = E.syncParams(p.fam, Object.assign(E.initParams(p.fam), p.params));
+    FORGE_STATE.preset = p;
+    document.querySelectorAll('.fam-switch-item').forEach(function (i) { i.classList.toggle('active', i.dataset.fam === p.fam); });
+    inputE.value = p.e;
+    sliderEVal.textContent = E.sliderToKJ(p.e).toFixed(1) + ' kJ';
+    rackEnergySliderWrap.style.display = p.fam === 'flow' ? 'none' : 'block';
+    intentDesc.value = p.effect;
+    renderForgeControls();
+    recalcForgeQuote();
+  }
 
   function loadFromSave() {
     g = readChat();
@@ -990,6 +1678,7 @@
 
     // 主角横幅
     var zhu = g.主角;
+    isCombat = !!zhu.战斗中;   // 从存档同步战斗状态（否则槽位锁/战备开关与存档脱节）
     CURRENT_ACTOR.name = '施法者';
     CURRENT_ACTOR.title = (zhu.战斗中 ? '战斗中' : '非战斗') + ' · ' + (zhu.身体状态 || '正常');
     CURRENT_ACTOR.department = '能量 ' + Math.round(zhu.能量kJ.当前) + '/' + zhu.能量kJ.上限 + 'kJ';
@@ -1001,33 +1690,75 @@
     aff.main.forEach(function (m) { CURRENT_ACTOR.affinityMap[affKey(m.族, m.分支)] = 'primary'; });
     aff.subs.forEach(function (s2) { var k = affKey(s2.族, s2.分支); if (!CURRENT_ACTOR.affinityMap[k]) CURRENT_ACTOR.affinityMap[k] = 'secondary'; });
 
-    // 回路卡：槽位 + 回路库
+    // 槽位容量：固定槽 = clamp(精神上限/10, 2, 8)；自由槽 = clamp(精神上限/30, 1, 4)
+    var mindMax = (g.主角.精神点 && g.主角.精神点.上限) || 30;
+    FIXED_CAP = Math.max(2, Math.min(8, Math.floor(mindMax / 10)));
+    FREE_CAP = Math.max(1, Math.min(4, Math.floor(mindMax / 30)));
+
+    // 回路卡：槽位（按容量截断）+ 回路库
     ON_DESK_CARDS = [];
     var slotIndex = 0;
-    (g.槽位.固定槽 || []).forEach(function (id) {
+    (g.槽位.固定槽 || []).slice(0, FIXED_CAP).forEach(function (id) {
       if (!id) { slotIndex++; return; }
       var c = circuitById(g, id);
       if (c) { ON_DESK_CARDS.push(toDeskCard(c, 'fixed', slotIndex)); }
       slotIndex++;
     });
-    (g.槽位.自由槽 || []).forEach(function (id) {
+    (g.槽位.自由槽 || []).slice(0, FREE_CAP).forEach(function (id) {
       if (!id) { slotIndex++; return; }
       var c = circuitById(g, id);
       if (c) { ON_DESK_CARDS.push(toDeskCard(c, 'free', slotIndex)); }
       slotIndex++;
     });
 
-    // 备选：未装槽的自由回路
-    var mounted = new Set(ON_DESK_CARDS.map(function (c) { return c.id; }));
-    REPO_CARDS = g.回路库.filter(function (c) { return c.type === 'free' && !mounted.has(c.id); }).map(function (c) { return toDeskCard(c, 'free', null); });
+    // 送审槽中的回路（审核暂存；送审完毕由 clearReviewDockAndRefresh 清标记自动回牌库）
+    g.回路库.forEach(function (c) {
+      if (!c.送审槽) return;
+      var d = toDeskCard(c, 'review', null);
+      d.reviewSlot = true;
+      d.x = REVIEW_ANCHOR.x; d.y = REVIEW_ANCHOR.y;
+      ON_DESK_CARDS.push(d);
+    });
 
+    // 自由放置的卡（有桌面位置、未装槽）→ 也显示在桌上
+    var mountedIds = new Set(ON_DESK_CARDS.map(function (c) { return c.id; }));
+    g.回路库.forEach(function (c) {
+      if (!c.桌面位置) return;
+      if (mountedIds.has(c.id)) return;
+      ON_DESK_CARDS.push(toDeskCard(c, c.type, null));
+    });
+
+    // 备选牌库：待送审且未上桌的回路 + 未装槽、未上桌的自由回路
+    var mounted = new Set(ON_DESK_CARDS.map(function (c) { return c.id; }));
+    REPO_CARDS = g.回路库.filter(function (c) {
+      if (c.送审槽) return false;                        // 正在送审槽中的不进牌库（送审完自动回）
+      if (c.桌面位置) return false;                       // 已自由放到桌上的不进牌库
+      if (c.审核状态 === '待送审') return true;           // 待送审（未上桌）进牌库等送审
+      return !mounted.has(c.id);                          // 未装槽（fixed + free 都进牌库，回收后可见）
+    }).map(function (c) { return toDeskCard(c, c.type, null); });
+
+    updatePendingDots();
+    loadSupplies();
     return true;
+  }
+
+  /* 待送审红点：牌库 / 侧栏 / 回路配置桌 三处同步 */
+  function updatePendingDots() {
+    var n = (g && g.回路库 ? g.回路库.filter(function (c) { return c.审核状态 === '待送审'; }).length : 0);
+    ['dotDesk1', 'dotRepo', 'dotHandle'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      if (n > 0) { el.style.display = ''; el.textContent = n > 9 ? '9+' : String(n); }
+      else el.style.display = 'none';
+    });
   }
 
   function famAccent(famKey) {
     return { pour: '#00f0ff', flow: '#c6ff00', struct: '#ff6600', life: '#f43f5e', perce: '#eab308' }[famKey] || '#334155';
   }
-  function affKey(族, 分支) { return 'aff_' + (族 || '') + '_' + (分支 || ''); }
+  /* 中文族名 → famKey（存档亲和.主分支[].族 存中文，分支卡 id 用英文 famKey，需对齐） */
+  var 中文族到fam = { '倾泻': 'pour', '波动': 'flow', '结构': 'struct', '生机': 'life', '感知': 'perce' };
+  function affKey(族, 分支) { return 'aff_' + (中文族到fam[族] || 族 || '') + '_' + (分支 || ''); }
 
   /* 回路 → 桌面卡（真实数据：名称/族·分支/计费/精神/uses/参数明细） */
   function toDeskCard(c, type, slotIndex) {
@@ -1035,22 +1766,26 @@
     return {
       id: c.id,
       name: c.名称,
+      type: type,
       category: (c.族 || '') + '·' + (c.分支 || ''),
       famKey: c.famKey,
       energy: String(bill.计费kJ != null ? bill.计费kJ : 0),
       unit: 'kJ',
-      costBadge: '精神 ' + (bill.精神 != null ? bill.精神 : 0) + (type === 'free' ? ' · uses ' + (c.uses || 0) : ''),
+      costBadge: '精神 ' + (bill.精神 != null ? bill.精神 : 0) + (type === 'free' ? ' · uses ' + (c.uses || 0) : '') + ' · 过载率 ' + (c.过载率 != null ? c.过载率 + '%' : '—') + ' · 风险 ' + (c.过载风险 != null ? c.过载风险 + '%' : '—'),
       accent: famAccent(c.famKey),
       bg: '#0d1118',
       ghost: (c.分支 || 'CIRC').slice(0, 4).toUpperCase(),
       spent: false,
       slotIndex: slotIndex,
-      x: 0, y: 0,
+      x: (c.桌面位置 && typeof c.桌面位置.x === 'number') ? c.桌面位置.x : 0,
+      y: (c.桌面位置 && typeof c.桌面位置.y === 'number') ? c.桌面位置.y : 0,
       specs: [
         { k: '类型', v: type === 'fixed' ? '固定' : '自由' },
         { k: '族', v: c.族 || '' },
         { k: '分支', v: c.分支 || '' },
-        { k: '效果', v: bill.一句话效果 || '' }
+        { k: '效果', v: bill.一句话效果 || '' },
+        { k: '过载率', v: c.过载率 != null ? c.过载率 + '%' : '—' },
+        { k: '过载风险', v: c.过载风险 != null ? c.过载风险 + '%' : '—' }
       ],
       banner: type === 'fixed' ? '▶ 固化回路' : '自由 · uses ' + (c.uses || 0) + '/10',
       lore: (c.参数明细 && Object.keys(c.参数明细).length ? '参数：' + JSON.stringify(c.参数明细) : '') + (c.来源 ? ' · 来源 ' + c.来源 : '')
@@ -1061,36 +1796,44 @@
   var BRANCHES_ONTOLOGY = [
     { family: '倾泻族', familyDesc: '高能热相与电磁 / 极速杀伤', color: '#00f0ff', colorGlow: 'rgba(0, 240, 255, 0.45)', famKey: 'pour',
       branches: [
-        { id: 'aff_pour_光', name: '光', desc: '定向高能光频冲击与光压致盲', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="32" cy="32" r="10"/><line x1="32" y1="8" x2="32" y2="16"/><line x1="32" y1="48" x2="32" y2="56"/><line x1="8" y1="32" x2="16" y2="32"/><line x1="48" y1="32" x2="56" y2="32"/></svg>', lore: '把未分化能量粗暴坍缩为光相。' },
-        { id: 'aff_pour_电', name: '电', desc: '高压电荷脉冲与强电弧击穿', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="35,6 18,34 32,34 27,58 48,26 34,26 40,6"/></svg>', lore: '电荷脉冲导速极快，连发易痉挛。' },
-        { id: 'aff_pour_热', name: '热', desc: '高能热焰喷射与热运动相变', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M32 8 C20 22 16 34 16 44 A16 16 0 0 0 48 44 C48 34 44 22 32 8 Z"/></svg>', lore: '热能喷射是全民基础魔法之一。' }
+        { id: 'aff_pour_光', name: '光', desc: '定向高能光频冲击与光压致盲', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="32" cy="32" r="10"/><line x1="32" y1="8" x2="32" y2="16"/><line x1="32" y1="48" x2="32" y2="56"/><line x1="8" y1="32" x2="16" y2="32"/><line x1="48" y1="32" x2="56" y2="32"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="43" y1="43" x2="49" y2="49"/><line x1="49" y1="15" x2="43" y2="21"/><line x1="15" y1="49" x2="21" y2="43"/></svg>', lore: '把未分化能量粗暴坍缩为光相。杀伤瞬发但非亲和者使用等于在体内烧钱。' },
+        { id: 'aff_pour_电', name: '电', desc: '高压电荷脉冲与强电弧击穿', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="35,6 18,34 32,34 27,58 48,26 34,26 40,6"/><line x1="12" y1="58" x2="52" y2="58" stroke-dasharray="2,2"/></svg>', lore: '电荷脉冲导速极快，高强度连发容易引起施法神经短路痉挛。' },
+        { id: 'aff_pour_热', name: '热', desc: '高能热焰喷射与热运动相变', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M32 8 C20 22 16 34 16 44 A16 16 0 0 0 48 44 C48 34 44 22 32 8 Z"/><path d="M32 26 C26 34 24 38 24 44 A8 8 0 0 0 40 44 C40 38 38 34 32 26 Z" fill="currentColor" opacity="0.3"/></svg>', lore: '热能喷射是全民基础魔法之一。可作为短程副手爆发招。' }
       ] },
     { family: '波动族', familyDesc: '波与场指挥 / 借力省耗 / 共振放大', color: '#c6ff00', colorGlow: 'rgba(198, 255, 0, 0.45)', famKey: 'flow',
       branches: [
-        { id: 'aff_flow_实体波', name: '实体波', desc: '电磁波震荡与无介质波形传递', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="32" cy="32" r="24" stroke-dasharray="3,3"/><circle cx="32" cy="32" r="16"/></svg>', lore: '空间场自发性形变。' },
-        { id: 'aff_flow_媒介波', name: '媒介波', desc: '气流激波、风刃剪切、水流与声', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M8 22 Q 20 12 32 22 T 56 22"/></svg>', lore: '借由环境风与媒介流动，转化率最高。' },
-        { id: 'aff_flow_电磁场', name: '电磁场', desc: '势能梯度导向与磁力约束力场', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><ellipse cx="32" cy="32" rx="25" ry="10"/><ellipse cx="32" cy="32" rx="25" ry="10" transform="rotate(60 32 32)"/></svg>', lore: '工业磁约束与带电粒子偏转。' },
-        { id: 'aff_flow_引力场', name: '引力场', desc: '微重力沉降、失重悬浮与空间折角', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="32" cy="32" r="26"/><circle cx="32" cy="32" r="18"/><circle cx="32" cy="32" r="10"/></svg>', lore: '能耗极高但极为致命。' },
-        { id: 'aff_flow_核力场', name: '核力场', desc: '强弱相互作用干涉 / 战略核级禁区', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="32" cy="32" r="5" fill="currentColor"/><circle cx="32" cy="32" r="25" stroke-dasharray="3,3"/></svg>', lore: '国家战略禁区，动用即国家级能源大事件。' }
+        { id: 'aff_flow_实体波', name: '实体波', desc: '电磁波震荡与无介质波形传递', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="32" cy="32" r="24" stroke-dasharray="3,3"/><circle cx="32" cy="32" r="16"/><circle cx="32" cy="32" r="8"/><line x1="8" y1="32" x2="56" y2="32"/></svg>', lore: '空间场自发性形变，能耗中等，是高阶共振调频的基底。' },
+        { id: 'aff_flow_媒介波', name: '媒介波', desc: '气流激波、风刃剪切、水流与声', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M8 22 Q 20 12 32 22 T 56 22"/><path d="M8 34 Q 20 24 32 34 T 56 34"/><path d="M8 46 Q 20 36 32 46 T 56 46"/></svg>', lore: '借由环境风与媒介流动，转化率最高，风刃与魔素滑板的绝对根基。' },
+        { id: 'aff_flow_电磁场', name: '电磁场', desc: '势能梯度导向与磁力约束力场', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><ellipse cx="32" cy="32" rx="25" ry="10"/><ellipse cx="32" cy="32" rx="25" ry="10" transform="rotate(60 32 32)"/><ellipse cx="32" cy="32" rx="25" ry="10" transform="rotate(120 32 32)"/><circle cx="32" cy="32" r="4" fill="currentColor"/></svg>', lore: '常用于工业磁约束与高端带电粒子偏转。' },
+        { id: 'aff_flow_引力场', name: '引力场', desc: '微重力沉降、失重悬浮与空间折角', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="32" cy="32" r="26"/><circle cx="32" cy="32" r="18"/><circle cx="32" cy="32" r="10"/><line x1="32" y1="6" x2="32" y2="58"/><line x1="6" y1="32" x2="58" y2="32"/></svg>', lore: '能耗极高但极为致命。在滑板运动中用于实现大角度贴墙与滑翔。' },
+        { id: 'aff_flow_核力场', name: '核力场', desc: '强弱相互作用干涉 / 战略核级禁区', svg: `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="32" cy="32" r="5" fill="currentColor"/>
+            <circle cx="32" cy="32" r="25" stroke-dasharray="3,3" opacity="0.6"/>
+            <g transform="translate(32,32)">
+              <path d="M 0,-8 A 8 8 0 0,1 6.93,-4 L 16,-9 A 18 18 0 0,0 -16,-9 L -6.93,-4 A 8 8 0 0,1 0,-8 Z" fill="currentColor" opacity="0.85"/>
+              <path d="M 0,-8 A 8 8 0 0,1 6.93,-4 L 16,-9 A 18 18 0 0,0 -16,-9 L -6.93,-4 A 8 8 0 0,1 0,-8 Z" fill="currentColor" opacity="0.85" transform="rotate(120)"/>
+              <path d="M 0,-8 A 8 8 0 0,1 6.93,-4 L 16,-9 A 18 18 0 0,0 -16,-9 L -6.93,-4 A 8 8 0 0,1 0,-8 Z" fill="currentColor" opacity="0.85" transform="rotate(240)"/>
+            </g>
+          </svg>`, lore: '【国家战略禁区】：可塑核素质量与衰变路径，动用即国家级能源大事件。' }
       ] },
     { family: '结构族', familyDesc: '固相重排 / 分子强键合 / 最高结构度', color: '#ff6600', colorGlow: 'rgba(255, 102, 0, 0.45)', famKey: 'struct',
       branches: [
-        { id: 'aff_struct_晶体', name: '晶体', desc: '晶界致密强化、硅基固化、晶体壁垒', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="32,6 54,20 54,44 32,58 10,44 10,20"/></svg>', lore: '单位能量换取最高结构度。' },
-        { id: 'aff_struct_金属', name: '金属', desc: '金属晶格形变与抗冲击强化', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="14" y="14" width="36" height="36" rx="4"/><circle cx="22" cy="22" r="3" fill="currentColor"/></svg>', lore: '工业防弹与兵器附魔主力。' },
-        { id: 'aff_struct_土石', name: '土石', desc: '硅酸盐岩刺突变与宏观土体塑形', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="10,54 28,14 40,36 48,22 56,54"/></svg>', lore: '重型掩体建筑与地表改变。' },
-        { id: 'aff_struct_合金', name: '合金', desc: '多元固溶体界面微观调控硬化', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="32,10 52,24 44,48 20,48 12,24"/></svg>', lore: '尖端军工装甲核心工艺。' }
+        { id: 'aff_struct_晶体', name: '晶体', desc: '晶界致密强化、硅基固化、晶体壁垒', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="32,6 54,20 54,44 32,58 10,44 10,20"/><line x1="32" y1="6" x2="32" y2="58"/><line x1="10" y1="20" x2="54" y2="44"/><line x1="10" y1="44" x2="54" y2="20"/></svg>', lore: '单位能量换取最高结构度，防御与硬化见长。' },
+        { id: 'aff_struct_金属', name: '金属', desc: '金属晶格形变与抗冲击强化', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="14" y="14" width="36" height="36" rx="4"/><circle cx="22" cy="22" r="3" fill="currentColor"/><circle cx="42" cy="22" r="3" fill="currentColor"/><circle cx="22" cy="42" r="3" fill="currentColor"/><circle cx="42" cy="42" r="3" fill="currentColor"/><line x1="14" y1="32" x2="50" y2="32"/></svg>', lore: '工业防弹与兵器附魔主力，强调抗剪切力。' },
+        { id: 'aff_struct_土石', name: '土石', desc: '硅酸盐岩刺突变与宏观土体塑形', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="10,54 28,14 40,36 48,22 56,54"/><line x1="6" y1="54" x2="58" y2="54"/></svg>', lore: '重型掩体建筑与地表改变，成型稳定坚固。' },
+        { id: 'aff_struct_合金', name: '合金', desc: '多元固溶体界面微观调控硬化', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="32,10 52,24 44,48 20,48 12,24"/><circle cx="32" cy="30" r="8" stroke-dasharray="2,2"/></svg>', lore: '尖端军工装甲与自适应新材料的核心工艺。' }
       ] },
     { family: '生机族', familyDesc: '有机过程活化 / 细胞诱导 / 缓释渗透', color: '#f43f5e', colorGlow: 'rgba(244, 63, 94, 0.45)', famKey: 'life',
       branches: [
-        { id: 'aff_life_植物', name: '植物', desc: '纤维急速缠绕与木质素变异加固', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M32 58 C32 30 16 26 12 14 C26 14 32 26 32 38 C32 20 44 14 52 10 C50 24 42 34 32 58 Z"/></svg>', lore: '对植物细胞壁的强力干涉。' },
-        { id: 'aff_life_动物', name: '动物 (含人体)', desc: '血小板急速活化、肌纤维收缩愈合', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 28 C12 18 20 12 32 20 C44 12 52 18 52 28 C52 42 32 54 32 54 C32 54 12 42 12 28 Z"/></svg>', lore: '维持生命体征，紧急闭合破损。' },
-        { id: 'aff_life_微生物', name: '微生物', desc: '菌群定向裂变与生化分解催化', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="24" cy="24" r="10"/><circle cx="42" cy="38" r="8"/></svg>', lore: '生化反应极细微，过载易微循环坏死。' }
+        { id: 'aff_life_植物', name: '植物', desc: '纤维急速缠绕与木质素变异加固', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M32 58 C32 30 16 26 12 14 C26 14 32 26 32 38 C32 20 44 14 52 10 C50 24 42 34 32 58 Z"/></svg>', lore: '对植物细胞壁的强力干涉，封锁区拾荒者常用。' },
+        { id: 'aff_life_动物', name: '动物 (含人体)', desc: '血小板急速活化、肌纤维收缩愈合', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 28 C12 18 20 12 32 20 C44 12 52 18 52 28 C52 42 32 54 32 54 C32 54 12 42 12 28 Z"/></svg>', lore: '维持生命体征，紧急闭合动静脉破损以防失血休克。' },
+        { id: 'aff_life_微生物', name: '微生物', desc: '菌群定向裂变与生化分解催化', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="24" cy="24" r="10"/><circle cx="42" cy="38" r="8"/><circle cx="26" cy="44" r="6"/><line x1="24" y1="34" x2="26" y2="38"/></svg>', lore: '生化反应极细微，过载容易引起微循环坏死。' }
       ] },
     { family: '感知族', familyDesc: '只读不写 / 信息相位 / 神经负荷 / 稀有', color: '#eab308', colorGlow: 'rgba(234, 179, 8, 0.45)', famKey: 'perce',
       branches: [
-        { id: 'aff_perce_五感延伸', name: '五感延伸', desc: '超声多普勒、视神经微动全景成像', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 32 C18 16 46 16 56 32 C46 48 18 48 8 32 Z"/><circle cx="32" cy="32" r="8"/></svg>', lore: '只读不写，闭眼听风即可绘三维声场。' },
-        { id: 'aff_perce_读心干扰', name: '读心干扰', desc: '神经突触电位杂音注入与意识打断', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 26 C14 16 22 10 32 10 C42 10 50 16 50 26 C50 32 46 36 42 40 L42 48 L22 48 L22 40 C18 36 14 32 14 26 Z"/></svg>', lore: '扰乱施法前摇，极度消耗脑力。' },
-        { id: 'aff_perce_信息伪造', name: '信息伪造', desc: '幻术相位投射与虚假多普勒频移', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="32,8 54,52 10,52"/><polygon points="32,22 44,46 20,46" stroke-dasharray="2,2"/></svg>', lore: '相位伪造与声学欺骗，谍战核心手段。' }
+        { id: 'aff_perce_五感延伸', name: '五感延伸', desc: '超声多普勒、视神经微动全景成像', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 32 C18 16 46 16 56 32 C46 48 18 48 8 32 Z"/><circle cx="32" cy="32" r="8"/><circle cx="32" cy="32" r="3" fill="currentColor"/></svg>', lore: '只读不写，闭眼听风即可在大脑绘制三维实时声场。' },
+        { id: 'aff_perce_读心干扰', name: '读心干扰', desc: '神经突触电位杂音注入与意识打断', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 26 C14 16 22 10 32 10 C42 10 50 16 50 26 C50 32 46 36 42 40 L42 48 L22 48 L22 40 C18 36 14 32 14 26 Z"/><line x1="22" y1="28" x2="42" y2="28" stroke-dasharray="2,2"/></svg>', lore: '扰乱施法前摇，极度消耗施法者脑力。' },
+        { id: 'aff_perce_信息伪造', name: '信息伪造', desc: '幻术相位投射与虚假多普勒频移', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="32,8 54,52 10,52"/><polygon points="32,22 44,46 20,46" stroke-dasharray="2,2"/></svg>', lore: '相位伪造与声学欺骗，情报与谍战的核心手段。' }
       ] }
   ];
 
@@ -1098,74 +1841,215 @@
   var slotsContainer = $('#slotsContainer');
   var slotCapTag = $('#slotCapTag');
   var surfaceDesk1 = $('#surfaceDesk1');
-  var SOCKET_COORDS = [];
+  var SOCKET_COORDS = [];  // 槽位锚点（写死）：进槽卡的 left/top 固定用这份坐标；zoom/pan 不影响，仅布局变化时重算
+  var REVIEW_ANCHOR = { x: 0, y: 0 };   // 送审槽锚点（写死，同槽位锚点口径）
+  var btnReviewDock = $('#btnReviewDock');
 
-  function buildSlots() {
-    slotsContainer.innerHTML = '';
-    var total = (g.槽位.固定槽 || []).length + (g.槽位.自由槽 || []).length;
-    for (var i = 0; i < total; i++) {
-      var socket = document.createElement('div');
-      socket.className = 'slot-socket';
-      socket.id = 'socket_' + i;
-      var isFree = i >= (g.槽位.固定槽 || []).length;
-      socket.innerHTML = '<span class="socket-label">' + (isFree ? 'FREE' : 'SLOT') + ' 0' + (i + 1) + '</span><div style="opacity:0.3;font-size:18px;">+</div><div style="opacity:0.4;">空置插槽</div>';
-      slotsContainer.appendChild(socket);
+  /* ── 手操（桌1）：手操模式切换 + 槽位「使用」圈选 + 确认扣费（每轮一个回路一次） ── */
+  var manualOps = false;        // 手操模式开关
+  var opsUsedSet = {};          // 本轮已圈选的回路 id（每轮一个回路一次）
+  var chkManualOps = $('#chkManualOps');
+  var btnConfirmOps = $('#btnConfirmOps');
+
+  function updateSlotUseButtons() {
+    for (var i = 0; i < slotsContainer.children.length; i++) {
+      var btn = document.getElementById('useBtn_' + i);
+      if (!btn) continue;
+      var c = ON_DESK_CARDS.find(function (x) { return x.slotIndex === i; });
+      var used = c ? !!opsUsedSet[c.id] : false;
+      // 使用后变灰：圈选的卡牌 + 槽位都不发光
+      if (c) {
+        var cardEl = document.querySelector('#surfaceDesk1 .card-token[data-id="' + c.id + '"]');
+        if (cardEl) cardEl.classList.toggle('used', used);
+        var sock = document.getElementById('socket_' + i);
+        if (sock) sock.classList.toggle('used', used);
+      }
+      if (manualOps && c) {   // 手操模式 + 该槽有卡：可圈选（送审在确认时再拦）
+        btn.disabled = false;
+        btn.textContent = used ? '● 已用' : '○ 使用';
+        btn.style.opacity = used ? '0.55' : '1';
+        btn.style.borderColor = used ? '#c6ff00' : '';
+      } else if (c) {
+        btn.disabled = true;
+        btn.textContent = '○ 使用';
+        btn.style.opacity = '0.35';
+      } else {
+        btn.disabled = true;
+        btn.textContent = '—';
+        btn.style.opacity = '0.2';
+      }
     }
-    slotCapTag.textContent = (g.槽位.固定槽 || []).length + ' 固定 + ' + (g.槽位.自由槽 || []).length + ' 自由 (在桌 ' + ON_DESK_CARDS.length + ')';
   }
 
-  function updateSocketCoordinates() {
+  chkManualOps.addEventListener('change', function () {
+    manualOps = chkManualOps.checked;
+    if (!manualOps) opsUsedSet = {};
+    btnConfirmOps.disabled = !manualOps;
+    btnConfirmOps.style.opacity = manualOps ? '1' : '0.5';
+    btnConfirmOps.style.borderColor = manualOps ? '#c6ff00' : '#334155';
+    btnConfirmOps.style.color = manualOps ? '#c6ff00' : '#64748b';
+    updateSlotUseButtons();
+  });
+
+  slotsContainer.addEventListener('click', function (e) {
+    var btn = e.target;
+    if (!btn.classList || !btn.classList.contains('slot-use-btn')) return;
+    if (!manualOps || btn.disabled) return;
+    var slotIdx = Number(btn.dataset.slot);
+    var c = ON_DESK_CARDS.find(function (x) { return x.slotIndex === slotIdx; });
+    if (!c) return;
+    if (opsUsedSet[c.id]) delete opsUsedSet[c.id];
+    else opsUsedSet[c.id] = true;
+    updateSlotUseButtons();
+  });
+
+  btnConfirmOps.addEventListener('click', function () {
+    if (!manualOps) return;
+    var ids = Object.keys(opsUsedSet);
+    if (!ids.length) { alert('手操模式：先点槽位下的「○ 使用」圈选回路（每轮一个回路一次）'); return; }
+    writeGame(function (gg) {
+      var ctx = {
+        aff: affinityOf(gg),
+        scene: { wind: gg.场景.风力档, mat: gg.场景.可塑无机物kJ, water: gg.场景.水体在场 },
+        char: { burstKW: gg.主角.爆发线kW, sustainKW: gg.主角.持续线kW, speed: 1, eCur: gg.主角.能量kJ.当前, mCur: gg.主角.精神点.当前, mMax: gg.主角.精神点.上限, body: gg.主角.身体状态 },
+        tuned: tunedList(gg)
+      };
+      var names = [];
+      ids.forEach(function (id) {
+        var c = gg.回路库.find(function (x) { return x.id === id; });
+        if (!c || !可用(c)) return;
+        var q = E.quote({ fam: c.famKey, e: c.注册e || 0, c: c.参数向量 }, ctx);
+        // 挂待扣单（不当场扣，回合末 settle ⑥a 统一扣；ref=回路 id，数据AI 报"本轮使用回路"靠 id 对上）
+        var pend = {
+          ref: c.id,
+          名称: c.名称 + '（手操）',
+          bill: q.bill, mind: q.mind, tell: q.tell, risk: q.risk,
+          锚点: E.anchorOf(q.E_out), order: E.compileOrder(q), famKey: c.famKey
+        };
+        gg.待扣单.push(pend);
+        names.push(c.名称);
+      });
+      gg['操作表'] = { manual: false, circuits: [], counts: [] };
+    });
+    opsUsedSet = {};
+    chkManualOps.checked = false;
+    manualOps = false;
+    btnConfirmOps.disabled = true;
+    btnConfirmOps.style.opacity = '0.5';
+    btnConfirmOps.style.borderColor = '#334155';
+    btnConfirmOps.style.color = '#64748b';
+    loadFromSave(); renderDesktopCards(); renderDesktopSupplyCards(); renderRepoList(); renderMonitors(); renderSupplyList();
+    alert('手操确认：' + (names.join('，') || '无') + ' 已挂入待扣单（回合末 settle ⑥a 统一扣费；数据AI 只计次不重复扣）');
+  });
+
+  function slotCapText() {
+    var m = (g && g.主角 && g.主角.精神点 && g.主角.精神点.上限) || 30;
+    return FIXED_CAP + ' 固定(仅固化) + ' + FREE_CAP + ' 自由(固化/自由均可)（精神上限 ' + m + '：10点1固定槽 · 30点1自由槽）';
+  }
+  function buildSlots() {
+    slotsContainer.innerHTML = '';
+    var total = FIXED_CAP + FREE_CAP;
+    for (var i = 0; i < total; i++) {
+      var socket = document.createElement('div');
+      socket.className = 'slot-socket ' + (i < FIXED_CAP ? 'is-fixed' : 'is-free');
+      socket.id = 'socket_' + i;
+      var isFree = i >= FIXED_CAP;
+      socket.innerHTML =
+        '<div class="slot-meta"><span>' + (isFree ? 'BUS ' : 'BAY ') + (i < 9 ? '0' + (i + 1) : (i + 1)) + ' [' + (isFree ? '自由' : '固定') + ']</span><b>' + (isFree ? 'VOLATILE' : 'IMMUTABLE') + '</b></div>' +
+        '<div class="slot-well">' +
+          '<div class="standby-crosshair"><div class="cross-circle">' + (isFree ? '⇲' : '+') + '</div><span>' + (isFree ? '临时外挂母线' : '待推入导轨') + '</span></div>' +
+        '</div>' +
+        '<button class="slot-use-btn" id="useBtn_' + i + '" data-slot="' + i + '" disabled>○ 使用</button>';
+      slotsContainer.appendChild(socket);
+    }
+    slotCapTag.textContent = slotCapText() + ' (在桌 ' + ON_DESK_CARDS.length + ')';
+    updateSlotUseButtons();
+  }
+
+  var CARD_W = 136, CARD_H = 206;   // 卡牌尺寸（贴合：卡在 slot-well 内居中）
+  // 槽位锚点（写死）：只在初始化/布局变化时算一次，之后进槽的卡一律用这份整数坐标。
+  // 不随每次渲染重算 → 缩放/平移后再重渲染卡片位置不变（修掉「缩放后漂移 / 向右下偏」）。
+  function computeSocketAnchors() {
     SOCKET_COORDS.length = 0;
     var surfaceRect = surfaceDesk1.getBoundingClientRect();
     for (var i = 0; i < slotsContainer.children.length; i++) {
       var sock = document.getElementById('socket_' + i);
       if (!sock) continue;
-      var r = sock.getBoundingClientRect();
-      SOCKET_COORDS.push({ x: (r.left - surfaceRect.left) / scale1 + 6, y: (r.top - surfaceRect.top) / scale1 + 7, index: i });
+      var well = sock.querySelector('.slot-well');
+      var r = well ? well.getBoundingClientRect() : sock.getBoundingClientRect();
+      SOCKET_COORDS.push({
+        x: Math.round((r.left - surfaceRect.left) / zoom1 + (r.width / zoom1 - CARD_W) / 2),
+        y: Math.round((r.top - surfaceRect.top) / zoom1 + (r.height / zoom1 - CARD_H) / 2),
+        index: i
+      });
+    }
+    // 送审槽锚点（独立 socket，不进 numeric 索引；与槽位锚点同口径写死）
+    var revSock = document.getElementById('socket_review');
+    if (revSock) {
+      var revWell = revSock.querySelector('.slot-well');
+      var rr = revWell ? revWell.getBoundingClientRect() : revSock.getBoundingClientRect();
+      REVIEW_ANCHOR.x = Math.round((rr.left - surfaceRect.left) / zoom1 + (rr.width / zoom1 - CARD_W) / 2);
+      REVIEW_ANCHOR.y = Math.round((rr.top - surfaceRect.top) / zoom1 + (rr.height / zoom1 - CARD_H) / 2);
     }
   }
 
   function renderDesktopCards() {
     document.querySelectorAll('#surfaceDesk1 .card-token').forEach(function (el) { el.remove(); });
-    updateSocketCoordinates();
+    // 清除所有槽位的装载态（变色复位为休眠）
+    document.querySelectorAll('#slotsContainer .slot-socket').forEach(function (el) {
+      el.classList.remove('is-occupied');
+      el.style.removeProperty('--card-accent');
+      el.style.removeProperty('--card-glow');
+    });
+    var revSockEl = document.getElementById('socket_review');
+    if (revSockEl) {
+      revSockEl.classList.remove('is-occupied');
+      revSockEl.style.removeProperty('--card-accent');
+      revSockEl.style.removeProperty('--card-glow');
+    }
+    if (!SOCKET_COORDS.length) computeSocketAnchors();   // 锚点兜底（正常由 init/resize 算好，不随渲染重算）
     ON_DESK_CARDS.forEach(function (c) {
-      if (c.slotIndex !== null && c.slotIndex !== undefined && c.slotIndex < SOCKET_COORDS.length) {
+      if (c.reviewSlot) {
+        c.x = REVIEW_ANCHOR.x; c.y = REVIEW_ANCHOR.y;
+        if (revSockEl) {
+          revSockEl.classList.add('is-occupied');
+          revSockEl.style.setProperty('--card-accent', c.accent);
+          revSockEl.style.setProperty('--card-glow', c.accent);
+        }
+      } else if (c.slotIndex !== null && c.slotIndex !== undefined && c.slotIndex < SOCKET_COORDS.length) {
         c.x = SOCKET_COORDS[c.slotIndex].x; c.y = SOCKET_COORDS[c.slotIndex].y;
+        // 槽位通电装载：点亮为卡牌颜色（参考 gemini-code 槽位联动）
+        var sock = document.getElementById('socket_' + c.slotIndex);
+        if (sock) {
+          sock.classList.add('is-occupied');
+          sock.style.setProperty('--card-accent', c.accent);
+          sock.style.setProperty('--card-glow', c.accent);
+        }
       }
       var cardEl = document.createElement('div');
       cardEl.className = 'card-token ' + (c.spent ? 'spent' : '') + (selectedEntity && selectedEntity.id === c.id ? ' selected' : '');
       cardEl.style.setProperty('--accent', c.accent);
       cardEl.style.left = c.x + 'px'; cardEl.style.top = c.y + 'px';
       cardEl.dataset.id = c.id;
-      var slotDisplay = (c.slotIndex !== null && c.slotIndex !== undefined) ? '0' + (c.slotIndex + 1) : 'FREE';
+      var slotDisplay = (c.slotIndex !== null && c.slotIndex !== undefined) ? '0' + (c.slotIndex + 1) : (c.reviewSlot ? 'REV' : 'FREE');
       cardEl.innerHTML =
         '<div class="card-inner"><div class="spent-overlay-stamp">已使用</div><div class="token-glare"></div>' +
         '<div class="token-ghost">' + c.ghost + '</div>' +
         '<div><div class="token-top"><span>' + slotDisplay + '</span><span>' + c.category + '</span></div>' +
         '<div class="token-name"><div class="token-name-1">' + c.name.slice(0, 3) + '</div><div class="token-name-2">' + c.name.slice(3) + '</div></div></div>' +
         '<div class="token-qtm"><div class="token-val">' + c.energy + '<span class="token-unit">' + c.unit + '</span></div></div>' +
-        '<div><div class="token-cost-badge">' + c.costBadge + '</div>' +
-        '<div class="token-switch-bar"><button class="btn-toggle-spent" data-action="toggle-spent">' + (c.spent ? '● 已用' : '○ 标记') + '</button></div></div></div>';
+        '<div><div class="token-cost-badge">' + c.costBadge + '</div></div></div>';
       bindFreeDragAndSnap(cardEl, c);
       surfaceDesk1.appendChild(cardEl);
     });
-    slotCapTag.textContent = (g.槽位.固定槽 || []).length + ' 固定 + ' + (g.槽位.自由槽 || []).length + ' 自由 (在桌 ' + ON_DESK_CARDS.length + ')';
+    slotCapTag.textContent = slotCapText() + ' (在桌 ' + ON_DESK_CARDS.length + ')';
+    updateSlotUseButtons();
+    updateReviewDock();
   }
 
   function bindFreeDragAndSnap(cardEl, cardData) {
     var isMouseDown = false, hasMoved = false, startX = 0, startY = 0, initX = 0, initY = 0;
     cardEl.addEventListener('mousedown', function (e) {
-      if (e.target.dataset.action === 'toggle-spent') {
-        cardData.spent = !cardData.spent;
-        // 标记已用写回：自由回路 uses +1（真实契约）
-        writeGame(function (gg) {
-          var c = circuitById(gg, cardData.id);
-          if (c && c.type === 'free') c.uses = (c.uses || 0) + 1;
-        });
-        renderDesktopCards();
-        e.stopPropagation();
-        return;
-      }
       isMouseDown = true; hasMoved = false;
       startX = e.clientX; startY = e.clientY; initX = cardData.x; initY = cardData.y;
       e.stopPropagation();
@@ -1176,8 +2060,8 @@
       if (dist > 6) {
         hasMoved = true;
         cardEl.classList.add('dragging');
-        cardData.x = initX + (e.clientX - startX) / scale1;
-        cardData.y = initY + (e.clientY - startY) / scale1;
+        cardData.x = initX + (e.clientX - startX) / zoom1;
+        cardData.y = initY + (e.clientY - startY) / zoom1;
         cardEl.style.left = cardData.x + 'px'; cardEl.style.top = cardData.y + 'px';
         checkSocketHover(cardEl);
       }
@@ -1187,24 +2071,46 @@
       isMouseDown = false; cardEl.classList.remove('dragging'); clearSocketHighlights();
       if (hasMoved) {
         var hitIndex = getOverlappingSocket(cardEl);
-        if (hitIndex !== -1) {
-          // 换槽写回：旧槽清空，新槽占位（战斗中固定槽锁）
+        if (hitIndex === 'review') {
+          // 送审槽：仅接受「待送审」回路；进槽写瞬态标记 送审槽=true，送审完毕自动回牌库
+          var revC = circuitById(g, cardData.id);
+          if (!revC || revC.审核状态 !== '待送审') {
+            alert('送审槽只接受「待送审」回路（已通过/免审的回路无需送审）。');
+          } else {
+            writeGame(function (gg) {
+              var fixedLen = FIXED_CAP;
+              var src = (cardData.slotIndex !== null && cardData.slotIndex < fixedLen) ? { arr: gg.槽位.固定槽, idx: cardData.slotIndex } : { arr: gg.槽位.自由槽, idx: cardData.slotIndex - fixedLen };
+              if (cardData.slotIndex !== null && src.idx >= 0 && src.idx < src.arr.length) src.arr[src.idx] = null;
+              var cc = circuitById(gg, cardData.id);
+              if (cc) { delete cc.桌面位置; cc.送审槽 = true; }
+            });
+          }
+        } else if (hitIndex !== -1) {
+          // 换槽写回：旧槽清空，新槽占位（战斗中固定槽锁；socket 下标 → 存储下标需减 fixedLen）
           writeGame(function (gg) {
-            var fixedLen = (gg.槽位.固定槽 || []).length;
-            var targetArr = hitIndex < fixedLen ? gg.槽位.固定槽 : gg.槽位.自由槽;
-            var sourceArr = (cardData.slotIndex !== null && cardData.slotIndex < fixedLen) ? gg.槽位.固定槽 : gg.槽位.自由槽;
-            if (gg.主角.战斗中 && targetArr === gg.槽位.固定槽) { alert('战斗中固定槽上锁'); return; }
-            if (sourceArr && cardData.slotIndex !== null && cardData.slotIndex < sourceArr.length) sourceArr[cardData.slotIndex] = null;
-            if (targetArr && hitIndex < targetArr.length) targetArr[hitIndex] = cardData.id;
+            var fixedLen = FIXED_CAP;
+            var tgt = hitIndex < fixedLen ? { arr: gg.槽位.固定槽, idx: hitIndex } : { arr: gg.槽位.自由槽, idx: hitIndex - fixedLen };
+            var src = (cardData.slotIndex !== null && cardData.slotIndex < fixedLen) ? { arr: gg.槽位.固定槽, idx: cardData.slotIndex } : { arr: gg.槽位.自由槽, idx: cardData.slotIndex - fixedLen };
+            if (gg.主角.战斗中 && tgt.arr === gg.槽位.固定槽) { alert('战斗中固定槽上锁'); return; }
+            var ccCheck = circuitById(gg, cardData.id);
+            if (ccCheck && !可用(ccCheck)) { alert('该回路未送审通过，不能装配'); return; }
+            // 固定槽只接受固化回路（type='fixed'）；自由槽固化/自由均可
+            if (tgt.arr === gg.槽位.固定槽 && ccCheck && ccCheck.type !== 'fixed') { alert('固定槽只接受固化回路；自由回路请放入下方自由槽。'); return; }
+            if (cardData.slotIndex !== null && src.idx >= 0 && src.idx < src.arr.length) src.arr[src.idx] = null;
+            if (tgt.idx >= 0 && tgt.idx < tgt.arr.length) tgt.arr[tgt.idx] = cardData.id;
+            var cc = circuitById(gg, cardData.id);
+            if (cc) { delete cc.桌面位置; delete cc.送审槽; }   // 装槽后清自由位置 + 送审槽标记
             cardData.slotIndex = hitIndex;
           });
         } else {
-          // 拖出槽 → 卸回自由库
+          // 拖到槽位外 → 自由放置（卸槽 + 存桌面位置，卡停在拖放处不消失）
           writeGame(function (gg) {
-            var fixedLen = (gg.槽位.固定槽 || []).length;
-            var sourceArr = (cardData.slotIndex !== null && cardData.slotIndex < fixedLen) ? gg.槽位.固定槽 : gg.槽位.自由槽;
-            if (sourceArr && cardData.slotIndex !== null && cardData.slotIndex < sourceArr.length) sourceArr[cardData.slotIndex] = null;
+            var fixedLen = FIXED_CAP;
+            var src = (cardData.slotIndex !== null && cardData.slotIndex < fixedLen) ? { arr: gg.槽位.固定槽, idx: cardData.slotIndex } : { arr: gg.槽位.自由槽, idx: cardData.slotIndex - fixedLen };
+            if (cardData.slotIndex !== null && src.idx >= 0 && src.idx < src.arr.length) src.arr[src.idx] = null;
             cardData.slotIndex = null;
+            var cc = circuitById(gg, cardData.id);
+            if (cc) { cc.桌面位置 = { x: Math.round(cardData.x), y: Math.round(cardData.y) }; delete cc.送审槽; }
           });
         }
         loadFromSave(); renderDesktopCards();
@@ -1222,6 +2128,12 @@
       if (!sock) continue;
       var sr = sock.getBoundingClientRect();
       if (cx >= sr.left && cx <= sr.right && cy >= sr.top && cy <= sr.bottom) return i;
+    }
+    // 送审槽（独立 socket；返回 'review' 哨兵，不与 numeric 槽位索引混淆）
+    var revSock = document.getElementById('socket_review');
+    if (revSock) {
+      var sr2 = revSock.getBoundingClientRect();
+      if (cx >= sr2.left && cx <= sr2.right && cy >= sr2.top && cy <= sr2.bottom) return 'review';
     }
     return -1;
   }
@@ -1284,24 +2196,35 @@
   function openSidebar() { screenSidebar.classList.add('open'); }
   function switchTab(name) {
     $('#tabBtnRepo').classList.toggle('active', name === 'tabRepo');
+    $('#tabBtnSupply').classList.toggle('active', name === 'tabSupply');
     $('#tabBtnDetail').classList.toggle('active', name === 'tabDetail');
     $('#tabRepo').classList.toggle('active', name === 'tabRepo');
+    $('#tabSupply').classList.toggle('active', name === 'tabSupply');
     $('#tabDetail').classList.toggle('active', name === 'tabDetail');
   }
   $('#tabBtnRepo').addEventListener('click', function () { switchTab('tabRepo'); });
+  $('#tabBtnSupply').addEventListener('click', function () { switchTab('tabSupply'); });
   $('#tabBtnDetail').addEventListener('click', function () { switchTab('tabDetail'); });
 
   function selectCardAndShowDetail(itemData, type) {
     selectedEntity = itemData;
     openSidebar(); switchTab('tabDetail');
     if (type === 'circuit') {
+      var c0 = circuitById(g, itemData.id);
+      var isPending = c0 && c0.审核状态 === '待送审';
       var specsHtml = (itemData.specs || []).map(function (s) { return '<div class="spec-r"><span class="k">' + s.k + '</span><span class="v">' + s.v + '</span></div>'; }).join('');
+      var actionBtn = isPending
+        ? '<div style="display:flex;gap:8px;"><button class="btn-recycle-card" id="btnReviewInDetail" style="border-color:var(--acid-orange);color:var(--acid-orange);">⚖ 送审（法术AI 填参数）</button><button class="btn-recycle-card" id="btnRecycleInDetail">⇲ 回收（移回牌库）</button></div>'
+        : '<button class="btn-recycle-card" id="btnRecycleInDetail">⇲ 卸载此回路并回收至牌库</button>';
       detailContainer.innerHTML =
-        '<div class="dos-hero" style="--dos-acc:' + itemData.accent + '"><div class="dos-cat">' + itemData.category + '</div><div class="dos-name">' + itemData.name + '</div><div class="dos-energy">' + itemData.energy + ' ' + itemData.unit + '</div></div>' +
+        '<div class="dos-hero" style="--dos-acc:' + itemData.accent + '"><div class="dos-cat">' + itemData.category + (isPending ? ' · 待送审' : '') + '</div><div class="dos-name">' + itemData.name + '</div><div class="dos-energy">' + itemData.energy + ' ' + itemData.unit + '</div></div>' +
         '<div class="dos-banner" style="--dos-acc:' + itemData.accent + '">' + itemData.banner + '</div>' +
         '<div class="dos-specs">' + specsHtml + '</div>' +
         '<div class="dos-lore"><div style="color:#fff;font-weight:700;margin-bottom:6px;">[ 身体代价与实战记录 ]</div><p>' + (itemData.lore || '暂无') + '</p></div>' +
-        '<button class="btn-recycle-card" id="btnRecycleInDetail">⇲ 卸载此回路并回收至牌库</button>';
+        actionBtn;
+      if (isPending) {
+        document.getElementById('btnReviewInDetail').addEventListener('click', function () { reviewCircuit(itemData); });
+      }
       document.getElementById('btnRecycleInDetail').addEventListener('click', function () { recycleCardFromDetail(itemData); });
     } else if (type === 'affinity') {
       var levelDesc = '【非亲和方向】：施法精神消耗×4，能量消耗×4，过载风险阈值强制+15。';
@@ -1320,37 +2243,201 @@
   }
 
   function recycleCardFromDetail(cardData) {
-    if (isCombat) { alert('战备锁定！战斗中禁止卸载固定回路。'); return; }
+    if (isCombat && cardData.slotIndex !== null && cardData.slotIndex < FIXED_CAP) { alert('战备锁定！战斗中禁止卸载固定回路。'); return; }
     writeGame(function (gg) {
-      var fixedLen = (gg.槽位.固定槽 || []).length;
-      var sourceArr = (cardData.slotIndex !== null && cardData.slotIndex < fixedLen) ? gg.槽位.固定槽 : gg.槽位.自由槽;
-      if (sourceArr && cardData.slotIndex !== null && cardData.slotIndex < sourceArr.length) sourceArr[cardData.slotIndex] = null;
+      var fixedLen = FIXED_CAP;
+      if (cardData.slotIndex !== null) {
+        var src = (cardData.slotIndex < fixedLen) ? { arr: gg.槽位.固定槽, idx: cardData.slotIndex } : { arr: gg.槽位.自由槽, idx: cardData.slotIndex - fixedLen };
+        if (src.idx >= 0 && src.idx < src.arr.length) src.arr[src.idx] = null;
+      }
+      // 关键：自由放置（槽位外）的卡也要清桌面位置，否则点回收没反应、卡仍在桌上
+      var cc = circuitById(gg, cardData.id);
+      if (cc) { delete cc.桌面位置; delete cc.送审槽; }   // 送审槽中的卡回收 → 直接回牌库
     });
     selectedEntity = null;
     detailContainer.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#475569;font-size:11px;">[ 回路已成功卸解回库 ]</div>';
     loadFromSave(); renderDesktopCards(); renderRepoList(); switchTab('tabRepo');
   }
 
+  /* ═══════════════════ 待送审回路送审（串行 + 防卡死 + 令牌） ═══════════════════ */
+  var isReviewing = false;
+  var reviewToken = 0;   // 递增令牌：超时/新请求取代后，丢弃迟到的 AI 响应，防止重复落地
+
+  function 参数模板JSON(famKey) {
+    var F = E.FAMS[famKey];
+    var 顶层 = [];
+    for (var i = 0; i < F.ctrls.length; i++) {
+      var ctl = F.ctrls[i];
+      顶层.push({ key: ctl.k, label: ctl.label, type: ctl.type, opts: ctl.opts || null, min: ctl.min != null ? ctl.min : null, max: ctl.max != null ? ctl.max : null, def: ctl.def });
+    }
+    if (famKey !== 'flow') return JSON.stringify({ 族: famKey, 默认参数: E.initParams(famKey), 参数: 顶层 }, null, 1);
+    var 子实体 = [];
+    for (var j = 0; j < E.SUBKEYS.length; j++) {
+      for (var k = 0; k < E.SUBKEYS[j].length; k++) {
+        var key = E.SUBKEYS[j][k];
+        var s = E.SUBS[key];
+        if (!s) continue;
+        子实体.push({ key: key, 名称: s.n, 参数: s.ctrls.map(function (c) { return { key: c.k, label: c.label, type: c.type, opts: c.opts || null, min: c.min != null ? c.min : null, max: c.max != null ? c.max : null, def: c.def }; }) });
+      }
+    }
+    return JSON.stringify({ 族: famKey, 说明: 'flow 需先定 mode(作用模态) 与 sub(操纵实体)，再填对应子实体参数', 默认参数: E.initParams(famKey), 顶层参数: 顶层, 子实体参数: 子实体 }, null, 1);
+  }
+
+  function 钳制参数(famKey, cIn) {
+    var merged = E.syncParams(famKey, cIn || {});
+    var 合法键 = {};
+    var clamp = function (ctl) {
+      合法键[ctl.k] = true;
+      if (ctl.type === 'seg') merged[ctl.k] = Math.max(0, Math.min((ctl.opts ? ctl.opts.length : 1) - 1, Math.round(Number(merged[ctl.k]) || 0)));
+      else if (ctl.type === 'range') merged[ctl.k] = Math.max(ctl.min || 0, Math.min(ctl.max || 100, Number(merged[ctl.k]) || ctl.def || 0));
+    };
+    var F = E.FAMS[famKey];
+    for (var i = 0; i < F.ctrls.length; i++) clamp(F.ctrls[i]);
+    if (famKey === 'flow') {
+      var key = E.curKey(merged) || '1-1';
+      var subs = (E.SUBS[key] || {}).ctrls || [];
+      for (var j = 0; j < subs.length; j++) clamp(subs[j]);
+    }
+    var out = {};
+    for (var kk in merged) if (合法键[kk]) out[kk] = Number(merged[kk]);
+    return out;
+  }
+
+  function reviewCircuit(cardData) {
+    if (isReviewing) { alert('上一次送审尚未完成，请稍候。'); return; }
+    var c = circuitById(g, cardData.id);
+    if (!c || c.审核状态 !== '待送审') { alert('该回路不处于待送审状态。'); return; }
+
+    isReviewing = true;
+    var tok = ++reviewToken;   // 本次送审令牌
+    var 模板 = 参数模板JSON(c.famKey);
+    var aff = affinityOf(g);
+    var fmtAff = function (b) { return (b && b.族 ? b.族 : '') + '·' + (b && b.分支 ? b.分支 : ''); };
+    var vars = {
+      描述: (c.基线账单 && c.基线账单.一句话效果) ? c.基线账单.一句话效果 : c.名称,
+      参数: 模板,
+      亲和: '主分支：' + (aff.main.map(fmtAff).join('、') || '无') + '；次分支：' + (aff.subs.map(fmtAff).join('、') || '无'),
+      场景: '风力' + g.场景.风力档 + '，无机物' + g.场景.可塑无机物kJ + 'kJ，水体' + (g.场景.水体在场 ? '有' : '无')
+    };
+    var segs = getSpellPrompt().concat([
+      { role: 'user', enabled: true, content: '【剧情获得回路：据"一句话效果"审核物理可行性，并填出该族合理的参数向量】\n{{描述}}\n\n【该族参数模板】\n{{参数}}\n\n【亲和（仅参考）】\n{{亲和}}\n\n【场景】\n{{场景}}\n\n请只输出审核结果 JSON；若通过，规范化回路必须含"参数向量"。' }
+    ]);
+
+    // 防卡死：15s 超时兜底（超时 = 失败：清送审槽，牌自动回牌库）
+    var deadline = setTimeout(function () {
+      if (tok !== reviewToken) return;
+      reviewToken++;          // 作废本次响应（迟到响应直接丢弃）
+      isReviewing = false;
+      alert('送审超时（15s），已放回牌库，请重试。');
+      clearReviewDockAndRefresh();
+    }, 15000);
+
+    generateRaw({
+      ordered_prompts: assembleSpell(segs, vars),
+      should_stream: false, should_silence: true,
+      generation_id: 'gb_review_' + Date.now(),
+      custom_api: getSpellApi(),
+      json_schema: { name: 'spell_review', value: { type: 'object', properties: { 结论: { type: 'string', enum: ['通过', '驳回'] }, 规范化回路: { type: ['object', 'null'], properties: { 名称: { type: 'string' }, 一句话效果: { type: 'string' }, 参数向量: { type: 'object' } }, required: ['名称', '一句话效果', '参数向量'], additionalProperties: false }, 解释: { type: ['string', 'null'] } }, required: ['结论', '规范化回路', '解释'], additionalProperties: false } }
+    }).then(function (raw) {
+      clearTimeout(deadline);
+      if (tok !== reviewToken) return;
+      isReviewing = false;
+      var text = typeof raw === 'string' ? raw : JSON.stringify(raw);
+      var m = text.match(/\{[\s\S]*\}/); var json = null;
+      try { json = JSON.parse(m ? m[0] : text); } catch (e) {}
+      if (json && json.结论 === '通过' && json.规范化回路 && json.规范化回路.参数向量) {
+        var params = 钳制参数(c.famKey, json.规范化回路.参数向量);
+        var name = String(json.规范化回路.名称 || c.名称).slice(0, 10);
+        var effect = String(json.规范化回路.一句话效果 || '');
+        writeGame(function (gg) {
+          var cc = circuitById(gg, cardData.id);
+          if (!cc) return;
+          cc.参数向量 = params;
+          cc.名称 = name;
+          cc.参数明细 = E.readableParams(c.famKey, params);
+          cc.分支 = E.branchOf(c.famKey, params);
+          if (cc.famKey === 'flow') cc.实体 = String(E.curKey(params));
+          cc.审核状态 = '已通过';
+          delete cc.送审槽;   // 通过 → 清送审槽 → 牌自动回牌库
+          var q = E.quote({ fam: cc.famKey, e: cc.注册e || 0, c: params }, forgeCtx());
+          cc.基线账单 = { 输出kJ: q.E_out, 计费kJ: q.bill, 精神: q.mind, 一句话效果: effect || String(q.r.effect || '') };
+        });
+        loadFromSave(); renderDesktopCards(); renderRepoList(); updateReviewDock();
+        openSidebar(); switchTab('tabRepo');
+        alert('《' + name + '》送审通过，已填入参数并可用。');
+      } else {
+        alert('【驳回】' + (json && json.解释 ? json.解释 : '法术AI 未给出可解析结论（请重试）。'));
+        clearReviewDockAndRefresh();
+      }
+    }).catch(function (e) {
+      clearTimeout(deadline);
+      if (tok !== reviewToken) return;
+      isReviewing = false;
+      alert('送审失败：' + (e && e.message ? e.message : e));
+      clearReviewDockAndRefresh();
+    });
+  }
+
+  /* 送审完毕（通过/驳回/超时/错误统一）：清送审槽瞬态标记 → 牌自动回牌库并刷新 */
+  function clearReviewDockAndRefresh() {
+    writeGame(function (gg) {
+      gg.回路库.forEach(function (cc) { delete cc.送审槽; });
+    });
+    loadFromSave(); renderDesktopCards(); renderRepoList(); updateReviewDock();
+    openSidebar(); switchTab('tabRepo');
+  }
+
+  /* 审核台按钮状态：送审槽有卡才可点；审核中禁用 */
+  function updateReviewDock() {
+    var btn = btnReviewDock;
+    if (!btn) return;
+    var dock = g.回路库.find(function (c) { return c.送审槽; });
+    if (isReviewing) { btn.disabled = true; btn.textContent = '⟳ 审核中…'; btn.style.opacity = '0.7'; return; }
+    if (dock) {
+      btn.disabled = false;
+      btn.textContent = '⚖ 送审《' + String(dock.名称).slice(0, 8) + '》';
+      btn.style.opacity = '1';
+    } else {
+      btn.disabled = true;
+      btn.textContent = '⚖ 送审（送审槽为空）';
+      btn.style.opacity = '0.4';
+    }
+  }
+  btnReviewDock.addEventListener('click', function () {
+    if (isReviewing) return;
+    var dock = g.回路库.find(function (c) { return c.送审槽; });
+    if (!dock) { alert('送审槽为空：先把「待送审」回路拖进送审槽。'); return; }
+    reviewCircuit(toDeskCard(dock, 'review', null));
+  });
+
+  /* ═══════════════════ 手动更新过载（回路配置桌按钮：全回路重算 过载率/过载风险） ═══════════════════ */
+  $('#btnManualRecalc').addEventListener('click', function () {
+    if (!g) { alert('尚未开局'); return; }
+    writeGame(function (gg) {
+      // 与结算 ⑥j 同口径：引擎 settleCircuitLibrary 批量重算 过载率 + 过载风险
+      gg.回路库 = E.settleCircuitLibrary(gg.回路库, engineCtx(gg));
+    });
+    loadFromSave(); renderDesktopCards(); renderRepoList(); renderMonitors();
+    alert('已手动重算全部回路：过载率 / 过载风险 已更新。');
+  });
+
   function renderRepoList() {
     repoListContainer.innerHTML = '';
     REPO_CARDS.forEach(function (item) {
+      var cRepo = circuitById(g, item.id);
+      var isPending = cRepo && cRepo.审核状态 === '待送审';
       var cardEl = document.createElement('div');
-      cardEl.className = 'repo-card-item';
+      cardEl.className = 'repo-card-item' + (isPending ? ' pending' : '');
       cardEl.style.setProperty('--item-acc', item.accent);
-      cardEl.innerHTML = '<div class="repo-card-head"><span>RESERVE // 自由回路</span><span>' + item.category + '</span></div><div class="repo-card-title">' + item.name + '</div><div class="repo-card-stat">' + item.energy + ' kJ · ' + item.costBadge + '</div>';
+      cardEl.innerHTML = '<div class="repo-card-head"><span>' + (isPending ? '待送审 // 剧情获得' : 'RESERVE // 自由回路') + '</span><span>' + item.category + '</span></div><div class="repo-card-title">' + item.name + (isPending ? ' <span style="color:#ff9a3c;font-size:9px;">● 待送审</span>' : '') + '</div><div class="repo-card-stat">' + item.energy + ' kJ · ' + item.costBadge + '</div>';
       cardEl.addEventListener('click', function () {
+        var cc = circuitById(g, item.id);
+        if (!cc) return;
         if (isCombat) { alert('战备锁定！禁止装配新回路。'); return; }
-        // 从备选装槽：找到空槽位（自由槽优先）
+        // 点牌 → 自由放置到桌面（不装槽；未送审也能上桌看详情/送审；装槽靠拖拽并在那时检查送审）
         writeGame(function (gg) {
-          var fixedLen = (gg.槽位.固定槽 || []).length;
-          var freeSlot = -1;
-          for (var i = fixedLen; i < fixedLen + (gg.槽位.自由槽 || []).length; i++) {
-            var arr = i < fixedLen ? gg.槽位.固定槽 : gg.槽位.自由槽;
-            if (arr[i < fixedLen ? i : i - fixedLen] == null) { freeSlot = i; break; }
-          }
-          if (freeSlot === -1) { alert('自由槽已满'); return; }
-          var arr2 = freeSlot < fixedLen ? gg.槽位.固定槽 : gg.槽位.自由槽;
-          arr2[freeSlot < fixedLen ? freeSlot : freeSlot - fixedLen] = item.id;
+          var ccc = circuitById(gg, item.id);
+          if (ccc && !ccc.桌面位置) ccc.桌面位置 = { x: 1500 + Math.round(Math.random() * 400), y: 1300 + Math.round(Math.random() * 300) };
         });
         loadFromSave(); renderDesktopCards(); renderRepoList();
       });
@@ -1358,43 +2445,609 @@
     });
   }
 
+  /* ═══════════════════ 补给卡（纯度分级 · 能量/精神/创伤） ═══════════════════ */
+  var SUPPLY_CARDS = [];
+  var supplyListContainer = $('#supplyListContainer');
+
+  function 补给档位(纯度) {
+    var p = (纯度 != null) ? 纯度 : 0;
+    if (p >= 99) return '战略';
+    if (p >= 80) return '管控';
+    return '民用';
+  }
+  function supplyVisual(s) {
+    var eff = s.效果 || {};
+    if (eff.目标 === '创伤') {
+      var heal = eff.身体状态 === '正常';
+      return { tier: '创伤', theme: heal ? '#10b981' : '#f43f5e', effectText: heal ? '伤势 → 正常' : '重伤 → 轻伤' };
+    }
+    var 档 = 补给档位(s.纯度);
+    if (eff.目标 === '能量') {
+      var c = 档 === '战略' ? '#f43f5e' : 档 === '管控' ? '#ff6600' : '#00f0ff';
+      return { tier: 档, theme: c, effectText: '+' + (eff.增加kJ || 0) + ' kJ' };
+    }
+    var m = 档 === '战略' ? '#c084fc' : 档 === '管控' ? '#eab308' : '#38bdf8';
+    return { tier: 档, theme: m, effectText: '+' + (eff.增加点 || 0) + ' 点' };
+  }
+  /* uid 区分同一补给的多张牌；旧数据无 uid 时按 名称|纯度 兜底 */
+  function supplyKey(s) { return s.uid || (s.名称 + '|' + (s.纯度 != null ? s.纯度 : '')); }
+  /* 同名的多张补给，显示编号后缀（取 uid 尾 4 位） */
+  function supplyBadge(s) {
+    if (s.uid) {
+      var tail = String(s.uid).match(/#([^#]*)$/);
+      return tail ? '#' + tail[1].slice(-4) : '';
+    }
+    return '';
+  }
+  /* 同名补给靠 uid 编号区分：卡面名称尾部挂 #xxxx 徽标（旧数据无 uid 则空） */
+  function supplyNameHtml(item) {
+    return item.name + (item.badge ? '<span class="sup-uid-n">' + item.badge + '</span>' : '');
+  }
+  /* 补给图腾 SVG（晶体三档 / 导液安瓿 / 创伤十字 / 神经贴片） */
+  function supplyArt(s, v) {
+    var eff = s.效果 || {};
+    var theme = v.theme;
+    if (eff.目标 === '能量') {
+      if (v.tier === '战略') return '<svg viewBox="0 0 64 64" width="48" height="48" fill="none" stroke="' + theme + '" stroke-width="1.8"><circle cx="32" cy="32" r="26" stroke-dasharray="3,3" opacity="0.4"/><polygon points="32,4 58,22 48,54 16,54 6,22" fill="rgba(244,63,94,0.2)"/><polygon points="32,14 48,26 42,46 22,46 16,26"/><line x1="32" y1="4" x2="32" y2="14"/><line x1="58" y1="22" x2="48" y2="26"/><line x1="48" y1="54" x2="42" y2="46"/><line x1="16" y1="54" x2="22" y2="46"/><line x1="6" y1="22" x2="16" y2="26"/><circle cx="32" cy="32" r="3" fill="' + theme + '"/></svg>';
+      if (v.tier === '管控') return '<svg viewBox="0 0 64 64" width="48" height="48" fill="none" stroke="' + theme + '" stroke-width="1.8"><polygon points="32,6 54,18 54,46 32,58 10,46 10,18" fill="rgba(255,102,0,0.15)"/><line x1="32" y1="6" x2="32" y2="58"/><line x1="10" y1="18" x2="32" y2="30"/><line x1="54" y1="18" x2="32" y2="30"/><line x1="10" y1="46" x2="32" y2="30"/><line x1="54" y1="46" x2="32" y2="30"/></svg>';
+      return '<svg viewBox="0 0 64 64" width="48" height="48" fill="none" stroke="' + theme + '" stroke-width="1.6"><polygon points="32,8 50,32 32,56 14,32" fill="rgba(0,240,255,0.1)"/><line x1="14" y1="32" x2="50" y2="32"/><line x1="32" y1="8" x2="32" y2="56"/><polygon points="32,18 42,32 32,46 22,32" stroke-dasharray="2,2"/></svg>';
+    }
+    if (eff.目标 === '精神') {
+      var fillH = v.tier === '战略' ? '88%' : v.tier === '管控' ? '72%' : '55%';
+      return '<div style="display:flex;align-items:center;gap:8px;"><div style="width:14px;height:42px;background:rgba(255,255,255,0.04);border:1.5px solid ' + theme + ';border-radius:7px 7px 3px 3px;position:relative;overflow:hidden;box-shadow:0 0 12px ' + theme + ';"><div style="position:absolute;bottom:0;left:0;right:0;height:' + fillH + ';background:linear-gradient(180deg,' + theme + ' 0%,rgba(0,0,0,0.8) 100%);"></div><div style="position:absolute;top:24%;left:0;right:0;height:2px;background:#fff;border-radius:50%;opacity:0.9;"></div></div><div style="font-size:7px;color:#64748b;display:flex;flex-direction:column;gap:6px;"><span>ACTIVE</span><span style="color:' + theme + ';">' + (v.tier === '战略' ? 'CRYO' : v.tier === '管控' ? 'AMP' : 'ORAL') + '</span></div></div>';
+    }
+    if (eff.身体状态 === '正常') return '<svg viewBox="0 0 64 64" width="46" height="46" fill="none"><circle cx="32" cy="32" r="28" stroke="' + theme + '" stroke-width="2" stroke-dasharray="3,3"/><path d="M26 12 H38 V26 H52 V38 H38 V52 H26 V38 H12 V26 H26 Z" fill="rgba(16,185,129,0.25)" stroke="' + theme + '" stroke-width="2"/></svg>';
+    return '<svg viewBox="0 0 70 50" width="48" height="38" fill="none" stroke="' + theme + '" stroke-width="1.8"><rect x="15" y="10" width="40" height="30" rx="3" stroke-dasharray="4,2"/><line x1="5" y1="25" x2="15" y2="25"/><line x1="55" y1="25" x2="65" y2="25"/><circle cx="25" cy="25" r="3" fill="' + theme + '"/><circle cx="35" cy="25" r="3" fill="' + theme + '"/><circle cx="45" cy="25" r="3" fill="' + theme + '"/><path d="M25 25 Q 35 15 45 25" stroke="#fff" stroke-width="1.5"/></svg>';
+  }
+  function toSupplyCard(s) {
+    var v = supplyVisual(s);
+    var eff = s.效果 || {};
+    var cat = eff.目标 === '能量' ? 'CRYSTAL // 能量' : eff.目标 === '精神' ? 'LIQUID // 精神' : 'TRAUMA // 外科';
+    var tierText = eff.目标 === '创伤'
+      ? (eff.身体状态 === '正常' ? '急诊常备耗材' : '重伤防断线耗材')
+      : (v.tier === '战略' ? '战略级物资' : v.tier === '管控' ? '国家管控物品' : '民用合规流通品');
+    var specs = [];
+    if (eff.目标 === '能量') specs = [{ k: '储量注入', v: '+' + (eff.增加kJ || 0) + ' kJ' }, { k: '纯度档', v: v.tier }];
+    else if (eff.目标 === '精神') specs = [{ k: '精神抚平', v: '+' + (eff.增加点 || 0) + ' 点' }, { k: '纯度档', v: v.tier }];
+    else specs = [{ k: '创伤消除', v: eff.身体状态 === '正常' ? '→ 正常稳态' : '重伤 → 轻伤' }, { k: '类别', v: v.tier }];
+    var barcode = '<svg class="supply-barcode" viewBox="0 0 70 16" fill="' + v.theme + '"><rect x="0" y="0" width="2" height="16"/><rect x="4" y="0" width="3" height="16"/><rect x="10" y="0" width="1" height="16"/><rect x="13" y="0" width="4" height="16"/><rect x="20" y="0" width="2" height="16"/><rect x="25" y="0" width="5" height="16"/><rect x="33" y="0" width="1" height="16"/><rect x="37" y="0" width="3" height="16"/><rect x="43" y="0" width="4" height="16"/><rect x="50" y="0" width="2" height="16"/><rect x="55" y="0" width="6" height="16"/><rect x="64" y="0" width="3" height="16"/></svg>';
+    return {
+      key: supplyKey(s),
+      name: s.名称,
+      纯度: s.纯度,
+      数量: s.数量,
+      badge: supplyBadge(s),
+      tier: v.tier,
+      theme: v.theme,
+      effectText: v.effectText,
+      cat: cat,
+      tierText: tierText,
+      specs: specs,
+      barcode: barcode,
+      art: supplyArt(s, v),
+      x: (s.桌面位置 && typeof s.桌面位置.x === 'number') ? s.桌面位置.x : 0,
+      y: (s.桌面位置 && typeof s.桌面位置.y === 'number') ? s.桌面位置.y : 0,
+    };
+  }
+  function loadSupplies() {
+    SUPPLY_CARDS = (g && g.补给物品 ? g.补给物品 : []).map(toSupplyCard);
+  }
+
+  function renderSupplyList() {
+    supplyListContainer.innerHTML = '';
+    if (!g || !g.补给物品 || !g.补给物品.length) {
+      supplyListContainer.innerHTML = '<div style="font-size:11px;color:#475569;">（无补给）</div>';
+      return;
+    }
+    SUPPLY_CARDS.forEach(function (item) {
+      var onDesk = item.x !== 0 || item.y !== 0 || (function () { var s = g.补给物品.find(function (x) { return supplyKey(x) === item.key; }); return s && s.桌面位置; })();
+      var cardEl = document.createElement('div');
+      cardEl.className = 'repo-card-item';
+      cardEl.style.setProperty('--item-acc', item.theme);
+      cardEl.innerHTML = '<div class="repo-card-head"><span>SUPPLY // ' + item.tier + '</span><span>' + (item.纯度 != null ? item.纯度 + '%' : '') + '</span></div><div class="repo-card-title">' + supplyNameHtml(item) + '</div><div class="repo-card-stat">' + item.effectText + (item.数量 > 1 ? ' · ×' + item.数量 : '') + (onDesk ? ' · 在桌' : '') + '</div>';
+      cardEl.addEventListener('click', function () {
+        // 点补给卡 → 放到桌面（若未放）
+        writeGame(function (gg) {
+          var sup = gg.补给物品.find(function (x) { return supplyKey(x) === item.key; });
+          if (sup && !sup.桌面位置) sup.桌面位置 = { x: 1800 + Math.round(Math.random() * 300), y: 900 + Math.round(Math.random() * 300) };
+        });
+        loadFromSave(); renderDesktopCards(); renderDesktopSupplyCards(); renderSupplyList();
+        openSidebar(); switchTab('tabSupply');
+      });
+      supplyListContainer.appendChild(cardEl);
+    });
+  }
+
+  function renderDesktopSupplyCards() {
+    document.querySelectorAll('#surfaceDesk1 .supply-token').forEach(function (el) { el.remove(); });
+    SUPPLY_CARDS.forEach(function (sdata) {
+      if (!sdata.x && !sdata.y) return;   // 未放到桌面的补给不显示
+      var cardEl = document.createElement('div');
+      cardEl.className = 'supply-token';
+      cardEl.style.setProperty('--sup-theme', sdata.theme);
+      cardEl.style.setProperty('--sup-glow', sdata.theme);
+      cardEl.style.left = sdata.x + 'px'; cardEl.style.top = sdata.y + 'px';
+      cardEl.dataset.key = sdata.key;
+      cardEl.innerHTML =
+        '<div class="supply-shell">' +
+        '<div class="foil-reflection"></div>' +
+        (sdata.tier === '战略' ? '<div class="hazard-stripe"></div>' : '') +
+        '<div class="pkg-hole"></div>' +
+        '<div>' +
+          '<div class="supply-header"><span class="supply-cat">' + sdata.cat + '</span>' + (sdata.数量 > 1 ? '<span>×' + sdata.数量 + '</span>' : '') + '</div>' +
+          '<div><span class="supply-tierbadge">' + sdata.tierText + '</span>' +
+            '<div class="supply-name">' + supplyNameHtml(sdata) + '</div>' +
+            '<div class="supply-quantum">' +
+              '<div class="supply-purity">' + (sdata.纯度 != null ? sdata.纯度 + '<span>%</span>' : 'CLAMP') + '</div>' +
+              '<div class="supply-add">' + sdata.effectText + '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="supply-art">' + sdata.art + '</div>' +
+        '<div>' +
+          '<div class="supply-specs">' + sdata.specs.map(function (sp) { return '<div class="supply-spec-r"><span>' + sp.k + '</span><b>' + sp.v + '</b></div>'; }).join('') + '</div>' +
+          '<div class="supply-footer">' + sdata.barcode + '<div class="supply-pips">' +
+            (function () { var n = Math.min(8, sdata.数量); var h = ''; for (var i = 0; i < n; i++) h += '<div class="supply-pip"></div>'; return h + (sdata.数量 > 8 ? '<span style="font-size:7px;color:#64748b;">×' + sdata.数量 + '</span>' : ''); })() +
+          '</div></div>' +
+        '</div>' +
+        '</div>';
+      bindSupplyDrag(cardEl, sdata);
+      surfaceDesk1.appendChild(cardEl);
+    });
+  }
+
+  function bindSupplyDrag(cardEl, sdata) {
+    var down = false, moved = false, sx = 0, sy = 0, ix = 0, iy = 0;
+    cardEl.addEventListener('mousedown', function (e) {
+      down = true; moved = false; sx = e.clientX; sy = e.clientY; ix = sdata.x; iy = sdata.y;
+      e.stopPropagation();
+    });
+    window.addEventListener('mousemove', function (e) {
+      if (!down) return;
+      var d = Math.hypot(e.clientX - sx, e.clientY - sy);
+      if (d > 6) {
+        moved = true;
+        cardEl.classList.add('dragging');
+        sdata.x = ix + (e.clientX - sx) / zoom1;
+        sdata.y = iy + (e.clientY - sy) / zoom1;
+        cardEl.style.left = sdata.x + 'px'; cardEl.style.top = sdata.y + 'px';
+      }
+    });
+    window.addEventListener('mouseup', function () {
+      if (!down) return;
+      down = false; cardEl.classList.remove('dragging');
+      if (moved) {
+        // 自由移动写回（不进槽位）
+        writeGame(function (gg) {
+          var sup = gg.补给物品.find(function (x) { return supplyKey(x) === sdata.key; });
+          if (sup) sup.桌面位置 = { x: Math.round(sdata.x), y: Math.round(sdata.y) };
+        });
+        loadFromSave(); renderDesktopSupplyCards(); renderSupplyList();
+      } else {
+        selectSupplyDetail(sdata);
+      }
+    });
+  }
+
+  function selectSupplyDetail(sdata) {
+    selectedEntity = sdata;
+    openSidebar(); switchTab('tabDetail');
+    detailContainer.innerHTML =
+      '<div class="dos-hero" style="--dos-acc:' + sdata.theme + '"><div class="dos-cat">SUPPLY // ' + sdata.tier + (sdata.纯度 != null ? ' · ' + sdata.纯度 + '%' : '') + '</div><div class="dos-name">' + supplyNameHtml(sdata) + '</div><div class="dos-energy">' + sdata.effectText + '</div></div>' +
+      '<div class="dos-banner" style="--dos-acc:' + sdata.theme + '">' + (sdata.数量 > 1 ? '数量 ×' + sdata.数量 : '单件 · 一牌一件' + (sdata.badge ? ' · ' + sdata.badge : '')) + '</div>' +
+      '<div class="dos-specs">' +
+      '<div class="spec-r"><span class="k">类别</span><span class="v">' + sdata.tier + '</span></div>' +
+      '<div class="spec-r"><span class="k">效果</span><span class="v">' + sdata.effectText + '</span></div>' +
+      (sdata.纯度 != null ? '<div class="spec-r"><span class="k">纯度</span><span class="v">' + sdata.纯度 + '%</span></div>' : '') +
+      '</div>' +
+      '<div style="display:flex;gap:8px;margin-top:10px;">' +
+      '<button class="btn-recycle-card" id="btnUseSupply" style="border-color:var(--acid-green);color:var(--acid-green);flex:1;">▸ 使用此补给</button>' +
+      '<button class="btn-recycle-card" id="btnRecycleSupply" style="flex:1;">⇲ 回收（放回补给库）</button>' +
+      '</div>';
+    document.getElementById('btnUseSupply').addEventListener('click', function () { useSupply(sdata); });
+    document.getElementById('btnRecycleSupply').addEventListener('click', function () { recycleSupply(sdata); });
+  }
+
+  function recycleSupply(sdata) {
+    writeGame(function (gg) {
+      var sup = gg.补给物品.find(function (x) { return supplyKey(x) === sdata.key; });
+      if (sup) delete sup.桌面位置;
+    });
+    selectedEntity = null;
+    detailContainer.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#475569;font-size:11px;">[ 补给已收回补给品库 ]</div>';
+    loadFromSave(); renderDesktopSupplyCards(); renderSupplyList(); switchTab('tabSupply');
+  }
+
+  function useSupply(sdata) {
+    writeGame(function (gg) {
+      var sup = gg.补给物品.find(function (x) { return supplyKey(x) === sdata.key; });
+      if (!sup || sup.数量 <= 0) { alert('补给不存在或已耗尽'); return; }
+      var supTitle = sup.名称 + (sup.uid ? ' ' + supplyBadge(sup) : '');
+      var eff = sup.效果 || {};
+      if (eff.目标 === '能量') {
+        gg.主角.能量kJ.当前 = Math.min(gg.主角.能量kJ.上限, gg.主角.能量kJ.当前 + (eff.增加kJ || 0));
+        alert('使用《' + supTitle + '》：能量 +' + (eff.增加kJ || 0) + ' kJ');
+      } else if (eff.目标 === '精神') {
+        gg.主角.精神点.当前 = Math.min(gg.主角.精神点.上限, gg.主角.精神点.当前 + (eff.增加点 || 0));
+        alert('使用《' + supTitle + '》：精神 +' + (eff.增加点 || 0) + ' 点');
+      } else {
+        var 顺序 = ['正常', '轻伤', '重伤', '过载透支'];
+        var 当前 = 顺序.indexOf(gg.主角.身体状态);
+        var 目标 = 顺序.indexOf(eff.身体状态 || '正常');
+        if (目标 < 当前) { alert('使用《' + supTitle + '》：身体 ' + gg.主角.身体状态 + ' → ' + eff.身体状态); gg.主角.身体状态 = eff.身体状态 || '正常'; }
+        else { alert('《' + supTitle + '》伤势不重于此档，无效'); return; }
+      }
+      sup.数量 -= 1;
+      if (sup.数量 <= 0) gg.补给物品 = gg.补给物品.filter(function (x) { return x !== sup; });
+    });
+    loadFromSave(); renderDesktopSupplyCards(); renderSupplyList(); renderMonitors();
+    detailContainer.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#475569;font-size:11px;">[ 补给已使用 ]</div>';
+  }
+
+  /* ═══════════════════ 桌面3：自由施法桌（临时回路构筑） ═══════════════════ */
+  var forgeTuningRack = $('#forgeTuningRack');
+  var rackTitle = $('#rackTitle');
+  var rackSub = $('#rackSub');
+  var rackEnergySliderWrap = $('#rackEnergySliderWrap');
+  var rackControlsList = $('#rackControlsList');
+  var inputE = $('#inputE');
+  var sliderEVal = $('#sliderEVal');
+  var chkUnlockE = $('#chkUnlockE');
+
+  /* 限制解除：解除后能量滑杆上限 = max(500, 主角能量上限)；低于500保持不变 */
+  var unlockE = false;
+  function updateEnergyCap() {
+    var maxKJ = 500;
+    if (unlockE && g && g.主角 && g.主角.能量kJ && g.主角.能量kJ.上限) {
+      maxKJ = Math.max(500, g.主角.能量kJ.上限);
+    }
+    var newMax = Math.max(100, E.kjToSlider(maxKJ) + 1);
+    inputE.max = newMax;
+    if (parseInt(inputE.value, 10) > newMax) {
+      inputE.value = newMax;
+      FORGE_STATE.e = newMax;
+      sliderEVal.textContent = E.sliderToKJ(FORGE_STATE.e).toFixed(1) + ' kJ';
+      recalcForgeQuote();
+    }
+  }
+  chkUnlockE.addEventListener('change', function () {
+    unlockE = chkUnlockE.checked;
+    updateEnergyCap();
+  });
+  var teleOutputNum = $('#teleOutputNum');
+  var teleOutputAnchor = $('#teleOutputAnchor');
+  var teleBillVal = $('#teleBillVal');
+  var teleMindVal = $('#teleMindVal');
+  var teleTimeVal = $('#teleTimeVal');
+  var teleRiskVal = $('#teleRiskVal');
+  var teleTellLv = $('#teleTellLv');
+  var gateBadge = $('#gateBadge');
+  var tunedAlertBox = $('#tunedAlertBox');
+  var tunedCircuitName = $('#tunedCircuitName');
+  var chipsFlow = $('#chipsFlow');
+  var intentDesc = $('#intentDesc');
+
+  var famColors = { pour: '#00f0ff', flow: '#c6ff00', struct: '#ff6600', life: '#f43f5e', perce: '#eab308' };
+
+  /* 构筑台上下文：真实存档 + 已装槽固定回路（微调命中用） */
+  function forgeCtx() {
+    return {
+      aff: affinityOf(g),
+      scene: { wind: g.场景.风力档, mat: g.场景.可塑无机物kJ, water: g.场景.水体在场 },
+      char: { burstKW: g.主角.爆发线kW, sustainKW: g.主角.持续线kW, speed: 1, eCur: g.主角.能量kJ.当前, mCur: g.主角.精神点.当前, mMax: g.主角.精神点.上限, body: g.主角.身体状态 },
+      tuned: tunedList(g)
+    };
+  }
+
+  function renderForgeControls() {
+    var fam = FORGE_STATE.fam;
+    var F = E.FAMS[fam];
+    var curColor = famColors[fam] || '#c6ff00';
+    forgeTuningRack.style.setProperty('--cur-fam-color', curColor);
+    rackTitle.textContent = F.name + ' // 参数调制插槽';
+    rackSub.textContent = F.sub;
+    rackEnergySliderWrap.style.display = fam === 'flow' ? 'none' : 'block';
+    rackControlsList.innerHTML = '';
+    var allCtrls = F.ctrls.slice();
+    if (fam === 'flow') {
+      var subObj = E.SUBS[E.curKey(FORGE_STATE.c)];
+      if (subObj && subObj.ctrls) allCtrls = allCtrls.concat(subObj.ctrls);
+    }
+    allCtrls.forEach(function (ctl) {
+      if (ctl.show && !ctl.show(FORGE_STATE.c)) return;
+      var itemDiv = document.createElement('div');
+      itemDiv.className = 'ctrl-item';
+      if (ctl.type === 'seg') {
+        var opts = ctl.opts;
+        if (ctl.k === 'sub') {
+          var modeIdx = FORGE_STATE.c.mode || 0;
+          opts = E.SUBKEYS[modeIdx].map(function (k) { return E.SUBS[k].n.split(' ')[0]; });
+        }
+        var btnGroup = document.createElement('div');
+        btnGroup.className = 'seg-btn-group';
+        opts.forEach(function (optText, optIdx) {
+          var btn = document.createElement('div');
+          btn.className = 'seg-opt-btn' + (FORGE_STATE.c[ctl.k] === optIdx ? ' active' : '');
+          btn.textContent = optText;
+          btn.addEventListener('click', function () {
+            FORGE_STATE.c[ctl.k] = optIdx;
+            FORGE_STATE.c = E.syncParams(FORGE_STATE.fam, FORGE_STATE.c);
+            FORGE_STATE.preset = null;   // 手动改参数后不再是预设
+            renderForgeControls();
+            recalcForgeQuote();
+          });
+          btnGroup.appendChild(btn);
+        });
+        itemDiv.innerHTML = '<div class="ctrl-label-row"><span class="lbl">' + ctl.label + '</span></div>';
+        itemDiv.appendChild(btnGroup);
+      } else if (ctl.type === 'range') {
+        var curVal = FORGE_STATE.c[ctl.k];
+        var fmtStr = ctl.fmt ? ctl.fmt(curVal) : curVal;
+        itemDiv.innerHTML =
+          '<div class="ctrl-label-row"><span class="lbl">' + ctl.label + '</span><span class="val" id="lbl_' + ctl.k + '">' + fmtStr + '</span></div>' +
+          '<input type="range" class="acid-slider" min="' + ctl.min + '" max="' + ctl.max + '" step="' + ctl.step + '" value="' + curVal + '">';
+        var slider = itemDiv.querySelector('input');
+        slider.addEventListener('input', function (e2) {
+          var val = parseFloat(e2.target.value);
+          FORGE_STATE.c[ctl.k] = val;
+          FORGE_STATE.preset = null;   // 手动改参数后不再是预设
+          var lbl = itemDiv.querySelector('#lbl_' + ctl.k);
+          if (lbl) lbl.textContent = ctl.fmt ? ctl.fmt(val) : val;
+          recalcForgeQuote();
+        });
+      }
+      rackControlsList.appendChild(itemDiv);
+    });
+  }
+
+  function recalcForgeQuote() {
+    var q = E.quote({ fam: FORGE_STATE.fam, e: FORGE_STATE.e, c: FORGE_STATE.c }, forgeCtx());
+    teleOutputNum.innerHTML = q.E_out.toFixed(q.E_out < 10 ? 2 : 1) + '<span style="font-size:14px; margin-left:4px; color:var(--acid-green);">kJ</span>';
+    teleOutputAnchor.textContent = E.anchorOf(q.E_out);
+    teleBillVal.textContent = q.bill + ' kJ';
+    teleMindVal.textContent = q.mind + ' 点';
+    teleTimeVal.textContent = q.relT.toFixed(2) + ' s';
+    teleRiskVal.textContent = q.risk + ' %';
+    teleTellLv.textContent = q.tell;
+    gateBadge.className = 'gate-badge ' + q.r.g.t;
+    gateBadge.textContent = q.r.branch + ' · ' + q.r.g.n;
+    if (q.tunedHit) { tunedAlertBox.classList.add('active'); tunedCircuitName.textContent = q.tunedName || q.tunedHit; }
+    else { tunedAlertBox.classList.remove('active'); }
+    chipsFlow.innerHTML = '';
+    (q.chips || []).forEach(function (chip) {
+      var line = document.createElement('div');
+      line.className = 'chip-line ' + (chip.l || 'y');
+      line.textContent = '• ' + chip.t;
+      chipsFlow.appendChild(line);
+    });
+    return q;
+  }
+
+  document.querySelectorAll('.fam-switch-item').forEach(function (item) {
+    item.addEventListener('click', function () {
+      document.querySelectorAll('.fam-switch-item').forEach(function (i) { i.classList.remove('active'); });
+      item.classList.add('active');
+      FORGE_STATE.fam = item.dataset.fam;
+      FORGE_STATE.c = E.initParams(FORGE_STATE.fam);
+      FORGE_STATE.preset = null;   // 手动切族后不再是预设
+      renderForgeControls();
+      recalcForgeQuote();
+    });
+  });
+  inputE.addEventListener('input', function (e2) {
+    FORGE_STATE.e = parseInt(e2.target.value, 10);
+    FORGE_STATE.preset = null;   // 手动调能量后不再是预设
+    sliderEVal.textContent = E.sliderToKJ(FORGE_STATE.e).toFixed(1) + ' kJ';
+    recalcForgeQuote();
+  });
+
+  function nextFreeId(g2) {
+    var n = 1, ids = (g2.回路库 || []).map(function (c) { return c.id; });
+    while (ids.indexOf('fr-' + (n < 10 ? '0' + n : n)) >= 0) n++;
+    return 'fr-' + (n < 10 ? '0' + n : n);
+  }
+
+  /* ═══════════════════ 法术AI 送审（玩家自创回路必须先送审通过才能用） ═══════════════════ */
+  function getSpellPrompt() {
+    try {
+      var st = (typeof SillyTavern !== 'undefined') && SillyTavern.getContext && SillyTavern.getContext();
+      var seg = st && st.extensionSettings && st.extensionSettings['渐变带自由回路'] && st.extensionSettings['渐变带自由回路'].提示词 && st.extensionSettings['渐变带自由回路'].提示词.法术AI;
+      if (seg && seg.length) return seg;
+    } catch (e) {}
+    return [
+      { role: 'system', enabled: true, content: '你是跑团系统的"法术AI"，负责审核施法回路是否合理（物理可行性，与亲和无关；不做账单计算）。双场景：自创申报（{{参数}}为中文参数明细）通过时规范化回路输出 {"名称","一句话效果","效果文字稿"}；剧情获得送审（{{参数}}为参数模板JSON）通过时必须含"参数向量"。输出二选一 JSON：通过→{"结论":"通过","规范化回路":{…}}；驳回→{"结论":"驳回","解释":"通俗说明"}。只输出 JSON。' },
+      { role: 'user', enabled: true, content: '【玩家描述】\n{{描述}}\n\n【构筑参数】\n{{参数}}\n\n【场景】\n{{场景}}\n\n【亲和（仅参考）】\n{{亲和}}\n\n请输出审核结果 JSON。' }
+    ];
+  }
+  function getSpellApi() {
+    try {
+      var st = (typeof SillyTavern !== 'undefined') && SillyTavern.getContext && SillyTavern.getContext();
+      var cfg = st && st.extensionSettings && st.extensionSettings['渐变带自由回路'] && st.extensionSettings['渐变带自由回路'].api;
+      return cfg && cfg.法术AI && cfg.法术AI.mode === 'custom' ? cfg.法术AI : undefined;
+    } catch (e) { return undefined; }
+  }
+  function assembleSpell(segs, vars) {
+    return segs.filter(function (s) { return s.enabled !== false; }).map(function (s) {
+      var c = s.content;
+      Object.keys(vars).forEach(function (k) { c = c.split('{{' + k + '}}').join(vars[k]); });
+      return { role: s.role, content: c };
+    });
+  }
+
+  /* 出口 A：申报入自由库（预设回路免审直接入库；自定义送审 → 通过才入库） */
+  $('#btnSaveToRepo').addEventListener('click', function () {
+    if (!g) { alert('尚未开局'); return; }
+
+    // 预设回路：直接免审入库（系统内置完整参数，不送审）
+    if (FORGE_STATE.preset) {
+      var p = FORGE_STATE.preset;
+      var params0 = E.syncParams(p.fam, FORGE_STATE.c);
+      writeGame(function (gg) {
+        var qq = E.quote({ fam: p.fam, e: p.e, c: params0 }, forgeCtx());
+        gg.回路库.push({
+          id: nextFreeId(gg), 名称: p.name, type: 'free',
+          族: E.FAMKEY[p.fam], famKey: p.fam,
+          分支: E.branchOf(p.fam, params0),
+          实体: p.fam === 'flow' ? String(E.curKey(params0)) : null,
+          参数向量: params0, 注册e: p.fam === 'flow' ? 0 : p.e,
+          参数明细: E.readableParams(p.fam, params0),
+          微调预算: null, 微调预算明细: null,
+          基线账单: { 输出kJ: qq.E_out, 计费kJ: qq.bill, 精神: qq.mind, 一句话效果: p.effect },
+          uses: 0, 来源: '开局预设',
+          审核存档: null, 审核状态: '免审'
+        });
+      });
+      loadFromSave(); renderDesktopCards(); renderRepoList();
+      openSidebar(); switchTab('tabRepo');
+      alert('预设回路《' + p.name + '》已入自由库（免审）。');
+      return;
+    }
+
+    var desc = intentDesc.value.trim();
+    if (desc.length < 8) { alert('构筑意图描述太短：至少写清"作用对象 + 作用方式"（≥8字）。'); return; }
+    var q = recalcForgeQuote();
+    var params = E.syncParams(FORGE_STATE.fam, FORGE_STATE.c);
+
+    var aff = affinityOf(g);
+    var fmtAff = function (b) { return (b && b.族 ? b.族 : '') + '·' + (b && b.分支 ? b.分支 : ''); };
+    var vars = {
+      描述: desc,
+      参数: JSON.stringify({ 族: FORGE_STATE.fam, 参数明细: E.readableParams(FORGE_STATE.fam, params), 引擎参考效果: String(q.r.effect || '') }, null, 1),
+      亲和: '主分支：' + (aff.main.map(fmtAff).join('、') || '无') + '；次分支：' + (aff.subs.map(fmtAff).join('、') || '无'),
+      场景: '风力' + g.场景.风力档 + '，无机物' + g.场景.可塑无机物kJ + 'kJ，水体' + (g.场景.水体在场 ? '有' : '无')
+    };
+
+    generateRaw({
+      ordered_prompts: assembleSpell(getSpellPrompt(), vars),
+      should_stream: false, should_silence: true,
+      generation_id: 'gb_spell_desk_' + Date.now(),
+      custom_api: getSpellApi(),
+      json_schema: { name: 'spell_review', value: { type: 'object', properties: { 结论: { type: 'string', enum: ['通过', '驳回'] }, 规范化回路: { type: ['object', 'null'], properties: { 名称: { type: 'string' }, 一句话效果: { type: 'string' }, 效果文字稿: { type: 'string' } }, required: ['名称', '一句话效果'], additionalProperties: false }, 解释: { type: ['string', 'null'] } }, required: ['结论', '规范化回路', '解释'], additionalProperties: false } }
+    }).then(function (raw) {
+      var text = typeof raw === 'string' ? raw : JSON.stringify(raw);
+      var m = text.match(/\{[\s\S]*\}/); var json = null;
+      try { json = JSON.parse(m ? m[0] : text); } catch (e) {}
+      if (json && json.结论 === '通过' && json.规范化回路) {
+        var name = String(json.规范化回路.名称 || desc.slice(0, 7) + '·自创').slice(0, 10);
+        var effect = String(json.规范化回路.一句话效果 || q.r.effect || '');
+        writeGame(function (gg) {
+          var qq = E.quote({ fam: FORGE_STATE.fam, e: FORGE_STATE.e, c: params }, forgeCtx());
+          gg.回路库.push({
+            id: nextFreeId(gg), 名称: name, type: 'free',
+            族: E.FAMKEY[FORGE_STATE.fam], famKey: FORGE_STATE.fam,
+            分支: E.branchOf(FORGE_STATE.fam, params),
+            实体: FORGE_STATE.fam === 'flow' ? String(E.curKey(params)) : null,
+            参数向量: params, 注册e: FORGE_STATE.fam === 'flow' ? 0 : FORGE_STATE.e,
+            参数明细: E.readableParams(FORGE_STATE.fam, params),
+            微调预算: null, 微调预算明细: null,
+            基线账单: { 输出kJ: qq.E_out, 计费kJ: qq.bill, 精神: qq.mind, 一句话效果: effect },
+            uses: 0, 来源: '面板送审',
+            审核存档: { 原始描述: desc, 规范化结果: json.规范化回路 },
+            审核状态: '已通过'
+          });
+        });
+        loadFromSave(); renderDesktopCards(); renderRepoList();
+        openSidebar(); switchTab('tabRepo');
+        alert('自由回路《' + name + '》送审通过，已入自由库（一句话效果：' + effect + '）。');
+      } else {
+        alert('【驳回】' + (json && json.解释 ? json.解释 : '法术AI 未给出可解析结论（请重试或改描述）。'));
+      }
+    }).catch(function (e) {
+      alert('送审失败（法术AI 不可用）：' + (e && e.message ? e.message : e));
+    });
+  });
+
+  /* 出口 B（临时强冲）已按用户要求移除：自由施法桌只保留「申报入自由库」 */
+
   /* ═══════════════════ 桌面切换 / 缩放平移 / 战备 ═══════════════════ */
   function switchDesk(n) {
     $('#btnNavDesk1').classList.toggle('active', n === 1);
     $('#btnNavDesk2').classList.toggle('active', n === 2);
+    $('#btnNavDesk3').classList.toggle('active', n === 3);
     $('#viewportDesk1').classList.toggle('active', n === 1);
     $('#viewportDesk2').classList.toggle('active', n === 2);
+    $('#viewportDesk3').classList.toggle('active', n === 3);
     if (n === 2) { renderActorBanner(); renderAffinityBoard(); }
+    if (n === 3) { renderForgeControls(); recalcForgeQuote(); }
   }
   $('#btnNavDesk1').addEventListener('click', function () { switchDesk(1); });
   $('#btnNavDesk2').addEventListener('click', function () { switchDesk(2); });
+  $('#btnNavDesk3').addEventListener('click', function () { switchDesk(3); });
 
-  var scale1 = 0.95, panX1 = 0, panY1 = 0, isPanning1 = false, sPX1 = 0, sPY1 = 0;
-  function upd1() { surfaceDesk1.style.transform = 'translate(calc(-50% + ' + panX1 + 'px), calc(-50% + ' + panY1 + 'px)) scale(' + scale1 + ') rotateX(10deg)'; }
-  $('#viewportDesk1').addEventListener('wheel', function (e) { e.preventDefault(); scale1 = Math.max(0.45, Math.min(1.6, scale1 - e.deltaY * 0.001)); upd1(); }, { passive: false });
+  /* 缩放档位（固定 6 档 · zoom 重排 → 全档清晰）；平移按 zoom 折算；桌面 rotateX 倾斜，卡片反旋正视 */
+  var ZOOM_LEVELS = [0.5, 0.8, 1.0, 1.3, 1.6, 2.0];
+  function stepZoom(cur, dir) {
+    var i = ZOOM_LEVELS.indexOf(cur); if (i < 0) i = 2;
+    i = Math.max(0, Math.min(ZOOM_LEVELS.length - 1, i + dir));
+    return ZOOM_LEVELS[i];
+  }
+
+  var zoom1 = 1.0, panX1 = 0, panY1 = 0, isPanning1 = false, startX1 = 0, startY1 = 0, origPX1 = 0, origPY1 = 0;
+  function upd1() {
+    surfaceDesk1.style.zoom = zoom1;
+    surfaceDesk1.style.transform = 'translate(calc(-50% + ' + panX1 + 'px), calc(-50% + ' + panY1 + 'px))';
+  }
+  $('#viewportDesk1').addEventListener('wheel', function (e) { e.preventDefault(); zoom1 = stepZoom(zoom1, e.deltaY < 0 ? 1 : -1); upd1(); }, { passive: false });
   $('#viewportDesk1').addEventListener('mousedown', function (e) {
     if (e.target === $('#viewportDesk1') || e.target === surfaceDesk1 || e.target.classList.contains('slot-matrix-grid')) {
-      isPanning1 = true; $('#viewportDesk1').classList.add('grabbing'); sPX1 = e.clientX - panX1; sPY1 = e.clientY - panY1;
+      isPanning1 = true; $('#viewportDesk1').classList.add('grabbing');
+      startX1 = e.clientX; startY1 = e.clientY; origPX1 = panX1; origPY1 = panY1;
     }
   });
   window.addEventListener('mousemove', function (e) {
-    if (isPanning1) { panX1 = Math.max(-1200, Math.min(1200, e.clientX - sPX1)); panY1 = Math.max(-900, Math.min(900, e.clientY - sPY1)); upd1(); }
+    if (isPanning1) {
+      panX1 = Math.max(-1200, Math.min(1200, origPX1 + (e.clientX - startX1) / zoom1));
+      panY1 = Math.max(-900, Math.min(900, origPY1 + (e.clientY - startY1) / zoom1));
+      upd1();
+    }
   });
   window.addEventListener('mouseup', function () { isPanning1 = false; $('#viewportDesk1').classList.remove('grabbing'); });
 
   var surfaceDesk2 = $('#surfaceDesk2');
-  var scale2 = 0.95, panX2 = 0, panY2 = 0, isPanning2 = false, sPX2 = 0, sPY2 = 0;
-  function upd2() { surfaceDesk2.style.transform = 'translate(calc(-50% + ' + panX2 + 'px), calc(-50% + ' + panY2 + 'px)) scale(' + scale2 + ') rotateX(8deg)'; }
-  $('#viewportDesk2').addEventListener('wheel', function (e) { e.preventDefault(); scale2 = Math.max(0.45, Math.min(1.6, scale2 - e.deltaY * 0.001)); upd2(); }, { passive: false });
+  var zoom2 = 1.0, panX2 = 0, panY2 = 0, isPanning2 = false, startX2 = 0, startY2 = 0, origPX2 = 0, origPY2 = 0;
+  function upd2() {
+    surfaceDesk2.style.zoom = zoom2;
+    surfaceDesk2.style.transform = 'translate(calc(-50% + ' + panX2 + 'px), calc(-50% + ' + panY2 + 'px))';
+  }
+  $('#viewportDesk2').addEventListener('wheel', function (e) { e.preventDefault(); zoom2 = stepZoom(zoom2, e.deltaY < 0 ? 1 : -1); upd2(); }, { passive: false });
   $('#viewportDesk2').addEventListener('mousedown', function (e) {
     if (e.target === $('#viewportDesk2') || e.target === surfaceDesk2 || e.target.classList.contains('char-profile-banner') || e.target.classList.contains('affinity-columns-grid') || e.target.classList.contains('affinity-family-col')) {
-      isPanning2 = true; $('#viewportDesk2').classList.add('grabbing'); sPX2 = e.clientX - panX2; sPY2 = e.clientY - panY2;
+      isPanning2 = true; $('#viewportDesk2').classList.add('grabbing');
+      startX2 = e.clientX; startY2 = e.clientY; origPX2 = panX2; origPY2 = panY2;
     }
   });
   window.addEventListener('mousemove', function (e) {
-    if (isPanning2) { panX2 = Math.max(-1000, Math.min(1000, e.clientX - sPX2)); panY2 = Math.max(-800, Math.min(800, e.clientY - sPY2)); upd2(); }
+    if (isPanning2) {
+      panX2 = Math.max(-1000, Math.min(1000, origPX2 + (e.clientX - startX2) / zoom2));
+      panY2 = Math.max(-800, Math.min(800, origPY2 + (e.clientY - startY2) / zoom2));
+      upd2();
+    }
   });
   window.addEventListener('mouseup', function () { isPanning2 = false; $('#viewportDesk2').classList.remove('grabbing'); });
+
+  var surfaceDesk3 = $('#surfaceDesk3');
+  var zoom3 = 1.0, panX3 = 0, panY3 = 0, isPanning3 = false, startX3 = 0, startY3 = 0, origPX3 = 0, origPY3 = 0;
+  function upd3() {
+    surfaceDesk3.style.zoom = zoom3;
+    surfaceDesk3.style.transform = 'translate(calc(-50% + ' + panX3 + 'px), calc(-50% + ' + panY3 + 'px))';
+  }
+  $('#viewportDesk3').addEventListener('wheel', function (e) { e.preventDefault(); zoom3 = stepZoom(zoom3, e.deltaY < 0 ? 1 : -1); upd3(); }, { passive: false });
+  $('#viewportDesk3').addEventListener('mousedown', function (e) {
+    var t = e.target;
+    if (t.closest && (t.closest('.forge-family-panel') || t.closest('.forge-tuning-rack') || t.closest('.forge-telemetry-hud') || t.closest('button') || t.closest('input') || t.closest('textarea'))) return;
+    if (t === $('#viewportDesk3') || t === surfaceDesk3 || (t.classList && t.classList.contains('forge-layout'))) {
+      isPanning3 = true; $('#viewportDesk3').classList.add('grabbing');
+      startX3 = e.clientX; startY3 = e.clientY; origPX3 = panX3; origPY3 = panY3;
+    }
+  });
+  window.addEventListener('mousemove', function (e) {
+    if (isPanning3) {
+      panX3 = Math.max(-1200, Math.min(1200, origPX3 + (e.clientX - startX3) / zoom3));
+      panY3 = Math.max(-900, Math.min(900, origPY3 + (e.clientY - startY3) / zoom3));
+      upd3();
+    }
+  });
+  window.addEventListener('mouseup', function () { isPanning3 = false; $('#viewportDesk3').classList.remove('grabbing'); });
 
   var btnCombatToggle = $('#btnCombatToggle');
   function renderCombat() {
@@ -1407,29 +3060,94 @@
     renderCombat();
   });
 
+  /* ═══════════════════ 精神力灯光引擎（灯箱颜色随精神状态演变） ═══════════════════ */
+  var currentMentalEnergy = 0;
+  var maxMentalEnergy = 90;
+  var LIGHT_STOPS = [
+    { ratio: 1.0,  r: 56,  g: 189, b: 248 }, // 100% 满额：柔和温润天青蓝灯箱光
+    { ratio: 0.65, r: 52,  g: 211, b: 153 }, // 65%  良好：清透薄荷微光
+    { ratio: 0.40, r: 245, g: 158, b: 11  }, // 40%  警告：示波台琥珀金黄光
+    { ratio: 0.18, r: 249, g: 115, b: 22  }, // 18%  重荷：紧迫警戒橙红光
+    { ratio: 0.0,  r: 239, g: 68,  b: 68  }  // 0%   衰竭：深红血崩紧急报警光
+  ];
+  function interpolateColor(t) {
+    t = Math.max(0, Math.min(1, t));
+    for (var i = 0; i < LIGHT_STOPS.length - 1; i++) {
+      var s1 = LIGHT_STOPS[i], s2 = LIGHT_STOPS[i + 1];
+      if (t <= s1.ratio && t >= s2.ratio) {
+        var localT = (t - s2.ratio) / (s1.ratio - s2.ratio);
+        return { r: Math.round(s2.r + (s1.r - s2.r) * localT), g: Math.round(s2.g + (s1.g - s2.g) * localT), b: Math.round(s2.b + (s1.b - s2.b) * localT) };
+      }
+    }
+    return LIGHT_STOPS[0];
+  }
+  function setMentalEnergy(val) {
+    if (g && g.主角 && g.主角.精神点 && g.主角.精神点.上限) maxMentalEnergy = g.主角.精神点.上限;
+    currentMentalEnergy = Math.max(0, Math.min(maxMentalEnergy, val));
+    var ratio = maxMentalEnergy ? currentMentalEnergy / maxMentalEnergy : 0;
+    var c = interpolateColor(ratio);
+    document.documentElement.style.setProperty('--light-r', c.r);
+    document.documentElement.style.setProperty('--light-g', c.g);
+    document.documentElement.style.setProperty('--light-b', c.b);
+    var fv = document.getElementById('mentalFaderVal');
+    if (fv) fv.textContent = Math.round(currentMentalEnergy) + ' / ' + maxMentalEnergy;
+    var vb = document.getElementById('valBurden');
+    if (vb) {
+      if (ratio > 0.6) { vb.textContent = '稳态 (' + Math.round(currentMentalEnergy) + '点 · 充足)'; vb.style.color = 'var(--light-primary)'; }
+      else if (ratio > 0.3) { vb.textContent = '中荷 (' + Math.round(currentMentalEnergy) + '点 · 警告)'; vb.style.color = 'var(--light-primary)'; }
+      else { vb.textContent = '断线警戒 (' + Math.round(currentMentalEnergy) + '点 · 剧痛)'; vb.style.color = 'var(--light-primary)'; }
+    }
+  }
+
   /* ═══════════════════ 顶部监视器刷新 ═══════════════════ */
   function renderMonitors() {
     if (!g) return;
     var zhu = g.主角;
+    isCombat = !!zhu.战斗中;   // 轮询刷新也同步战斗状态（数据AI 可能在回合结算里改旗）
     $('#valBody').textContent = zhu.身体状态 || '正常';
     $('#valRes').textContent = Math.round(zhu.能量kJ.当前) + '/' + zhu.能量kJ.上限 + ' kJ · ' + Math.round(zhu.精神点.当前) + '/' + zhu.精神点.上限 + ' 精神';
     $('#valTime').textContent = zhu.剧情时间 && zhu.剧情时间.label ? zhu.剧情时间.label : '--';
+    if (zhu.精神点) setMentalEnergy(zhu.精神点.当前 != null ? zhu.精神点.当前 : zhu.精神点.上限);
     renderCombat();
   }
 
   /* ═══════════════════ 初始化 ═══════════════════ */
   function init() {
     if (!loadFromSave()) {
-      document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#64748b;font-size:13px;">尚未开局：请先完成渐变带开局。</div>';
+      document.getElementById('gdesk').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:400px;color:#64748b;font-size:13px;">尚未开局：请先完成渐变带开局。</div>';
       return;
     }
     renderMonitors();
     buildSlots();
+    computeSocketAnchors();   // 槽位锚点写死：进槽卡固定坐标，缩放/平移不漂移
     renderDesktopCards();
     renderRepoList();
+    renderDesktopSupplyCards();
+    renderSupplyList();
     renderActorBanner();
     renderAffinityBoard();
-    upd1(); upd2();
+    renderPresetButtons();
+    updateEnergyCap();
+    if (!FORGE_STATE.c) FORGE_STATE.c = E.initParams(FORGE_STATE.fam);
+    renderForgeControls();
+    recalcForgeQuote();
+    openSidebar();
+    upd1(); upd2(); upd3();
+    // 槽位锚点写死：只在布局变化时重算（面板尺寸 / 槽位容器尺寸 / 字体加载完成）
+    // 字体 swap 会使 meta/按钮行高变化、well 垂直位移 1~2px → fonts.ready 后补算一次，修掉残余偏差
+    function refreshSocketAnchors() { computeSocketAnchors(); renderDesktopCards(); }
+    if (window.ResizeObserver) {
+      new ResizeObserver(refreshSocketAnchors).observe($('#viewportDesk1'));
+      new ResizeObserver(refreshSocketAnchors).observe($('#slotsContainer'));
+    }
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(refreshSocketAnchors);
+    }
+    // 轻量周期刷新：监视器 + 精神辉光灯光随游戏内精神变化（不重建卡片，不打断拖拽）
+    setInterval(function () {
+      var fresh = readChat();
+      if (fresh && fresh.主角) { g = fresh; renderMonitors(); }
+    }, 10000);
   }
   init();
 })();

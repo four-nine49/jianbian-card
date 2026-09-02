@@ -40,7 +40,7 @@ function renderOverview(g: 游戏): string {
   const free = g.回路库.filter(c => c.type === 'free');
   html += `<div class="of-card">
     <div class="of-h2" style="font-size:13px">回路库（固定 ${fixed.length} / 自由 ${free.length}）</div>
-    ${g.回路库.length === 0 ? '<div class="of-muted">（无）</div>' : `<table class="of-table"><thead><tr><th>名称</th><th>类型</th><th>族·分支</th><th>效果</th><th>参数</th></tr></thead><tbody>${g.回路库.map(c => `<tr><td>${esc(c.名称)}</td><td>${esc(c.type)}</td><td>${esc(c.族)}·${esc(c.分支)}</td><td>${esc(c.基线账单?.一句话效果 ?? '')}</td><td>${esc(JSON.stringify(c.参数明细 ?? c.参数向量 ?? {}))}</td></tr>`).join('')}</tbody></table>`}
+    ${g.回路库.length === 0 ? '<div class="of-muted">（无）</div>' : `<table class="of-table"><thead><tr><th>名称</th><th>类型</th><th>族·分支</th><th>效果</th><th>过载率</th><th>过载风险</th><th>状态</th><th>参数</th></tr></thead><tbody>${g.回路库.map(c => `<tr><td>${esc(c.名称)}</td><td>${esc(c.type)}</td><td>${esc(c.族)}·${esc(c.分支)}</td><td>${esc(c.基线账单?.一句话效果 ?? '')}</td><td>${esc(c.过载率 != null ? c.过载率 + '%' : '-')}</td><td>${esc(c.过载风险 != null ? c.过载风险 + '%' : '-')}</td><td>${esc(c.审核状态 ?? '-')}</td><td>${esc(JSON.stringify(c.参数明细 ?? c.参数向量 ?? {}))}</td></tr>`).join('')}</tbody></table>`}
   </div>`;
 
   // 槽位（固定 10 / 自由 3）

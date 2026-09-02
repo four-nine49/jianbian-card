@@ -1,6 +1,6 @@
 {
   "name": "opening-framework-extension",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "开局框架 - SillyTavern 扩展（带窗口和悬浮窗）",
   "type": "module",
   "private": true,
