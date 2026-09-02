@@ -516,9 +516,10 @@
     .delete-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     /* ================= 能量/精神补给匣（ACID FEED RACK · 固定槽左侧空地） ================= */
     .supply-rack {
-      position: absolute;
+      position: relative;
       z-index: 6;
-      width: 236px;          /* 单卡宽（上下相连竖架） */
+      flex: 0 0 auto;
+      width: 236px;          /* 单卡宽（上下相连竖架；置于送审/销毁之间） */
       background: #070a10;
       border: 2px solid #141c28;
       border-radius: 2px;
@@ -528,6 +529,7 @@
       gap: 10px;
       box-shadow: 6px 6px 0 #000, 0 0 24px rgba(0, 240, 255, 0.06);
       pointer-events: none;
+      align-self: center;
     }
     .supply-rack::before {
       content: "";
@@ -1612,37 +1614,35 @@
       </div>
     </div>
 
-    </div>
-    </div>
-
-  <div class="supply-rack" id="supplyRack">
-    <div class="feed-hud">
-      <div class="hud-col c-cyan"><span class="hud-label">ENERGY / 当前能量</span><b id="hudEnergy">-- / -- kJ</b></div>
-      <div class="hud-col c-mag"><span class="hud-label">MENTAL / 当前精神</span><b id="hudMind">-- / -- 点</b></div>
-    </div>
-    <div class="feed-row">
-      <div class="module-card mod-crystal">
-        <div class="module-header"><span class="module-name">CRYSTAL HARVEST</span><span class="module-id">SYS_01 晶体</span></div>
-        <div class="module-readout"><span class="readout-tag">库存总能量</span><div class="readout-digits"><span id="txtEnergy">0</span><em>kJ</em></div></div>
-        <div class="slider-box">
-          <div class="slider-meta"><span>能量配额标尺</span><b id="lblEnergy">0 kJ</b></div>
-          <input type="range" class="compact-slider" id="crystalSlider" min="0" max="1" step="1" value="0" disabled>
-        </div>
-        <button class="btn-action" id="btnCrystalUse" disabled>COMMIT ENERGY</button>
+    <div class="supply-rack" id="supplyRack">
+      <div class="feed-hud">
+        <div class="hud-col c-cyan"><span class="hud-label">ENERGY / 当前能量</span><b id="hudEnergy">-- / -- kJ</b></div>
+        <div class="hud-col c-mag"><span class="hud-label">MENTAL / 当前精神</span><b id="hudMind">-- / -- 点</b></div>
       </div>
-      <div class="module-card mod-liquid">
-        <div class="module-header"><span class="module-name">MENTAL PERFUSION</span><span class="module-id">SYS_02 导液</span></div>
-        <div class="module-readout"><span class="readout-tag">库存总精神</span><div class="readout-digits"><span id="txtMind">0</span><em>点</em></div></div>
-        <div class="slider-box">
-          <div class="slider-meta"><span>精神配额标尺</span><b id="lblMind">0 点</b></div>
-          <input type="range" class="compact-slider" id="liquidSlider" min="0" max="1" step="1" value="0" disabled>
+      <div class="feed-row">
+        <div class="module-card mod-crystal">
+          <div class="module-header"><span class="module-name">CRYSTAL HARVEST</span><span class="module-id">SYS_01 晶体</span></div>
+          <div class="module-readout"><span class="readout-tag">库存总能量</span><div class="readout-digits"><span id="txtEnergy">0</span><em>kJ</em></div></div>
+          <div class="slider-box">
+            <div class="slider-meta"><span>能量配额标尺</span><b id="lblEnergy">0 kJ</b></div>
+            <input type="range" class="compact-slider" id="crystalSlider" min="0" max="1" step="1" value="0" disabled>
+          </div>
+          <button class="btn-action" id="btnCrystalUse" disabled>COMMIT ENERGY</button>
         </div>
-        <button class="btn-action" id="btnLiquidUse" disabled>COMMIT MENTAL</button>
+        <div class="module-card mod-liquid">
+          <div class="module-header"><span class="module-name">MENTAL PERFUSION</span><span class="module-id">SYS_02 导液</span></div>
+          <div class="module-readout"><span class="readout-tag">库存总精神</span><div class="readout-digits"><span id="txtMind">0</span><em>点</em></div></div>
+          <div class="slider-box">
+            <div class="slider-meta"><span>精神配额标尺</span><b id="lblMind">0 点</b></div>
+            <input type="range" class="compact-slider" id="liquidSlider" min="0" max="1" step="1" value="0" disabled>
+          </div>
+          <button class="btn-action" id="btnLiquidUse" disabled>COMMIT MENTAL</button>
+        </div>
       </div>
     </div>
-  </div>
-
-  </div>
+    </div>
+    </div>
+</div>
 </div>
 
 <!-- ================= 视口 2：角色桌（禁止平移，只能缩放，紧凑5列矩阵） ================= -->
@@ -1686,7 +1686,7 @@
         <div class="forge-panel-title">预设回路 // PRESETS（免送审）</div>
         <div id="presetButtons" style="display:flex; flex-direction:column; gap:8px;"></div>
       </div>
-      <!-- 1. 五族核能电闸选择器 -->
+      <!-- 1. 五系核能电闸选择器 -->
       <div class="forge-family-panel">
         <div class="forge-panel-title">五系选择 // FAMILIES</div>
         <div class="fam-switch-item" data-fam="pour" style="--fcolor:var(--acid-cyan); --fglow:rgba(0,240,255,0.4);">
@@ -1974,7 +1974,7 @@
   }
   /* 中文族名 → famKey（存档亲和.主分支[].族 存中文，分支卡 id 用英文 famKey，需对齐） */
   var 中文族到fam = { '倾泻': 'pour', '波动': 'flow', '结构': 'struct', '生机': 'life', '感知': 'perce' };
-  function affKey(族, 分支) { return 'aff_' + (中文族到fam[族] || 族 || '') + '_' + (分支 || ''); }
+  function affKey(族, 分支) { return 'aff_' + (中文族到fam[族] || 族 || '') + '_' + String(分支 || '').replace(/\s+/g, ''); }   // 去空白归一（'动物 (含人体)' 与 '动物(含人体)' 同键）
 
   /* 回路 → 桌面卡（真实数据：名称/族·分支/计费/精神/uses/参数明细） */
   function toDeskCard(c, type, slotIndex) {
@@ -2008,15 +2008,15 @@
     };
   }
 
-  /* ═══════════════════ 静态模型：五族分支本体树（保留，亲和等级动态） ═══════════════════ */
+  /* ═══════════════════ 静态模型：五系分支本体树（保留，亲和等级动态） ═══════════════════ */
   var BRANCHES_ONTOLOGY = [
-    { family: '倾泻族', familyDesc: '高能热相与电磁 / 极速杀伤', color: '#00f0ff', colorGlow: 'rgba(0, 240, 255, 0.45)', famKey: 'pour',
+    { family: '倾泻系', familyDesc: '高能热相与电磁 / 极速杀伤', color: '#00f0ff', colorGlow: 'rgba(0, 240, 255, 0.45)', famKey: 'pour',
       branches: [
         { id: 'aff_pour_光', name: '光', desc: '定向高能光频冲击与光压致盲', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="32" cy="32" r="10"/><line x1="32" y1="8" x2="32" y2="16"/><line x1="32" y1="48" x2="32" y2="56"/><line x1="8" y1="32" x2="16" y2="32"/><line x1="48" y1="32" x2="56" y2="32"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="43" y1="43" x2="49" y2="49"/><line x1="49" y1="15" x2="43" y2="21"/><line x1="15" y1="49" x2="21" y2="43"/></svg>', lore: '把未分化能量粗暴坍缩为光相。杀伤瞬发但非亲和者使用等于在体内烧钱。' },
         { id: 'aff_pour_电', name: '电', desc: '高压电荷脉冲与强电弧击穿', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="35,6 18,34 32,34 27,58 48,26 34,26 40,6"/><line x1="12" y1="58" x2="52" y2="58" stroke-dasharray="2,2"/></svg>', lore: '电荷脉冲导速极快，高强度连发容易引起施法神经短路痉挛。' },
         { id: 'aff_pour_热', name: '热', desc: '高能热焰喷射与热运动相变', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M32 8 C20 22 16 34 16 44 A16 16 0 0 0 48 44 C48 34 44 22 32 8 Z"/><path d="M32 26 C26 34 24 38 24 44 A8 8 0 0 0 40 44 C40 38 38 34 32 26 Z" fill="currentColor" opacity="0.3"/></svg>', lore: '热能喷射是全民基础魔法之一。可作为短程副手爆发招。' }
       ] },
-    { family: '波动族', familyDesc: '波与场指挥 / 借力省耗 / 共振放大', color: '#c6ff00', colorGlow: 'rgba(198, 255, 0, 0.45)', famKey: 'flow',
+    { family: '波动系', familyDesc: '波与场指挥 / 借力省耗 / 共振放大', color: '#c6ff00', colorGlow: 'rgba(198, 255, 0, 0.45)', famKey: 'flow',
       branches: [
         { id: 'aff_flow_实体波', name: '实体波', desc: '电磁波震荡与无介质波形传递', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="32" cy="32" r="24" stroke-dasharray="3,3"/><circle cx="32" cy="32" r="16"/><circle cx="32" cy="32" r="8"/><line x1="8" y1="32" x2="56" y2="32"/></svg>', lore: '空间场自发性形变，能耗中等，是高阶共振调频的基底。' },
         { id: 'aff_flow_媒介波', name: '媒介波', desc: '气流激波、风刃剪切、水流与声', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M8 22 Q 20 12 32 22 T 56 22"/><path d="M8 34 Q 20 24 32 34 T 56 34"/><path d="M8 46 Q 20 36 32 46 T 56 46"/></svg>', lore: '借由环境风与媒介流动，转化率最高，风刃与魔素滑板的绝对根基。' },
@@ -2032,20 +2032,20 @@
             </g>
           </svg>`, lore: '【国家战略禁区】：可塑核素质量与衰变路径，动用即国家级能源大事件。' }
       ] },
-    { family: '结构族', familyDesc: '固相重排 / 分子强键合 / 最高结构度', color: '#ff6600', colorGlow: 'rgba(255, 102, 0, 0.45)', famKey: 'struct',
+    { family: '结构系', familyDesc: '固相重排 / 分子强键合 / 最高结构度', color: '#ff6600', colorGlow: 'rgba(255, 102, 0, 0.45)', famKey: 'struct',
       branches: [
         { id: 'aff_struct_晶体', name: '晶体', desc: '晶界致密强化、硅基固化、晶体壁垒', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="32,6 54,20 54,44 32,58 10,44 10,20"/><line x1="32" y1="6" x2="32" y2="58"/><line x1="10" y1="20" x2="54" y2="44"/><line x1="10" y1="44" x2="54" y2="20"/></svg>', lore: '单位能量换取最高结构度，防御与硬化见长。' },
         { id: 'aff_struct_金属', name: '金属', desc: '金属晶格形变与抗冲击强化', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="14" y="14" width="36" height="36" rx="4"/><circle cx="22" cy="22" r="3" fill="currentColor"/><circle cx="42" cy="22" r="3" fill="currentColor"/><circle cx="22" cy="42" r="3" fill="currentColor"/><circle cx="42" cy="42" r="3" fill="currentColor"/><line x1="14" y1="32" x2="50" y2="32"/></svg>', lore: '工业防弹与兵器附魔主力，强调抗剪切力。' },
         { id: 'aff_struct_土石', name: '土石', desc: '硅酸盐岩刺突变与宏观土体塑形', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="10,54 28,14 40,36 48,22 56,54"/><line x1="6" y1="54" x2="58" y2="54"/></svg>', lore: '重型掩体建筑与地表改变，成型稳定坚固。' },
         { id: 'aff_struct_合金', name: '合金', desc: '多元固溶体界面微观调控硬化', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="32,10 52,24 44,48 20,48 12,24"/><circle cx="32" cy="30" r="8" stroke-dasharray="2,2"/></svg>', lore: '尖端军工装甲与自适应新材料的核心工艺。' }
       ] },
-    { family: '生机族', familyDesc: '有机过程活化 / 细胞诱导 / 缓释渗透', color: '#f43f5e', colorGlow: 'rgba(244, 63, 94, 0.45)', famKey: 'life',
+    { family: '生机系', familyDesc: '有机过程活化 / 细胞诱导 / 缓释渗透', color: '#f43f5e', colorGlow: 'rgba(244, 63, 94, 0.45)', famKey: 'life',
       branches: [
         { id: 'aff_life_植物', name: '植物', desc: '纤维急速缠绕与木质素变异加固', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M32 58 C32 30 16 26 12 14 C26 14 32 26 32 38 C32 20 44 14 52 10 C50 24 42 34 32 58 Z"/></svg>', lore: '对植物细胞壁的强力干涉，封锁区拾荒者常用。' },
-        { id: 'aff_life_动物', name: '动物 (含人体)', desc: '血小板急速活化、肌纤维收缩愈合', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 28 C12 18 20 12 32 20 C44 12 52 18 52 28 C52 42 32 54 32 54 C32 54 12 42 12 28 Z"/></svg>', lore: '维持生命体征，紧急闭合动静脉破损以防失血休克。' },
+        { id: 'aff_life_动物(含人体)', name: '动物(含人体)', desc: '血小板急速活化、肌纤维收缩愈合', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 28 C12 18 20 12 32 20 C44 12 52 18 52 28 C52 42 32 54 32 54 C32 54 12 42 12 28 Z"/></svg>', lore: '维持生命体征，紧急闭合动静脉破损以防失血休克。' },
         { id: 'aff_life_微生物', name: '微生物', desc: '菌群定向裂变与生化分解催化', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="24" cy="24" r="10"/><circle cx="42" cy="38" r="8"/><circle cx="26" cy="44" r="6"/><line x1="24" y1="34" x2="26" y2="38"/></svg>', lore: '生化反应极细微，过载容易引起微循环坏死。' }
       ] },
-    { family: '感知族', familyDesc: '只读不写 / 信息相位 / 神经负荷 / 稀有', color: '#eab308', colorGlow: 'rgba(234, 179, 8, 0.45)', famKey: 'perce',
+    { family: '感知系', familyDesc: '只读不写 / 信息相位 / 神经负荷 / 稀有', color: '#eab308', colorGlow: 'rgba(234, 179, 8, 0.45)', famKey: 'perce',
       branches: [
         { id: 'aff_perce_五感延伸', name: '五感延伸', desc: '超声多普勒、视神经微动全景成像', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 32 C18 16 46 16 56 32 C46 48 18 48 8 32 Z"/><circle cx="32" cy="32" r="8"/><circle cx="32" cy="32" r="3" fill="currentColor"/></svg>', lore: '只读不写，闭眼听风即可在大脑绘制三维实时声场。' },
         { id: 'aff_perce_读心干扰', name: '读心干扰', desc: '神经突触电位杂音注入与意识打断', svg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 26 C14 16 22 10 32 10 C42 10 50 16 50 26 C50 32 46 36 42 40 L42 48 L22 48 L22 40 C18 36 14 32 14 26 Z"/><line x1="22" y1="28" x2="42" y2="28" stroke-dasharray="2,2"/></svg>', lore: '扰乱施法前摇，极度消耗施法者脑力。' },
@@ -2211,16 +2211,7 @@
       DELETE_ANCHOR.x = Math.round((dr.left - surfaceRect.left) / zoom1 + (dr.width / zoom1 - CARD_W) / 2);
       DELETE_ANCHOR.y = Math.round((dr.top - surfaceRect.top) / zoom1 + (dr.height / zoom1 - CARD_H) / 2);
     }
-    // 补给匣定位：固定槽（socket_0）左侧空地，桌面绝对定位（zoom/pan 随桌面缩放平移）
-    var rack = document.getElementById('supplyRack');
-    var sock0 = document.getElementById('socket_0');
-    if (rack && sock0) {
-      var w0 = sock0.querySelector('.slot-well') || sock0;
-      var r0 = w0.getBoundingClientRect();
-      var rw = rack.offsetWidth || 236;
-      rack.style.left = Math.round((r0.left - surfaceRect.left) / zoom1 - rw - 26) + 'px';
-      rack.style.top = Math.round((r0.top - surfaceRect.top) / zoom1) + 'px';
-    }
+    // 补给匣已移至送审/销毁之间（recycle-row 流内布局），无需锚点定位
   }
 
   function renderDesktopCards() {

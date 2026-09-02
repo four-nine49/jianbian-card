@@ -106,8 +106,8 @@ export function renderSettingsPage(el: HTMLElement): void {
     <button class="of-btn" id="of-g-save" style="margin-top:12px">保存</button>
 
     <div class="of-h2" style="color:#89b4fa;margin-top:20px">调度</div>
-    <label style="display:flex;align-items:center;gap:8px;margin-top:8px"><input type="checkbox" id="of-s-auto" ${s.autoFillEnabled ? 'checked' : ''}> 启用自动填表</label>
-    <div class="of-hint">开着 = 每条 AI 回复后自动按各表的频率和分组填表；关了只能在「表格数据」页手动填。</div>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:8px"><input type="checkbox" id="of-s-auto" ${s.autoFillEnabled ? 'checked' : ''}> 启用标准表格（自动填表）</label>
+    <div class="of-hint">默认开启。关掉后标准数据表格不再自动填表（可手动填）；仅影响开局框架标准表，与「渐变带的数据AI/法术AI」无关。</div>
     <label class="of-label" style="margin-top:12px">失败重试次数</label><input class="of-input" type="number" id="of-s-retry" value="${s.maxRetries}" style="width:120px">
     <div class="of-hint">某次请求失败时静默重试几次，填 0 = 不重试。</div>
   </div>`;

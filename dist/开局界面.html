@@ -197,6 +197,7 @@
     .btn-complete-setup:hover { box-shadow: 0 0 35px rgba(198, 255, 0, 0.8); transform: translateY(-2px); }
     .btn-complete-setup:disabled { background: #1e2638; color: #48566e; cursor: not-allowed; box-shadow: none; transform: none; }
     .hint { font-size: 9.5px; color: #64748b; margin-top: 8px; line-height: 1.6; }
+    .locked { opacity: 0.55; filter: saturate(0.55); pointer-events: none; }
     #msg { text-align: center; font-size: 12px; color: var(--acid-yellow); min-height: 18px; margin-top: 10px; }
   </style>
 </head>
@@ -407,7 +408,7 @@
   const SUBKEYS = [['0-0', '0-1'], ['1-0', '1-1', '1-2'], ['2-0', '2-1', '2-2']];
   function curKey(c) { const ks = SUBKEYS[c.mode]; return ks[Math.min(c.sub, ks.length - 1)]; }
 
-  /* ================= 五族插槽定义 ================= */
+  /* ================= 五系插槽定义 ================= */
   const FAMS = {
     pour: { name: '倾泻系', sub: '热/电/光 · 出"口"即直线', baseMind: 2, baseTime: .25, tell: 3,
       ctrls: [
@@ -1012,7 +1013,7 @@
     if (!fromPreset) presetMode = 'custom';   // 手动切难度 = 回自定义
     document.querySelectorAll('.diff-pill').forEach(function (p) { p.classList.toggle('active', p.dataset.diff === difficulty); });
     document.querySelectorAll('.preset-pill').forEach(function (p) { p.classList.toggle('active', p.dataset.preset === presetMode); });
-    $('#diffRuleTag').textContent = DIFFICULTY[difficulty].rule;
+    $('#diffRuleTag').textContent = DIFFICULTY[difficulty].rule + (presetMode !== 'custom' ? '　｜　【预设已锁定：不可修改，点「自定义」解锁自配】' : '');
   }
   function applyPreset(name) {
     var P = PRESETS[name];
@@ -1054,6 +1055,7 @@
   }
 
   function cycleAffinity(br) {
+    if (presetMode !== 'custom') return;   // 预设锁定：不可改配置（点「自定义」解锁）
     var iM = mains.indexOf(br), iS = subs.indexOf(br);
     if (iM >= 0) {
       // 主→次（次级未满则降级；已满则直接解除为非亲和）
@@ -1120,7 +1122,13 @@
     $('#summaryNotice').innerHTML = s;
   }
 
-  function renderAll() { renderAffinity(); renderAttrs(); renderPreview(); renderSummary(); }
+  function renderAll() {
+    var locked = presetMode !== 'custom';
+    ['#affinityTreeContainer', '#attrRows', '#difficultyRow'].forEach(function (sel) {
+      var el = $(sel); if (el) el.classList.toggle('locked', locked);
+    });
+    renderAffinity(); renderAttrs(); renderPreview(); renderSummary();
+  }
 
   /* ═══════════════════ 事件 ═══════════════════ */
   document.body.addEventListener('click', function (ev) {
@@ -1134,6 +1142,7 @@
     if (t.dataset && t.dataset.preset) {
       if (t.dataset.preset === 'custom') {
         presetMode = 'custom';
+        $('#diffRuleTag').textContent = DIFFICULTY[difficulty].rule;   // 解锁提示移除
         document.querySelectorAll('.preset-pill').forEach(function (p) { p.classList.toggle('active', p.dataset.preset === 'custom'); });
         renderAll();
       } else {
@@ -1142,6 +1151,7 @@
       return;
     }
     if (t.dataset && t.dataset.diff) {
+      if (presetMode !== 'custom') return;   // 预设锁定：难度不可改
       setDifficulty(t.dataset.diff, false);
       if (mains.length > capM) mains = mains.slice(0, capM);
       if (subs.length > capS) subs = subs.slice(0, capS);
@@ -1150,6 +1160,7 @@
     }
     var gp = t.closest('.grade-pill');
     if (gp && gp.dataset.attr) {
+      if (presetMode !== 'custom') return;   // 预设锁定：四维不可改
       attrSel[gp.dataset.attr] = parseInt(gp.dataset.g, 10);
       renderAll();
       return;

@@ -26,7 +26,7 @@ export const OfSettingsSchema = z.object({
   toggleY: z.number().nullable().default(null),
   toggleSize: z.number().min(32).max(72).default(44),
   // ── 业务：调度 ──
-  autoFillEnabled: z.boolean().default(true),
+  autoFillEnabled: z.boolean().default(true),  // 启用标准表格（自动填表）：关掉后标准表不再自动填表（与渐变带数据AI/法术AI 无关）
   maxRetries: z.number().int().min(0).max(5).default(1),
   // ── 业务：嵌套对象（缺失或损坏时整体回落默认值）──
   fillApi: FillApiConfig.catch(FillApiConfig.parse({})),

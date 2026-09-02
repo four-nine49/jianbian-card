@@ -112,7 +112,7 @@
   const SUBKEYS = [['0-0', '0-1'], ['1-0', '1-1', '1-2'], ['2-0', '2-1', '2-2']];
   function curKey(c) { const ks = SUBKEYS[c.mode]; return ks[Math.min(c.sub, ks.length - 1)]; }
 
-  /* ================= 五族插槽定义 ================= */
+  /* ================= 五系插槽定义 ================= */
   const FAMS = {
     pour: { name: '倾泻系', sub: '热/电/光 · 出"口"即直线', baseMind: 2, baseTime: .25, tell: 3,
       ctrls: [

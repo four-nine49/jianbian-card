@@ -68,7 +68,7 @@ const SCHEMA = {
           type: 'object',
           properties: {
             种类: { type: 'string', enum: ['fixed', 'free'], description: 'fixed=剧情直接给的固化技（永久）；free=未固化技（挂自由回路库）' },
-            族: { type: 'string', enum: ['pour', 'flow', 'struct', 'life', 'perce'], description: '该法术属于五族中的哪一族' },
+            族: { type: 'string', enum: ['pour', 'flow', 'struct', 'life', 'perce'], description: '该法术属于五系中的哪一系' },
             一句话效果: { type: 'string', description: '用一句话概括这个法术的作用效果（作为回路的一句话效果）' },
             次数: { type: 'integer', minimum: 0, maximum: 10, description: '仅种类=free 有意义（初始已用次数 0~9）；种类=fixed 填 10 表示永久（脚本会忽略）' },
           },
