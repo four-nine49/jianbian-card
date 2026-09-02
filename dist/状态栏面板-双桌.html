@@ -514,48 +514,109 @@
       box-shadow: 0 0 14px rgba(248, 60, 60, 0.4);
     }
     .delete-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    /* ================= 能量/精神补给匣（晶体/导液库存滑杆面板） ================= */
-    .supply-resource-row { display: flex; gap: 14px; width: 100%; max-width: 1000px; align-items: stretch; }
-    .resource-panel {
-      flex: 1 1 0;
-      min-width: 0;
-      background: rgba(8, 12, 18, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 6px;
-      padding: 10px 16px 14px;
+    /* ================= 能量/精神补给匣（ACID FEED RACK · 固定槽左侧空地） ================= */
+    .supply-rack {
+      position: absolute;
+      z-index: 6;
+      width: 236px;          /* 单卡宽（上下相连竖架） */
+      background: #070a10;
+      border: 2px solid #141c28;
+      border-radius: 2px;
+      padding: 10px 12px 12px;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.8);
+      box-shadow: 6px 6px 0 #000, 0 0 24px rgba(0, 240, 255, 0.06);
+      pointer-events: none;
     }
-    .rp-energy { border-color: rgba(0, 240, 255, 0.35); }
-    .rp-mind { border-color: rgba(192, 132, 252, 0.35); }
-    .resource-total { font-family: var(--font-mono); font-size: 14px; font-weight: 900; letter-spacing: 0.5px; }
-    .rp-energy .resource-total { color: #00f0ff; }
-    .rp-mind .resource-total { color: #c084fc; }
-    .resource-detail { font-size: 9.5px; color: #64748b; line-height: 1.5; }
-    .resource-slider { width: 100%; accent-color: #00f0ff; cursor: pointer; }
-    .rp-mind .resource-slider { accent-color: #c084fc; }
-    .resource-slider:disabled { opacity: 0.35; cursor: not-allowed; }
-    .resource-preview { font-size: 10.5px; font-family: var(--font-mono); font-weight: 800; letter-spacing: 0.5px; }
-    .rp-energy .resource-preview { color: #22d3ee; }
-    .rp-mind .resource-preview { color: #d8b4fe; }
-    .resource-btn {
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      color: #e2e8f0;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      font-weight: 800;
-      padding: 6px 14px;
-      border-radius: 3px;
+    .supply-rack::before {
+      content: "";
+      position: absolute;
+      top: -2px; left: -2px; right: -2px; height: 2px;
+      background: linear-gradient(90deg, #00f0ff, #c6ff00, #ff0077);
+    }
+    .supply-rack > * { pointer-events: auto; }
+    .feed-hud {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      background: #020408;
+      border: 1px solid #141c28;
+      padding: 6px 8px;
+    }
+    .hud-col { display: flex; flex-direction: column; gap: 1px; }
+    .hud-col .hud-label { font-size: 7.5px; color: #64748b; letter-spacing: 0.5px; }
+    .hud-col b { font-size: 11px; font-weight: 900; color: #fff; line-height: 1; font-family: var(--font-mono); }
+    .hud-col.c-cyan b { color: #00f0ff; }
+    .hud-col.c-mag b { color: #ff0077; }
+    .feed-row { display: flex; flex-direction: column; gap: 8px; }
+    .module-card {
+      flex: 1 1 0;
+      min-width: 0;
+      background: #04060a;
+      border: 1px solid var(--theme-border, #141c28);
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      position: relative;
+      box-shadow: 3px 3px 0 #000;
+    }
+    .mod-crystal { --theme-color: #00f0ff; --theme-border: rgba(0, 240, 255, 0.3); }
+    .mod-liquid { --theme-color: #ff0077; --theme-border: rgba(255, 0, 119, 0.3); }
+    .module-header { display: flex; justify-content: space-between; align-items: baseline; }
+    .module-name { font-size: 10px; font-weight: 900; color: #fff; letter-spacing: 0.5px; font-family: var(--font-mono); }
+    .module-id { font-size: 7px; color: var(--theme-color); font-weight: 900; }
+    .module-readout {
+      background: #020306;
+      border: 1px solid #141c28;
+      padding: 4px 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .readout-tag { font-size: 7px; color: #475569; }
+    .readout-digits { font-size: 19px; font-weight: 900; color: #fff; line-height: 1; display: flex; align-items: baseline; gap: 2px; text-shadow: 0 0 10px var(--theme-color); font-family: var(--font-mono); }
+    .readout-digits em { font-style: normal; font-size: 9px; font-weight: 900; color: var(--theme-color); }
+    .slider-box { display: flex; flex-direction: column; gap: 3px; }
+    .slider-meta { display: flex; justify-content: space-between; font-size: 7.5px; color: #94a3b8; }
+    .slider-meta b { color: var(--theme-color); font-family: var(--font-mono); }
+    input[type=range].compact-slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      outline: none;
+      margin: 0;
+    }
+    input[type=range].compact-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 13px;
+      height: 13px;
+      background: var(--theme-color);
+      border: 1.5px solid #fff;
       cursor: pointer;
-      transition: all 0.2s;
-      background: rgba(255, 255, 255, 0.05);
+      box-shadow: 0 0 8px var(--theme-color);
     }
-    .resource-btn:not(:disabled):hover { box-shadow: 0 0 14px rgba(255, 255, 255, 0.25); }
-    .rp-energy .resource-btn:not(:disabled):hover { background: rgba(0, 240, 255, 0.15); border-color: #00f0ff; color: #00f0ff; }
-    .rp-mind .resource-btn:not(:disabled):hover { background: rgba(192, 132, 252, 0.15); border-color: #c084fc; color: #c084fc; }
-    .resource-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    input[type=range].compact-slider:disabled::-webkit-slider-thumb { opacity: 0.35; cursor: not-allowed; }
+    .btn-action {
+      background: transparent;
+      border: 1.5px solid var(--theme-color);
+      color: var(--theme-color);
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      font-weight: 900;
+      letter-spacing: 1.2px;
+      padding: 5px 0;
+      cursor: pointer;
+      transition: all 0.1s;
+      box-shadow: 2px 2px 0 #000;
+    }
+    .btn-action:hover { background: var(--theme-color); color: #000; box-shadow: 0 0 12px var(--theme-color); transform: translate(-1px, -1px); }
+    .btn-action:active { transform: translate(1px, 1px); box-shadow: none; }
+    .btn-action:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: 2px 2px 0 #000; }
+    .btn-action:disabled:hover { background: transparent; color: var(--theme-color); box-shadow: 2px 2px 0 #000; }
     /* 手操模式滑块切换 */
     .ops-switch-wrap { display: flex; align-items: center; gap: 5px; font-size: 9px; color: #94a3b8; cursor: pointer; letter-spacing: 0.5px; }
     .ops-switch-box { position: relative; width: 38px; height: 19px; border-radius: 10px; background: #1e293b; border: 1px solid #334155; display: inline-block; transition: all 0.25s; flex-shrink: 0; }
@@ -1552,30 +1613,35 @@
       </div>
     </div>
 
-    <div class="supply-resource-row" id="supplyResourceRow">
-      <div class="resource-panel rp-energy">
-        <div class="review-dock-head">
-          <span class="matrix-title">能量补给匣 // 魔素晶体</span>
-          <span class="resource-total" id="crystalTotal">-- kJ</span>
+    </div>
+    </div>
+
+  <div class="supply-rack" id="supplyRack">
+    <div class="feed-hud">
+      <div class="hud-col c-cyan"><span class="hud-label">ENERGY / 当前能量</span><b id="hudEnergy">-- / -- kJ</b></div>
+      <div class="hud-col c-mag"><span class="hud-label">MENTAL / 当前精神</span><b id="hudMind">-- / -- 点</b></div>
+    </div>
+    <div class="feed-row">
+      <div class="module-card mod-crystal">
+        <div class="module-header"><span class="module-name">CRYSTAL HARVEST</span><span class="module-id">SYS_01 晶体</span></div>
+        <div class="module-readout"><span class="readout-tag">库存总能量</span><div class="readout-digits"><span id="txtEnergy">0</span><em>kJ</em></div></div>
+        <div class="slider-box">
+          <div class="slider-meta"><span>能量配额标尺</span><b id="lblEnergy">0 kJ</b></div>
+          <input type="range" class="compact-slider" id="crystalSlider" min="0" max="1" step="1" value="0" disabled>
         </div>
-        <div class="resource-detail" id="crystalDetail">（无库存）</div>
-        <input type="range" class="resource-slider" id="crystalSlider" min="0" max="100" step="5" value="100" disabled>
-        <div class="resource-preview" id="crystalPreview">-> 将回复 -- kJ</div>
-        <button class="resource-btn" id="btnCrystalUse" disabled>⚡ 注入能量</button>
+        <button class="btn-action" id="btnCrystalUse" disabled>COMMIT ENERGY</button>
       </div>
-      <div class="resource-panel rp-mind">
-        <div class="review-dock-head">
-          <span class="matrix-title">精神补给匣 // 魔素导液</span>
-          <span class="resource-total" id="liquidTotal">-- 点</span>
+      <div class="module-card mod-liquid">
+        <div class="module-header"><span class="module-name">MENTAL PERFUSION</span><span class="module-id">SYS_02 导液</span></div>
+        <div class="module-readout"><span class="readout-tag">库存总精神</span><div class="readout-digits"><span id="txtMind">0</span><em>点</em></div></div>
+        <div class="slider-box">
+          <div class="slider-meta"><span>精神配额标尺</span><b id="lblMind">0 点</b></div>
+          <input type="range" class="compact-slider" id="liquidSlider" min="0" max="1" step="1" value="0" disabled>
         </div>
-        <div class="resource-detail" id="liquidDetail">（无库存）</div>
-        <input type="range" class="resource-slider" id="liquidSlider" min="0" max="100" step="5" value="100" disabled>
-        <div class="resource-preview" id="liquidPreview">-> 将回复 -- 点</div>
-        <button class="resource-btn" id="btnLiquidUse" disabled>💧 注入精神</button>
+        <button class="btn-action" id="btnLiquidUse" disabled>COMMIT MENTAL</button>
       </div>
     </div>
-    </div>
-    </div>
+  </div>
 
   </div>
 </div>
@@ -2768,6 +2834,16 @@
       DELETE_ANCHOR.x = Math.round((dr.left - surfaceRect.left) / zoom1 + (dr.width / zoom1 - CARD_W) / 2);
       DELETE_ANCHOR.y = Math.round((dr.top - surfaceRect.top) / zoom1 + (dr.height / zoom1 - CARD_H) / 2);
     }
+    // 补给匣定位：槽位模块右侧空地（最后一个 socket 右缘 + 间距），桌面绝对定位（zoom/pan 随桌面缩放平移）
+    var rack = document.getElementById('supplyRack');
+    var lastSock = document.getElementById('socket_' + (slotsContainer.children.length - 1));
+    if (rack && lastSock) {
+      var wL = lastSock.querySelector('.slot-well') || lastSock;
+      var rL = wL.getBoundingClientRect();
+      var rw = rack.offsetWidth || 236;
+      rack.style.left = Math.round((rL.left - surfaceRect.left) / zoom1 + (rL.width / zoom1) + 26) + 'px';
+      rack.style.top = Math.round((rL.top - surfaceRect.top) / zoom1) + 'px';
+    }
   }
 
   function renderDesktopCards() {
@@ -3273,33 +3349,33 @@
     return { total: +(total.toFixed(1)), parts: parts };
   }
   function renderSupplyPanels() {
-    var ck = 补给总量('魔素晶体'), li = 补给总量('魔素导液');
-    var cTotal = $('#crystalTotal'), lTotal = $('#liquidTotal');
-    var cDet = $('#crystalDetail'), lDet = $('#liquidDetail');
+    var hudE = $('#hudEnergy'), hudM = $('#hudMind');
+    var txtE = $('#txtEnergy'), txtM = $('#txtMind');
     var cSld = $('#crystalSlider'), lSld = $('#liquidSlider');
-    var cPrev = $('#crystalPreview'), lPrev = $('#liquidPreview');
+    var lE = $('#lblEnergy'), lM = $('#lblMind');
     var cBtn = $('#btnCrystalUse'), lBtn = $('#btnLiquidUse');
-    if (!cTotal) return;
-    cTotal.textContent = ck.total + ' kJ';
-    cDet.textContent = ck.parts.length ? ck.parts.join(' ＋ ') : '（无库存：剧情中获得晶体后在此使用）';
+    if (!hudE) return;
+    hudE.textContent = Math.round(g.主角.能量kJ.当前) + ' / ' + g.主角.能量kJ.上限 + ' kJ';
+    hudM.textContent = Math.round(g.主角.精神点.当前) + ' / ' + g.主角.精神点.上限 + ' 点';
+    var ck = 补给总量('魔素晶体'), li = 补给总量('魔素导液');
+    txtE.textContent = ck.total;
+    txtM.textContent = li.total;
     var cEnabled = ck.total > 0;
+    cSld.max = '100'; cSld.value = cEnabled ? '100' : '0';
     cSld.disabled = !cEnabled; cBtn.disabled = !cEnabled;
-    if (cEnabled) cSld.value = 100;
-    cPrev.textContent = cEnabled ? '-> 将回复 ' + (+(ck.total * (cSld.value / 100)).toFixed(1)) + ' kJ' : '--';
-    lTotal.textContent = li.total + ' 点';
-    lDet.textContent = li.parts.length ? li.parts.join(' ＋ ') : '（无库存：剧情中获得导液后在此使用）';
+    lE.textContent = cEnabled ? '100% → ' + ck.total + ' kJ' : '0%';
     var lEnabled = li.total > 0;
+    lSld.max = '100'; lSld.value = lEnabled ? '100' : '0';
     lSld.disabled = !lEnabled; lBtn.disabled = !lEnabled;
-    if (lEnabled) lSld.value = 100;
-    lPrev.textContent = lEnabled ? '-> 将回复 ' + (+(li.total * (lSld.value / 100)).toFixed(1)) + ' 点' : '--';
+    lM.textContent = lEnabled ? '100% → ' + li.total + ' 点' : '0%';
   }
   $('#crystalSlider').addEventListener('input', function () {
     var ck = 补给总量('魔素晶体');
-    $('#crystalPreview').textContent = '-> 将回复 ' + (+(ck.total * (this.value / 100)).toFixed(1)) + ' kJ';
+    $('#lblEnergy').textContent = this.value + '% → ' + (+(ck.total * (Number(this.value) / 100)).toFixed(1)) + ' kJ';
   });
   $('#liquidSlider').addEventListener('input', function () {
     var li = 补给总量('魔素导液');
-    $('#liquidPreview').textContent = '-> 将回复 ' + (+(li.total * (this.value / 100)).toFixed(1)) + ' 点';
+    $('#lblMind').textContent = this.value + '% → ' + (+(li.total * (Number(this.value) / 100)).toFixed(1)) + ' 点';
   });
   function 消耗补给(kind, pct) {
     var restored = 0;
