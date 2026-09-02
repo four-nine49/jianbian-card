@@ -32,7 +32,7 @@ function renderOverview(g: 游戏): string {
   // 补给物品
   html += `<div class="of-card">
     <div class="of-h2" style="font-size:13px">补给物品（${g.补给物品.length}）</div>
-    ${g.补给物品.length === 0 ? '<div class="of-muted">（无）</div>' : `<table class="of-table"><thead><tr><th>名称</th><th>数量</th><th>效果</th></tr></thead><tbody>${g.补给物品.map(i => `<tr><td>${esc(i.名称)}</td><td>${esc(i.数量)}</td><td>${esc(JSON.stringify(i.效果))}</td></tr>`).join('')}</tbody></table>`}
+    ${g.补给物品.length === 0 ? '<div class="of-muted">（无）</div>' : `<table class="of-table"><thead><tr><th>名称</th><th>数量</th><th>纯度/规格</th><th>效果</th></tr></thead><tbody>${g.补给物品.map(i => `<tr><td>${esc(i.名称)}</td><td>${esc(i.数量)}</td><td>${esc([i.纯度 != null ? i.纯度 + '%' : '', i.克数 != null ? i.克数 + 'g' : '', i.容量ml != null ? i.容量ml + 'ml' : ''].filter(Boolean).join(' · ') || '—')}</td><td>${esc(i.效果 ? JSON.stringify(i.效果) : '—')}</td></tr>`).join('')}</tbody></table>`}
   </div>`;
 
   // 回路库（fixed/free）

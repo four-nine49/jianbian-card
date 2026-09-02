@@ -9,7 +9,7 @@
 // g 钳制   数值 0~上限
 // h 转正   uses≥10 → 复制入固定库(来源=转正)、删自由条目、槽位空出并提示
 import { 补给白名单, type 游戏, type 回路, type 补给 } from '../core/schema';
-import { 按纯度算效果, 补给档位 } from '../core/presets';
+import { 按纯度算效果, 补给档位, 晶体克数缺省, 导液容量缺省 } from '../core/presets';
 import { TUNE, quote, initParams, branchOf, readableParams, budgetFrom, readableBudget, anchorOf, syncParams, compileOrder, FAMKEY, settleCircuitLibrary } from '../engine/engine';
 import { 解析剧情时间, 格式化剧情时间 } from '../core/time';
 import type { 变更包 } from './contract';
@@ -168,9 +168,18 @@ export function settle(g: 游戏, pack: 变更包): 结算报告 {
     if (typeof s.水体在场 === 'boolean') { g.场景.水体在场 = s.水体在场; log.push(`⑥e 场景：水体 → ${s.水体在场 ? '有' : '无'}`); }
   }
 
-  /* ── f 补给：新增（白名单过滤；晶体/导液按纯度算效果；创伤补给固定效果） ── */
+  /* ── f 补给：新增（白名单过滤；晶体/导液=库存型，创伤补给=一补给一牌） ── */
   for (const item of pack.新增补给) {
     if (!补给白名单.includes(item.名称)) { notices.push(`补给《${item.名称}》不在白名单（只收 魔素晶体/魔素导液/快速生化止血喷雾/仿生神经桥接贴片），忽略`); continue; }
+    // 晶体/导液 → 库存型：整条入库（数量=N，随带 纯度+克数/容量ml），桌面滑杆面板按公式算总量使用，不再拆成一补给一牌
+    if (item.名称 === '魔素晶体' || item.名称 === '魔素导液') {
+      const base: Record<string, any> = { 名称: item.名称, 数量: Math.max(1, item.数量), 纯度: item.纯度 };
+      if (item.名称 === '魔素晶体') base.克数 = item.克数 ?? 晶体克数缺省(item.纯度);
+      else base.容量ml = item.容量ml ?? 导液容量缺省(item.纯度);
+      g.补给物品.push(base as unknown as 补给);
+      log.push(`⑥f 新增补给《${item.名称}》(${补给档位(item.纯度)} ${item.纯度 != null ? item.纯度 + '%' : ''}${base.克数 != null ? '·' + base.克数 + 'g' : (base.容量ml != null ? '·' + base.容量ml + 'ml' : '')})×${item.数量}（库存·桌面滑杆使用）`);
+      continue;
+    }
     const eff = 按纯度算效果(item.名称, item.纯度);
     if (!eff) { notices.push(`补给《${item.名称}》效果无法解析，忽略`); continue; }
     // 一补给一牌：报的数量 N → N 条独立记录（数量 1，uid 区分；同名补给各自成牌）
@@ -249,6 +258,7 @@ export function 使用补给(g: 游戏, 名称: string, log: string[] = []): boo
   const item = g.补给物品.find(i => i.名称 === 名称);
   if (!item || item.数量 <= 0) return false;
   const eff = item.效果;
+  if (!eff) return false;   // 新库存型（晶体/导液走桌面补给匣滑杆），无卡片效果不可走此函数
   if (eff.目标 === '能量') { g.主角.能量kJ.当前 = Math.min(g.主角.能量kJ.上限, g.主角.能量kJ.当前 + (eff.增加kJ ?? 0)); log.push(`②C 使用《${名称}》：能量+${eff.增加kJ}kJ`); }
   else if (eff.目标 === '精神') { g.主角.精神点.当前 = Math.min(g.主角.精神点.上限, g.主角.精神点.当前 + (eff.增加点 ?? 0)); log.push(`②C 使用《${名称}》：精神+${eff.增加点}`); }
   else {

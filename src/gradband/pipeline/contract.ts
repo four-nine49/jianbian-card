@@ -22,6 +22,8 @@ export const 变更包Schema = z.object({
     名称: z.string().min(1),
     数量: z.number().int().min(1),
     纯度: z.number().min(0).max(99.99).optional(),   // 魔素晶体/导液 的纯度；创伤补给忽略
+    克数: z.number().min(0).optional(),              // 魔素晶体：单颗克重 g（新格式；创伤补给严禁填）
+    容量ml: z.number().min(0).optional(),            // 魔素导液：单安瓿容量 ml（新格式；创伤补给严禁填）
   })).default([]),
   场景变更: z.object({
     风力档: z.number().optional(),

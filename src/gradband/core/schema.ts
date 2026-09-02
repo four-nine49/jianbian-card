@@ -29,7 +29,9 @@ export const 补给Schema = z.object({
   数量: z.number().int().min(1),
   uid: z.string().optional(),                       // 一补给一牌的唯一编号（同名补给区分；旧数据无此字段）
   纯度: z.number().min(0).max(99.99).optional(),    // 魔素晶体/导液 的纯度（决定恢复量档位）
-  效果: 补给效果Schema,
+  克数: z.number().min(0).optional(),               // 魔素晶体：单颗克重 g（新库存模型，桌面滑杆用）
+  容量ml: z.number().min(0).optional(),             // 魔素导液：单安瓿容量 ml（新库存模型，桌面滑杆用）
+  效果: 补给效果Schema.optional(),                  // 创伤补给（卡片使用）与旧数据有；晶体/导液新库存无（总量由滑杆面板按公式算）
   桌面位置: z.object({ x: z.number(), y: z.number() }).optional(),  // 补给卡在回路配置桌的自由位置
 });
 

@@ -8,7 +8,7 @@ const GROUPS = ['数据AI', '法术AI'] as const;
 
 const PLACEHOLDER_HINTS: Record<string, string> = {
   数据AI: '{{状态}} {{场景}} {{出手单}} {{正文}}',
-  法术AI: '{{描述}} {{参数}} {{亲和}} {{库索引}} {{场景}}',
+  法术AI: '{{描述}} {{参数}} {{亲和}} {{场景}}',
 };
 
 export function renderGradbandPromptsPage(el: HTMLElement): void {

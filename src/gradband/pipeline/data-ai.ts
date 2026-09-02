@@ -44,7 +44,9 @@ const SCHEMA = {
           properties: {
             名称: { type: 'string', description: '只允许 4 类：魔素晶体 / 魔素导液 / 快速生化止血喷雾 / 仿生神经桥接贴片' },
             数量: { type: 'integer', minimum: 1 },
-            纯度: { type: 'number', minimum: 0, maximum: 99.99, description: '仅魔素晶体/魔素导液需要（0-99.99%，<80民用/80-99管控/≥99战略）；创伤补给不填' },
+            纯度: { type: 'number', minimum: 0, maximum: 99.99, description: '仅魔素晶体/魔素导液需要（0-99.99%，<80民用/80-99管控/≥99战略）；创伤补给严禁填' },
+            克数: { type: 'number', minimum: 0, description: '仅魔素晶体需要：单颗克重 g（如 2.0）；创伤补给严禁填。正文无数字时按来源场景推断：地摊/民用 1.0~3.0g（缺省2.0）；军用 0.5~1.5g（缺省1.0）；绝密设施 0.01~0.1g 微量（严禁整克）' },
+            容量ml: { type: 'number', minimum: 0, description: '仅魔素导液需要：单安瓿容量 ml（如 13）；创伤补给严禁填。正文无数字时按来源场景推断：地摊/民用 20~50ml（缺省30）；军用 5~15ml（缺省10）；绝密设施 1.0~3.0ml 微量冷萃' },
           },
           required: ['名称', '数量'],
           additionalProperties: false,

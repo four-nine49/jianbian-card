@@ -453,6 +453,109 @@
       box-shadow: 0 0 14px rgba(255, 170, 60, 0.35);
     }
     .review-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    /* ================= 销毁台（删除槽；红色 · 与审核台并排） ================= */
+    .recycle-row {
+      display: flex;
+      gap: 14px;
+      width: 100%;
+      max-width: 1000px;
+      align-items: stretch;
+    }
+    .recycle-row > .review-dock, .recycle-row > .delete-dock {
+      flex: 1 1 0;
+      width: auto;
+      max-width: none;
+      min-width: 0;
+    }
+    .delete-dock {
+      background: rgba(40, 6, 6, 0.55);
+      border: 1px dashed rgba(248, 60, 60, 0.5);
+      border-radius: 6px;
+      padding: 10px 16px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.8);
+    }
+    .slot-socket.is-delete {
+      background: #160606;
+      border: 1.5px dashed #991b1b;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.9);
+    }
+    .slot-socket.is-delete .slot-meta b { color: #f87171; }
+    .slot-socket.is-delete.is-occupied {
+      border-color: var(--card-accent) !important;
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.95), 0 0 25px var(--card-glow), inset 0 0 15px var(--card-glow) !important;
+    }
+    .slot-socket.is-delete.is-occupied .slot-well {
+      border-color: var(--card-accent);
+      box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.9), 0 0 15px var(--card-glow);
+    }
+    .slot-socket.is-delete.drag-hover {
+      border-color: rgba(248, 60, 60, 0.9) !important;
+      box-shadow: 0 0 20px rgba(248, 60, 60, 0.35) !important;
+    }
+    .delete-btn {
+      background: rgba(248, 60, 60, 0.1);
+      border: 1px solid rgba(248, 60, 60, 0.55);
+      color: #f87171;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      padding: 6px 18px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .delete-btn:not(:disabled):hover {
+      background: rgba(248, 60, 60, 0.25);
+      color: #fff;
+      box-shadow: 0 0 14px rgba(248, 60, 60, 0.4);
+    }
+    .delete-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    /* ================= 能量/精神补给匣（晶体/导液库存滑杆面板） ================= */
+    .supply-resource-row { display: flex; gap: 14px; width: 100%; max-width: 1000px; align-items: stretch; }
+    .resource-panel {
+      flex: 1 1 0;
+      min-width: 0;
+      background: rgba(8, 12, 18, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 10px 16px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.8);
+    }
+    .rp-energy { border-color: rgba(0, 240, 255, 0.35); }
+    .rp-mind { border-color: rgba(192, 132, 252, 0.35); }
+    .resource-total { font-family: var(--font-mono); font-size: 14px; font-weight: 900; letter-spacing: 0.5px; }
+    .rp-energy .resource-total { color: #00f0ff; }
+    .rp-mind .resource-total { color: #c084fc; }
+    .resource-detail { font-size: 9.5px; color: #64748b; line-height: 1.5; }
+    .resource-slider { width: 100%; accent-color: #00f0ff; cursor: pointer; }
+    .rp-mind .resource-slider { accent-color: #c084fc; }
+    .resource-slider:disabled { opacity: 0.35; cursor: not-allowed; }
+    .resource-preview { font-size: 10.5px; font-family: var(--font-mono); font-weight: 800; letter-spacing: 0.5px; }
+    .rp-energy .resource-preview { color: #22d3ee; }
+    .rp-mind .resource-preview { color: #d8b4fe; }
+    .resource-btn {
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #e2e8f0;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 6px 14px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .resource-btn:not(:disabled):hover { box-shadow: 0 0 14px rgba(255, 255, 255, 0.25); }
+    .rp-energy .resource-btn:not(:disabled):hover { background: rgba(0, 240, 255, 0.15); border-color: #00f0ff; color: #00f0ff; }
+    .rp-mind .resource-btn:not(:disabled):hover { background: rgba(192, 132, 252, 0.15); border-color: #c084fc; color: #c084fc; }
+    .resource-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     /* 手操模式滑块切换 */
     .ops-switch-wrap { display: flex; align-items: center; gap: 5px; font-size: 9px; color: #94a3b8; cursor: pointer; letter-spacing: 0.5px; }
     .ops-switch-box { position: relative; width: 38px; height: 19px; border-radius: 10px; background: #1e293b; border: 1px solid #334155; display: inline-block; transition: all 0.25s; flex-shrink: 0; }
@@ -1422,6 +1525,7 @@
       <div class="slots-container" id="slotsContainer"></div>
     </div>
 
+    <div class="recycle-row">
     <div class="review-dock" id="reviewDock">
       <div class="review-dock-head">
         <span class="matrix-title">法案审核台 // 送审槽（与固定/自由槽隔离 · 仅接受「待送审」回路 · 送审完毕自动回牌库）</span>
@@ -1433,6 +1537,43 @@
         </div>
         <button class="review-btn" id="btnReviewDock" disabled>⚖ 送审（送审槽为空）</button>
       </div>
+    </div>
+
+    <div class="delete-dock" id="deleteDock">
+      <div class="review-dock-head">
+        <span class="matrix-title" style="color:#f87171;">销毁台 // 删除槽（所有回路均可删除 · 确认后永久销毁）</span>
+      </div>
+      <div class="review-dock-body">
+        <div class="slot-socket is-delete" id="socket_delete">
+          <div class="slot-meta"><span>DEL 01 [销毁]</span><b>SCRAP</b></div>
+          <div class="slot-well"><div class="standby-crosshair"><div class="cross-circle">✕</div><span>拖入要删除的回路 → 点下方删除</span></div></div>
+        </div>
+        <button class="delete-btn" id="btnDeleteDock" disabled>✕ 删除（删除槽为空）</button>
+      </div>
+    </div>
+
+    <div class="supply-resource-row" id="supplyResourceRow">
+      <div class="resource-panel rp-energy">
+        <div class="review-dock-head">
+          <span class="matrix-title">能量补给匣 // 魔素晶体</span>
+          <span class="resource-total" id="crystalTotal">-- kJ</span>
+        </div>
+        <div class="resource-detail" id="crystalDetail">（无库存）</div>
+        <input type="range" class="resource-slider" id="crystalSlider" min="0" max="100" step="5" value="100" disabled>
+        <div class="resource-preview" id="crystalPreview">-> 将回复 -- kJ</div>
+        <button class="resource-btn" id="btnCrystalUse" disabled>⚡ 注入能量</button>
+      </div>
+      <div class="resource-panel rp-mind">
+        <div class="review-dock-head">
+          <span class="matrix-title">精神补给匣 // 魔素导液</span>
+          <span class="resource-total" id="liquidTotal">-- 点</span>
+        </div>
+        <div class="resource-detail" id="liquidDetail">（无库存）</div>
+        <input type="range" class="resource-slider" id="liquidSlider" min="0" max="100" step="5" value="100" disabled>
+        <div class="resource-preview" id="liquidPreview">-> 将回复 -- 点</div>
+        <button class="resource-btn" id="btnLiquidUse" disabled>💧 注入精神</button>
+      </div>
+    </div>
     </div>
     </div>
 
@@ -1720,6 +1861,15 @@
       ON_DESK_CARDS.push(d);
     });
 
+    // 删除槽中的回路（销毁暂存；点删除确认后永久移除）
+    g.回路库.forEach(function (c) {
+      if (!c.待删槽) return;
+      var d = toDeskCard(c, 'delete', null);
+      d.deleteSlot = true;
+      d.x = DELETE_ANCHOR.x; d.y = DELETE_ANCHOR.y;
+      ON_DESK_CARDS.push(d);
+    });
+
     // 自由放置的卡（有桌面位置、未装槽）→ 也显示在桌上
     var mountedIds = new Set(ON_DESK_CARDS.map(function (c) { return c.id; }));
     g.回路库.forEach(function (c) {
@@ -1732,6 +1882,7 @@
     var mounted = new Set(ON_DESK_CARDS.map(function (c) { return c.id; }));
     REPO_CARDS = g.回路库.filter(function (c) {
       if (c.送审槽) return false;                        // 正在送审槽中的不进牌库（送审完自动回）
+      if (c.待删槽) return false;                        // 正在删除槽中的不进牌库（确认删除或拖回）
       if (c.桌面位置) return false;                       // 已自由放到桌上的不进牌库
       if (c.审核状态 === '待送审') return true;           // 待送审（未上桌）进牌库等送审
       return !mounted.has(c.id);                          // 未装槽（fixed + free 都进牌库，回收后可见）
@@ -1843,7 +1994,9 @@
   var surfaceDesk1 = $('#surfaceDesk1');
   var SOCKET_COORDS = [];  // 槽位锚点（写死）：进槽卡的 left/top 固定用这份坐标；zoom/pan 不影响，仅布局变化时重算
   var REVIEW_ANCHOR = { x: 0, y: 0 };   // 送审槽锚点（写死，同槽位锚点口径）
+  var DELETE_ANCHOR = { x: 0, y: 0 };   // 删除槽锚点（写死，同槽位锚点口径）
   var btnReviewDock = $('#btnReviewDock');
+  var btnDeleteDock = $('#btnDeleteDock');
 
   /* ── 手操（桌1）：手操模式切换 + 槽位「使用」圈选 + 确认扣费（每轮一个回路一次） ── */
   var manualOps = false;        // 手操模式开关
@@ -1991,6 +2144,14 @@
       REVIEW_ANCHOR.x = Math.round((rr.left - surfaceRect.left) / zoom1 + (rr.width / zoom1 - CARD_W) / 2);
       REVIEW_ANCHOR.y = Math.round((rr.top - surfaceRect.top) / zoom1 + (rr.height / zoom1 - CARD_H) / 2);
     }
+    // 删除槽锚点（独立 socket，不进 numeric 索引；与槽位锚点同口径写死）
+    var delSock = document.getElementById('socket_delete');
+    if (delSock) {
+      var delWell = delSock.querySelector('.slot-well');
+      var dr = delWell ? delWell.getBoundingClientRect() : delSock.getBoundingClientRect();
+      DELETE_ANCHOR.x = Math.round((dr.left - surfaceRect.left) / zoom1 + (dr.width / zoom1 - CARD_W) / 2);
+      DELETE_ANCHOR.y = Math.round((dr.top - surfaceRect.top) / zoom1 + (dr.height / zoom1 - CARD_H) / 2);
+    }
   }
 
   function renderDesktopCards() {
@@ -2007,6 +2168,12 @@
       revSockEl.style.removeProperty('--card-accent');
       revSockEl.style.removeProperty('--card-glow');
     }
+    var delSockEl = document.getElementById('socket_delete');
+    if (delSockEl) {
+      delSockEl.classList.remove('is-occupied');
+      delSockEl.style.removeProperty('--card-accent');
+      delSockEl.style.removeProperty('--card-glow');
+    }
     if (!SOCKET_COORDS.length) computeSocketAnchors();   // 锚点兜底（正常由 init/resize 算好，不随渲染重算）
     ON_DESK_CARDS.forEach(function (c) {
       if (c.reviewSlot) {
@@ -2015,6 +2182,13 @@
           revSockEl.classList.add('is-occupied');
           revSockEl.style.setProperty('--card-accent', c.accent);
           revSockEl.style.setProperty('--card-glow', c.accent);
+        }
+      } else if (c.deleteSlot) {
+        c.x = DELETE_ANCHOR.x; c.y = DELETE_ANCHOR.y;
+        if (delSockEl) {
+          delSockEl.classList.add('is-occupied');
+          delSockEl.style.setProperty('--card-accent', c.accent);
+          delSockEl.style.setProperty('--card-glow', c.accent);
         }
       } else if (c.slotIndex !== null && c.slotIndex !== undefined && c.slotIndex < SOCKET_COORDS.length) {
         c.x = SOCKET_COORDS[c.slotIndex].x; c.y = SOCKET_COORDS[c.slotIndex].y;
@@ -2031,7 +2205,7 @@
       cardEl.style.setProperty('--accent', c.accent);
       cardEl.style.left = c.x + 'px'; cardEl.style.top = c.y + 'px';
       cardEl.dataset.id = c.id;
-      var slotDisplay = (c.slotIndex !== null && c.slotIndex !== undefined) ? '0' + (c.slotIndex + 1) : (c.reviewSlot ? 'REV' : 'FREE');
+      var slotDisplay = (c.slotIndex !== null && c.slotIndex !== undefined) ? '0' + (c.slotIndex + 1) : (c.reviewSlot ? 'REV' : (c.deleteSlot ? 'DEL' : 'FREE'));
       cardEl.innerHTML =
         '<div class="card-inner"><div class="spent-overlay-stamp">已使用</div><div class="token-glare"></div>' +
         '<div class="token-ghost">' + c.ghost + '</div>' +
@@ -2045,6 +2219,7 @@
     slotCapTag.textContent = slotCapText() + ' (在桌 ' + ON_DESK_CARDS.length + ')';
     updateSlotUseButtons();
     updateReviewDock();
+    updateDeleteDock();
   }
 
   function bindFreeDragAndSnap(cardEl, cardData) {
@@ -2085,6 +2260,15 @@
               if (cc) { delete cc.桌面位置; cc.送审槽 = true; }
             });
           }
+        } else if (hitIndex === 'delete') {
+          // 删除槽：所有回路均可进（不检查审核状态/种类）；进槽写瞬态标记 待删槽=true，确认后永久移除
+          writeGame(function (gg) {
+            var fixedLen = FIXED_CAP;
+            var src = (cardData.slotIndex !== null && cardData.slotIndex < fixedLen) ? { arr: gg.槽位.固定槽, idx: cardData.slotIndex } : { arr: gg.槽位.自由槽, idx: cardData.slotIndex - fixedLen };
+            if (cardData.slotIndex !== null && src.idx >= 0 && src.idx < src.arr.length) src.arr[src.idx] = null;
+            var cc = circuitById(gg, cardData.id);
+            if (cc) { delete cc.桌面位置; delete cc.送审槽; cc.待删槽 = true; }
+          });
         } else if (hitIndex !== -1) {
           // 换槽写回：旧槽清空，新槽占位（战斗中固定槽锁；socket 下标 → 存储下标需减 fixedLen）
           writeGame(function (gg) {
@@ -2099,7 +2283,7 @@
             if (cardData.slotIndex !== null && src.idx >= 0 && src.idx < src.arr.length) src.arr[src.idx] = null;
             if (tgt.idx >= 0 && tgt.idx < tgt.arr.length) tgt.arr[tgt.idx] = cardData.id;
             var cc = circuitById(gg, cardData.id);
-            if (cc) { delete cc.桌面位置; delete cc.送审槽; }   // 装槽后清自由位置 + 送审槽标记
+            if (cc) { delete cc.桌面位置; delete cc.送审槽; delete cc.待删槽; }   // 装槽后清自由位置 + 送审/删除槽标记
             cardData.slotIndex = hitIndex;
           });
         } else {
@@ -2110,7 +2294,7 @@
             if (cardData.slotIndex !== null && src.idx >= 0 && src.idx < src.arr.length) src.arr[src.idx] = null;
             cardData.slotIndex = null;
             var cc = circuitById(gg, cardData.id);
-            if (cc) { cc.桌面位置 = { x: Math.round(cardData.x), y: Math.round(cardData.y) }; delete cc.送审槽; }
+            if (cc) { cc.桌面位置 = { x: Math.round(cardData.x), y: Math.round(cardData.y) }; delete cc.送审槽; delete cc.待删槽; }
           });
         }
         loadFromSave(); renderDesktopCards();
@@ -2134,6 +2318,12 @@
     if (revSock) {
       var sr2 = revSock.getBoundingClientRect();
       if (cx >= sr2.left && cx <= sr2.right && cy >= sr2.top && cy <= sr2.bottom) return 'review';
+    }
+    // 删除槽（独立 socket；返回 'delete' 哨兵）
+    var delSock = document.getElementById('socket_delete');
+    if (delSock) {
+      var sd2 = delSock.getBoundingClientRect();
+      if (cx >= sd2.left && cx <= sd2.right && cy >= sd2.top && cy <= sd2.bottom) return 'delete';
     }
     return -1;
   }
@@ -2252,7 +2442,7 @@
       }
       // 关键：自由放置（槽位外）的卡也要清桌面位置，否则点回收没反应、卡仍在桌上
       var cc = circuitById(gg, cardData.id);
-      if (cc) { delete cc.桌面位置; delete cc.送审槽; }   // 送审槽中的卡回收 → 直接回牌库
+      if (cc) { delete cc.桌面位置; delete cc.送审槽; delete cc.待删槽; }   // 送审/删除槽中的卡回收 → 直接回牌库
     });
     selectedEntity = null;
     detailContainer.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#475569;font-size:11px;">[ 回路已成功卸解回库 ]</div>';
@@ -2410,6 +2600,126 @@
     reviewCircuit(toDeskCard(dock, 'review', null));
   });
 
+  /* ═══════════════════ 销毁台（删除槽）：确认后永久移除回路 ═══════════════════ */
+  function updateDeleteDock() {
+    var btn = btnDeleteDock;
+    if (!btn) return;
+    var d = g.回路库.find(function (c) { return c.待删槽; });
+    if (d) {
+      btn.disabled = false;
+      btn.textContent = '✕ 删除《' + String(d.名称).slice(0, 8) + '》';
+      btn.style.opacity = '1';
+    } else {
+      btn.disabled = true;
+      btn.textContent = '✕ 删除（删除槽为空）';
+      btn.style.opacity = '0.4';
+    }
+  }
+  btnDeleteDock.addEventListener('click', function () {
+    var d = g.回路库.find(function (c) { return c.待删槽; });
+    if (!d) { alert('删除槽为空：先把要删除的回路拖进删除槽。'); return; }
+    if (!confirm('确定要永久销毁回路《' + d.名称 + '》？此操作不可恢复！')) return;
+    writeGame(function (gg) {
+      gg.回路库 = gg.回路库.filter(function (c) { return c.id !== d.id; });
+      // 兜底清槽位引用（正常拖入时已清）
+      [gg.槽位.固定槽, gg.槽位.自由槽].forEach(function (arr) {
+        for (var i = 0; i < arr.length; i++) if (arr[i] === d.id) arr[i] = null;
+      });
+    });
+    loadFromSave(); renderDesktopCards(); renderRepoList(); renderMonitors(); updatePendingDots();
+    alert('《' + d.名称 + '》已永久删除。');
+  });
+
+  /* ═══════════════════ 能量/精神补给匣（晶体/导液库存 · 滑杆使用） ═══════════════════ */
+  /* 定稿结算公式（同 core/presets.ts 注释，唯一来源在数据侧；此处为面板现算副本）：
+     晶体密度 kJ/g：<80 → 1×10^(P/80)；80-99 → 100×10^((P-80)/19)；≥99 → 1e5×10^((P-99)/0.99)
+     导液浓度 点/ml：<80 → 0.15+(P/80)×0.35；80-99 → 2+((P-80)/19)×4；≥99 → 100+((P-99)/0.99)×100 */
+  function 晶体密度(P) { P = Number(P) || 0; return P < 80 ? 1.0 * Math.pow(10, P / 80) : P < 99 ? 100.0 * Math.pow(10, (P - 80) / 19) : 1e5 * Math.pow(10, (P - 99) / 0.99); }
+  function 导液浓度(P) { P = Number(P) || 0; return P < 80 ? 0.15 + (P / 80) * 0.35 : P < 99 ? 2.0 + ((P - 80) / 19) * 4.0 : 100.0 + ((P - 99) / 0.99) * 100.0; }
+  /* 旧数据缺省兜底：克数 民用2.0/管控1.0/战略0.05；容量ml 民用30/管控10/战略2 */
+  function 克数缺省(P) { P = Number(P) || 0; return P >= 99 ? 0.05 : P >= 80 ? 1.0 : 2.0; }
+  function 容量缺省(P) { P = Number(P) || 0; return P >= 99 ? 2 : P >= 80 ? 10 : 30; }
+  function 补给总量(kind) {
+    var total = 0, parts = [];
+    (g.补给物品 || []).forEach(function (s) {
+      if (s.名称 !== kind) return;
+      var n = s.数量 || 1;
+      if (kind === '魔素晶体') {
+        var per = n * (s.克数 != null ? s.克数 : 克数缺省(s.纯度)) * 晶体密度(s.纯度);
+        parts.push('' + n + '×' + (s.克数 != null ? s.克数 : 克数缺省(s.纯度)) + 'g@' + (s.纯度 != null ? s.纯度 : 0) + '%');
+        total += per;
+      } else {
+        var pm = n * (s.容量ml != null ? s.容量ml : 容量缺省(s.纯度)) * 导液浓度(s.纯度);
+        parts.push('' + n + '×' + (s.容量ml != null ? s.容量ml : 容量缺省(s.纯度)) + 'ml@' + (s.纯度 != null ? s.纯度 : 0) + '%');
+        total += pm;
+      }
+    });
+    return { total: +(total.toFixed(1)), parts: parts };
+  }
+  function renderSupplyPanels() {
+    var ck = 补给总量('魔素晶体'), li = 补给总量('魔素导液');
+    var cTotal = $('#crystalTotal'), lTotal = $('#liquidTotal');
+    var cDet = $('#crystalDetail'), lDet = $('#liquidDetail');
+    var cSld = $('#crystalSlider'), lSld = $('#liquidSlider');
+    var cPrev = $('#crystalPreview'), lPrev = $('#liquidPreview');
+    var cBtn = $('#btnCrystalUse'), lBtn = $('#btnLiquidUse');
+    if (!cTotal) return;
+    cTotal.textContent = ck.total + ' kJ';
+    cDet.textContent = ck.parts.length ? ck.parts.join(' ＋ ') : '（无库存：剧情中获得晶体后在此使用）';
+    var cEnabled = ck.total > 0;
+    cSld.disabled = !cEnabled; cBtn.disabled = !cEnabled;
+    if (cEnabled) cSld.value = 100;
+    cPrev.textContent = cEnabled ? '-> 将回复 ' + (+(ck.total * (cSld.value / 100)).toFixed(1)) + ' kJ' : '--';
+    lTotal.textContent = li.total + ' 点';
+    lDet.textContent = li.parts.length ? li.parts.join(' ＋ ') : '（无库存：剧情中获得导液后在此使用）';
+    var lEnabled = li.total > 0;
+    lSld.disabled = !lEnabled; lBtn.disabled = !lEnabled;
+    if (lEnabled) lSld.value = 100;
+    lPrev.textContent = lEnabled ? '-> 将回复 ' + (+(li.total * (lSld.value / 100)).toFixed(1)) + ' 点' : '--';
+  }
+  $('#crystalSlider').addEventListener('input', function () {
+    var ck = 补给总量('魔素晶体');
+    $('#crystalPreview').textContent = '-> 将回复 ' + (+(ck.total * (this.value / 100)).toFixed(1)) + ' kJ';
+  });
+  $('#liquidSlider').addEventListener('input', function () {
+    var li = 补给总量('魔素导液');
+    $('#liquidPreview').textContent = '-> 将回复 ' + (+(li.total * (this.value / 100)).toFixed(1)) + ' 点';
+  });
+  function 消耗补给(kind, pct) {
+    var restored = 0;
+    writeGame(function (gg) {
+      var entries = gg.补给物品.filter(function (s) { return s.名称 === kind; });
+      var kindIsC = kind === '魔素晶体';
+      var total = 0;
+      entries.forEach(function (e) {
+        var n = e.数量 || 1;
+        total += kindIsC ? n * (e.克数 != null ? e.克数 : 克数缺省(e.纯度)) * 晶体密度(e.纯度) : n * (e.容量ml != null ? e.容量ml : 容量缺省(e.纯度)) * 导液浓度(e.纯度);
+      });
+      restored = +(total * pct / 100).toFixed(1);
+      entries.forEach(function (e) {
+        e.数量 = Math.max(0, Math.round((e.数量 || 1) * (1 - pct / 100)));
+      });
+      gg.补给物品 = gg.补给物品.filter(function (s) { return s.名称 !== kind || s.数量 > 0; });
+      if (kindIsC) gg.主角.能量kJ.当前 = Math.min(gg.主角.能量kJ.上限, +(gg.主角.能量kJ.当前 + restored).toFixed(1));
+      else gg.主角.精神点.当前 = Math.min(gg.主角.精神点.上限, +(gg.主角.精神点.当前 + restored).toFixed(1));
+    });
+    return restored;
+  }
+  $('#btnCrystalUse').addEventListener('click', function () {
+    var v = Number($('#crystalSlider').value) || 0;
+    if (v <= 0) return;
+    var r = 消耗补给('魔素晶体', v);
+    loadFromSave(); renderDesktopCards(); renderDesktopSupplyCards(); renderSupplyList(); renderMonitors();
+    alert('已注入 ' + r + ' kJ 能量（消耗晶体库存 ' + v + '%）。');
+  });
+  $('#btnLiquidUse').addEventListener('click', function () {
+    var v = Number($('#liquidSlider').value) || 0;
+    if (v <= 0) return;
+    var r = 消耗补给('魔素导液', v);
+    loadFromSave(); renderDesktopCards(); renderDesktopSupplyCards(); renderSupplyList(); renderMonitors();
+    alert('已注入 ' + r + ' 点精神（消耗导液库存 ' + v + '%）。');
+  });
+
   /* ═══════════════════ 手动更新过载（回路配置桌按钮：全回路重算 过载率/过载风险） ═══════════════════ */
   $('#btnManualRecalc').addEventListener('click', function () {
     if (!g) { alert('尚未开局'); return; }
@@ -2530,7 +2840,10 @@
     };
   }
   function loadSupplies() {
-    SUPPLY_CARDS = (g && g.补给物品 ? g.补给物品 : []).map(toSupplyCard);
+    // 晶体/导液已改为库存型（桌面滑杆补给匣使用），不再以牌的形态出现在桌面/牌库
+    SUPPLY_CARDS = (g && g.补给物品 ? g.补给物品.filter(function (s) {
+      return s.名称 !== '魔素晶体' && s.名称 !== '魔素导液';
+    }) : []).map(toSupplyCard);
   }
 
   function renderSupplyList() {
@@ -2594,6 +2907,7 @@
       bindSupplyDrag(cardEl, sdata);
       surfaceDesk1.appendChild(cardEl);
     });
+    renderSupplyPanels();   // 补给匣数字/滑杆随补给渲染同步刷新
   }
 
   function bindSupplyDrag(cardEl, sdata) {

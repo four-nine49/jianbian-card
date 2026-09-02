@@ -91,8 +91,8 @@
     { key: 'scan', 名称: '周界扫描', famKey: 'perce', e: 5, params: { rad: 30, res: 1, pert: 0, dwell: 0, dwellSec: 20 }, 一句话效果: '半径30m·标准' }
   ];
   var 预设补给 = [
-    { 名称: '魔素晶体', 数量: 2, 纯度: 64.2, 效果: { 目标: '能量', 增加kJ: 500 } },
-    { 名称: '魔素导液', 数量: 2, 纯度: 52, 效果: { 目标: '精神', 增加点: 12 } },
+    { 名称: '魔素晶体', 数量: 2, 纯度: 64.2, 克数: 2.0, 效果: { 目标: '能量', 增加kJ: 500 } },
+    { 名称: '魔素导液', 数量: 2, 纯度: 52, 容量ml: 30.0, 效果: { 目标: '精神', 增加点: 12 } },
     { 名称: '快速生化止血喷雾', 数量: 1, 效果: { 目标: '创伤', 身体状态: '正常' } },
     { 名称: '仿生神经桥接贴片', 数量: 1, 效果: { 目标: '创伤', 身体状态: '轻伤' } }
   ];
@@ -250,15 +250,20 @@
       g.槽位.固定槽[slot] = g.回路库[g.回路库.length - 1].id;
       slot++;
     });
-    // 一补给一牌：预设数量 N → N 条独立记录（uid 区分）
+    // 补给发放：晶体/导液=库存型（整条入，桌面滑杆用）；创伤补给=一补给一牌（uid 区分）
     supplyNames.forEach(function (n) {
       for (var i = 0; i < 预设补给.length; i++) {
         if (预设补给[i].名称 !== n) continue;
-        for (var k = 0; k < 预设补给[i].数量; k++) {
-          var one = JSON.parse(JSON.stringify(预设补给[i]));
-          one.数量 = 1;
-          one.uid = n + (one.纯度 != null ? '-' + one.纯度 : '') + '#开局' + k;
-          g.补给物品.push(one);
+        var ps = 预设补给[i];
+        if (n === '魔素晶体' || n === '魔素导液') {
+          g.补给物品.push(JSON.parse(JSON.stringify(ps)));   // 库存型：保留原数量/纯度/克数或容量ml
+        } else {
+          for (var k = 0; k < ps.数量; k++) {
+            var one = JSON.parse(JSON.stringify(ps));
+            one.数量 = 1;
+            one.uid = n + (one.纯度 != null ? '-' + one.纯度 : '') + '#开局' + k;
+            g.补给物品.push(one);
+          }
         }
       }
     });
