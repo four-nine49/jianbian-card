@@ -97,6 +97,8 @@
       padding: 8px 12px; outline: none; border-radius: 2px; transition: all 0.2s;
     }
     .text-input:focus { border-color: var(--acid-cyan); box-shadow: 0 0 12px rgba(0, 240, 255, 0.25); }
+    .opening-area { width: 100%; height: 170px; background: #0d121c; border: 1.5px solid #1e293b; color: #cbd5e1; font-family: var(--font-mono); font-size: 11px; padding: 10px; outline: none; border-radius: 2px; resize: vertical; line-height: 1.65; }
+    .opening-area:focus { border-color: var(--acid-cyan); box-shadow: 0 0 12px rgba(0, 240, 255, 0.25); }
     .gender-radio-group { display: flex; gap: 8px; }
     .gender-pill {
       flex: 1; padding: 9px 0; background: #0d121c; border: 1.5px solid #1e293b;
@@ -296,6 +298,21 @@
       <span class="sec-rule">主亲和与次亲和逐一授予对应分支的最基础固定回路（无需自选）</span>
     </div>
     <div class="circuit-preview-list" id="circuitPreview"></div>
+  </div>
+
+  <!-- 06 开场白 -->
+  <div class="section-box">
+    <div class="section-hdr">
+      <div><span class="sec-num">06</span><span class="sec-title">开场白 // OPENING</span></div>
+      <span class="sec-rule" id="openingRuleTag">选择开场白方式</span>
+    </div>
+    <div class="gender-radio-group" style="max-width:520px;">
+      <div class="gender-pill" data-om="preset">① 作者指定预设（需开启女主）</div>
+      <div class="gender-pill active" data-om="ai">② AI 自动生成</div>
+    </div>
+    <textarea class="opening-area" id="openingBox" rows="6"></textarea>
+    <div class="hint" id="openingHint">② 模式：请求文本已自动包含玩家信息，复制后发到聊天，正文 AI 回复即正式开场白。</div>
+    <button class="btn-slot-mod" id="btnCopyRequest" style="border-color:#38bdf8;color:#38bdf8;margin-top:10px;">复制请求文本</button>
   </div>
 
   <!-- 底部 -->
@@ -1155,6 +1172,7 @@
     if (t.dataset && t.dataset.female !== undefined) {
       wantFemale = t.dataset.female === '1';
       document.querySelectorAll('[data-female]').forEach(function (p) { p.classList.toggle('active', p.dataset.female === t.dataset.female); });
+      renderOpeningArea();   // 关闭女主时若选的是作者预设 → 自动切回 AI 模式
       return;
     }
     if (t.dataset && t.dataset.preset) {
@@ -1183,12 +1201,45 @@
       renderAll();
       return;
     }
+    if (t.dataset && t.dataset.om) {
+      openingMode = t.dataset.om;
+      if (openingMode === 'preset' && !wantFemale) {
+        renderOpeningArea();                       // 会自动回退到 AI 模式
+        alert('① 作者指定预设需先开启女主（01+ 女主 选「要女主」）。');
+        return;
+      }
+      renderOpeningArea();
+      return;
+    }
   });
-  $('#inputName').addEventListener('input', renderSummary);
+  $('#inputName').addEventListener('input', function () { renderSummary(); renderOpeningArea(); });
 
   /* ═══════════════════ 时间/开场白（沿用扩展，可改） ═══════════════════ */
   var DEFAULT_TIME = '2026年9月1日，08：00';
-  var DEFAULT_OPENING = '2026年，魔素渗入这个世界的每个角落已经二十七年。路灯里淌着微光，换电站取代了旧时代的加油站，义务教育里的魔法课和体育课地位相当。今天是你开启身份档案的第一天……';
+  var AI_OPENING_PLACEHOLDER = '（开局待生成）本楼为占位：请复制上方「开场白生成请求」到聊天发送，正文 AI 回复即为正式开端。';
+  var openingMode = 'ai';   // 开场白模式：'preset'=作者预设（需女主）/ 'ai'=AI 自动生成（填玩家信息请求，玩家自己发）
+  var PRESET_OPENING = '这是2026年，魔素渗入世界的第二十七年。\n它早已不是新闻里的奇观。照明、调温、手机电池、街头换电站——魔法像电一样流进日常，低级魔法课是义务教育里的必修课，跟体育差不多。如今你坐在中级魔法学院的大教室里，窗外是再普通不过的秋日，阳光斜斜地切进来，照得讲台上那圈"魔素流体动力学基础"的板书有些发白。\n{{user}}坐在最后一排，靠着墙，位置选得刁钻，前面恰好有个高个男生挡住老师的视线。她本来打算把这节课平稳地摸过去，笔记本摊开，笔握在手里，心思早就飘到了中午吃什么。\n斜前方隔一个空位的地方，坐着一个女生。黑色短发，耳骨上有一排银色小环，没穿学院统一的实验外套，袖口卷到手肘，露出一截线条利落的小臂。她也没在听课。一支笔在她指间转得飞快，偶尔停下来，在草稿纸边角画几个潦草的风旋符号——那姿态不像记笔记，更像某种不耐烦的消遣。她整个人散发着一种"我也在这儿耗着"的气场，和{{user}}遥相呼应，两个摸鱼的隔着过道达成了某种无声的默契。\n"最后一排，靠窗那个女生。"\n讲台上的声音突然拔高。老师推了推眼镜，目光精准地越过前排脑袋，钉在{{user}}脸上。\n"你来回答一下——魔素湍流在临界阈值附近的相变特征，以及人体亲和回路在这种情况下为什么容易出现响应延迟？"\n教室里安静了一瞬。几十道目光或明或暗地扫过来。\n{{user}}站起来，脑子里一片空白。她刚才在走神，连问题都没听全。\n就在这时，斜前方传来一声极轻的、像是自言自语般的嘀咕，声音压得刚好能让她听见：\n"……阈值附近魔素密度梯度陡增，亲和回路来不及重构感知模型，响应延迟是因为神经-魔素接口的带宽被占满了。说人话就是——\'脑子跟不上魔素的变化速度\'。"\n那声音不高，带着点懒洋洋的哑，像是不耐烦顺手扔过来的。\n{{user}}照说了。老师挑了挑眉，勉强点了点头："……坐下吧。上课专心。"\n她松了口气，落座时忍不住看向斜前方。那个短发女生已经重新低下头，笔又在指间转了起来，仿佛刚才什么都没发生，只留给她一个后脑勺和耳骨上晃了一下的银光。\n中午，食堂。\n{{user}}端着餐盘在人群中找位置，忽然在角落看到了那个熟悉的背影。黑色短发，还是那件没穿实验外套的装束，一个人坐在四人桌的最里面，正用筷子戳着盘子里的菜，动作里透着一股"这饭也就这样"的敷衍。\n她犹豫了一下，还是走了过去。\n"那个……上午的事，谢谢。"\n陆安抬起头。她的眼睛在食堂顶灯下显得很亮，带着一种审视的意味，把{{user}}从上到下扫了一遍。\n"哦，那个啊。"她夹了一筷子菜，语气平淡，"我只是在自言自语。碰巧你耳朵灵。"\n她顿了顿，筷子尖点了点对面的空位，动作幅度很小。\n"……坐不坐？不坐别挡我光。"';
+  function 开场白请求() {
+    var nm = ($('#inputName').value.trim()) || '小王';
+    var E0 = ATTRIB_GRADES[attrSel.energy], M0 = ATTRIB_GRADES[attrSel.mind], S0 = ATTRIB_GRADES[attrSel.sustain], B0 = ATTRIB_GRADES[attrSel.burst];
+    var circ = mains.concat(subs).map(function (b) { var c = BRANCH_CIRCUIT[b]; return c ? c.名称 : ''; }).filter(Boolean).join('、') || '（无）';
+    return '【开场白生成请求】\n请以第三视角写一段 300~500 字的开局场景：确立世界观基调（魔素=未分化能量，2026年日常魔法时代）、主角处境与第一个可展开的事件钩子。\n\n玩家信息：\n- 姓名：' + nm + '（' + gender + '）\n- 难度：' + difficulty + '（' + 点预算() + ' 点，已用 ' + 总花费() + '）\n- 属性：能量上限 ' + E0.能量MJ + ' MJ / 精神 ' + M0.精神 + ' / 持续 ' + (S0.持续W / 1000) + ' kW / 瞬时 ' + B0.瞬时kW + ' kW\n- 亲和：主=' + (mains.join('、') || '无') + '；次=' + (subs.join('、') || '无') + '\n- 初始固定回路：' + circ + '\n- 女主：' + (wantFemale ? '要（陆安，同班/常驻角色）' : '不要') + '\n- 补给：魔素晶体×2、魔素导液×2、止血喷雾、神经贴片（新手包库存）\n\n请直接输出正式开场白正文（不要回复本请求格式，不要解释）。';
+  }
+  function renderOpeningArea() {
+    var box = $('#openingBox'), tag = $('#openingRuleTag');
+    if (!box) return;
+    if (openingMode === 'preset' && !wantFemale) { openingMode = 'ai'; }   // 作者预设仅开启女主时可选
+    document.querySelectorAll('[data-om]').forEach(function (p) { p.classList.toggle('active', p.dataset.om === openingMode); });
+    if (openingMode === 'preset') {
+      box.value = PRESET_OPENING;
+      if (tag) tag.textContent = '① 作者指定预设（含女主·陆安）——需开启女主';
+      $('#openingHint').textContent = '预设为校园场景起手：主角与陆安同班（主角名用 {{user}} 宏，酒馆运行时自动替换为主角名）。';
+    } else {
+      box.value = 开场白请求();
+      if (tag) tag.textContent = '② AI 自动生成——请求已含玩家信息，复制发送给正文 AI 即可';
+      $('#openingHint').textContent = '② 模式：请求文本已自动包含玩家信息，复制后发到聊天，正文 AI 回复即正式开场白。';
+    }
+  }
   function parseTime(label) {
     var s = String(label || '').replace(/[，,]/g, ',').replace(/[：:]/g, ':').replace(/\s+/g, '').trim();
     var m = s.match(/^(\d{1,4})年(\d{1,2})月(\d{1,2})日,(\d{1,2}):(\d{2})$/);
@@ -1196,6 +1247,19 @@
     var t = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
     return Number.isNaN(t) ? null : Math.round(t / 60000);
   }
+
+  $('#btnCopyRequest').addEventListener('click', function () {
+    var box = $('#openingBox');
+    if (!box) return;
+    box.focus(); box.select();
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(box.value).then(function () { toast(true, '已复制开场白文本（可粘到聊天发送）。'); }).catch(function () {});
+        return;
+      }
+    } catch (e) {}
+    toast(true, '已全选，按 Ctrl+C 复制后粘到聊天发送。');
+  });
 
   /* ═══════════════════ 确认开局（点数制 → 存档 → 落盘） ═══════════════════ */
   function toast(ok, text) { var m = $('#msg'); m.style.color = ok ? '#c6ff00' : '#f43f5e'; m.textContent = text; }
@@ -1240,6 +1304,9 @@
     if (typeof getVariables !== 'function') { toast(false, '需要酒馆助手环境'); return; }
     var timeLabel = DEFAULT_TIME;
     if (!parseTime(timeLabel)) { toast(false, '剧情时间格式错误'); return; }
+    // 开场白：①作者预设 → 写入框内全文；②AI 生成 → 0 楼写占位（请求由玩家自己发）
+    var opening0 = openingMode === 'preset' ? $('#openingBox').value.trim() : AI_OPENING_PLACEHOLDER;
+    if (!opening0) opening0 = AI_OPENING_PLACEHOLDER;
 
     var mainsB = mains.map(function (b) { var f = ''; AFFINITY_SCHEMA.forEach(function (g) { if (g.branches.indexOf(b) >= 0) f = g.family; }); return { 族: f, 分支: b }; });
     var subsB = subs.map(function (b) { var f = ''; AFFINITY_SCHEMA.forEach(function (g) { if (g.branches.indexOf(b) >= 0) f = g.family; }); return { 族: f, 分支: b }; });
@@ -1287,12 +1354,12 @@
 
     $('#btnFinishSetup').disabled = true; toast(true, '正在写入…');
     Promise.resolve(updateVariablesWith(function (v) { v['渐变带'] = g; return v; }, { type: 'chat' })).then(function () {
-      return Promise.resolve(setChatMessages([{ message_id: 0, message: DEFAULT_OPENING }], { refresh: 'all' })).catch(function () {});
+      return Promise.resolve(setChatMessages([{ message_id: 0, message: opening0 }], { refresh: 'all' })).catch(function () {});
     }).then(function () {
       var snap = JSON.parse(JSON.stringify(g)); if (snap['主角']) delete snap['主角']['上次结算min'];
       return Promise.resolve(updateVariablesWith(function (v) { v.stat_data = v.stat_data || {}; v.stat_data['渐变带'] = snap; return v; }, { type: 'message', message_id: 0 })).catch(function () {});
     }).then(function () {
-      return 女主清单(wantFemale, name);
+      return 女主清单(wantFemale);
     }).then(function () {
       toast(true, '✓ 开局完成！神经回路已烧录' + slot + ' 条，开场白写入第 0 楼。' + (wantFemale ? '（已写入陆安追踪表）' : '（未启用女主，标准自动填表已关闭）'));
     }).catch(function (e) {
@@ -1302,7 +1369,7 @@
   });
 
   /* 女主（陆安）：要 → 建「陆安追踪表」标准表并参与自动填表；不要 → 不建表并关闭开局框架「启用标准表格」 */
-  function 女主清单(wantFemale, name) {
+  function 女主清单(wantFemale) {
     return Promise.resolve().then(function () {
       if (wantFemale) {
         var sheet = {
@@ -1310,7 +1377,7 @@
           purpose: '感情追踪表（陆安追踪表）：追踪角色心理状态，由自动填表按表规则更新。',
           type: 'standard',
           headers: ['姓名', '长期目标', '短期目标', '怎么看待主角', '自洽', '共情', '解构', '对主角的信任度'],
-          rows: [[name || '小王', '', '', '', '10', '6', '10', '5']],
+          rows: [['陆安', '', '', '', '10', '6', '10', '5']],   // 女主姓名固定 = 陆安
           sourceData: { note: '记录陆安的心理动态变化。此表有且仅有一行。\n\n■ 陆安数值变化规则（常驻）\n四条数值：自洽、共情、解构、对主角的信任度，范围0–17。\n一、基本规则：单次事件最多 ±2，不确定给 ±1。大多数日常交互是 ±0。同类事件递减（第一次给满，第二次-1，第三次起+0）。\n二、±1 还是 ±2：±1=日常交互短暂可控；±2=触及核心矛盾且事件后行为有持续变化；±0=积累条件。\n三、自洽/共情/解构（高分=好状态）：\n  自洽（她怎么对待自己）：被看见不被评判、风系魔法被认可、听懂"算了"和"接纳"的区别 加分；真实方向被否定、被迫更深入扮演面具、过载受伤被体系善待反而更走不了 扣分。\n  共情（她怎么对待他人）：保护弱者后多留一步、用自己的弯路指导被误判的新生 加分；保护时伤及无辜、对圈外人冷漠升级为主动嘲讽 扣分。\n  解构（她用语言面对世界）：拿自己开涮不带攻击性、主动提起自己的错路不带自毁式嘲讽 加分；幽默变伤人眼神是死的、拒绝严肃对话、拿别人的真实痛苦开玩笑 扣分。\n四、对主角的信任度：退缩时不追问但下次自然接上、记住她随口说过的事、不表演共情、她出事时第一个出现、不利用她的脆弱 加分；退缩时穷追不舍、她的脆弱被当筹码、表演共情说"我完全理解"、答应她又没来、对她的自欺报以说教 扣分。达到17后锁定，只有+2才可从15/16到17。\n五、多轴与门槛：同一事件可同时影响多条轴各轴独立判定，一场戏每条轴最多变动一次；信任度突破10需至少一个（自洽/共情/解构）≥6；任一轴12+的加分需此前有足够铺垫。\n【强制约束】此表有且仅有一行（row_id=1）；每轮交互后更新；四条数值 0-17 整数；所有 TEXT 字段不可为 NULL 或空串。', insertRule: '禁止。', updateRule: '自动填表按表规则更新。', deleteRule: '禁止。' },
           updateConfig: { enabled: true }
         };
@@ -1336,6 +1403,7 @@
   /* ═══════════════════ 启动 ═══════════════════ */
   renderAll();
   setDifficulty('普通', false);
+  renderOpeningArea();
   if (typeof getVariables !== 'function') toast(false, '需要酒馆助手环境（请在酒馆消息楼层内打开本页）');
 })();
 </script>
