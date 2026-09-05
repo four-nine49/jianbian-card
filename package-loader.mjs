@@ -15,7 +15,7 @@
 //   3. GitHub tags API 取最新 tag（空/异常回退 manifest.json 的版本）
 //   4. fetch 前和 append 前各复检一次；注入元素 id 稳定，可重复执行
 //   5. 不自动 destroy 旧实例、不顶层 return 逃逸
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -142,7 +142,9 @@ const script = {
   export_with: { data: true, button: true },
 };
 
-const out = resolve(__dirname, '酒馆助手脚本-开局.json');
+const outDir = resolve(__dirname, 'releases');
+mkdirSync(outDir, { recursive: true });
+const out = resolve(outDir, '酒馆助手脚本-开局.json');
 writeFileSync(out, JSON.stringify(script, null, 2), 'utf8');
 
 // ── 自检（对照玉子手机 check-script-loader-contract.cjs 的关键契约）──
