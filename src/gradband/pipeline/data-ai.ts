@@ -25,8 +25,7 @@ const SCHEMA = {
         properties: {
           能量: { type: 'number' }, 精神: { type: 'number' },
           能量上限: { type: 'number' }, 精神上限: { type: 'number', description: '仅突破/觉醒类剧情允许提高' },
-          爆发线: { type: 'number', description: '只能为正（提高），仅训练/战斗类剧情，一次 1~5' },
-          持续线: { type: 'number', description: '只能为正（提高），仅训练/战斗类剧情，一次 1~5' },
+          持续线: { type: 'number', description: '只能为正（提高），仅训练/战斗类剧情，一次 1~5；瞬时爆发线=持续×倍率自动派生，禁止直接报爆发线' },
         },
         additionalProperties: false,
       },

@@ -227,6 +227,9 @@ finally：开关.状态栏标记 → 楼末追加 <StatusPlaceHolderImpl/>
   以副作用引入并转成具名导出。**业务代码不许直接 import circuit-engine.js**，一律走 engine.ts。
 - 铁律「数字只被脚本改」：AI/玩家不得自行算数，一切计算过 E（quote/settleCircuitLibrary/…）。
   正文 AI 只看锚点级描述（引擎 readableParams / serialize.ts 负责翻译）。
+- v2.2 要点：瞬时爆发线=持续×爆发倍率（倍率存 `主角.爆发倍率`，旧档 loadGame 反推）；地震等引信类
+  做功口径 = 全能量×`TUNE.seismicWorkFrac`(2%) 且恒比爆发线；每条回路每轮预掷 `本轮走火`（对玩家界面不可见）；
+  亲和磨炼=全陌 ×4→×2（按 workE 实际做功能量累计，生机系能量门控恒 ×1）——磨炼倍率映射由 engineCtx 下发。
 - smoke 里 `globalThis.module=undefined` 是故意的（让 UMD 引擎挂 window）；engine.ts 两侧都找。
 
 ### 9.4 状态栏 / 开局 HTML（正则注入）
@@ -273,7 +276,7 @@ node package-loader.mjs           # 生成 releases/酒馆助手脚本-开局.js
 
 ## 12. 版本与发布流程（每次改完）
 
-1. 改 `core/version.ts` + `manifest.json` + `package.json`（三处同步，当前 1.7.1；
+1. 改 `core/version.ts` + `manifest.json` + `package.json`（三处同步，当前 1.8.0；
    版本以 `manifest.json` 为准，别凭记忆写）。
 2. `node build.mjs` → `tsc --noEmit`（`pnpm run check`）→ `node smoke.mjs`。
 3. 改了 manifest 版本号 → `node package-loader.mjs` 重新生成 `releases/酒馆助手脚本-开局.json`

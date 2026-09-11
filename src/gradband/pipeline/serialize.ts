@@ -52,7 +52,7 @@ export function serialize数据AI(g: 游戏): string {
   const payload = {
     主角: {
       能量kJ: g.主角.能量kJ, 精神点: g.主角.精神点,
-      爆发线kW: g.主角.爆发线kW, 持续线kW: g.主角.持续线kW,
+      爆发线kW: g.主角.爆发线kW, 爆发倍率: g.主角.爆发倍率 ?? 10, 持续线kW: g.主角.持续线kW,
       战斗中: g.主角.战斗中, 身体状态: g.主角.身体状态, 剧情时间: g.主角.剧情时间.label,
     },
     槽位清单: {

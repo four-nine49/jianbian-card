@@ -10,7 +10,7 @@
 // h 转正   uses≥10 → 复制入固定库(来源=转正)、删自由条目、槽位空出并提示
 import { 补给白名单, type 游戏, type 回路, type 补给 } from '../core/schema';
 import { 按纯度算效果, 补给档位, 晶体克数缺省, 导液容量缺省 } from '../core/presets';
-import { TUNE, quote, initParams, branchOf, readableParams, budgetFrom, readableBudget, anchorOf, syncParams, compileOrder, FAMKEY, settleCircuitLibrary } from '../engine/engine';
+import { TUNE, quote, initParams, branchOf, readableParams, budgetFrom, readableBudget, anchorOf, syncParams, compileOrder, FAMKEY, TREE, tierOf, settleCircuitLibrary } from '../engine/engine';
 import { 解析剧情时间, 格式化剧情时间 } from '../core/time';
 import type { 变更包 } from './contract';
 
@@ -29,10 +29,26 @@ export function affinityEngine(g: 游戏): { main: { fam: string; br: string }[]
   };
 }
 
+/** 亲和磨炼映射：全陌分支的当前门控倍率（M = 4 − 2×min(1, 该分支累计实扣能量/(5×油箱上限))），4=未磨炼 */
+function 亲和磨炼映射(g: 游戏, aff: ReturnType<typeof affinityEngine>): Record<string, number> {
+  const map: Record<string, number> = {};
+  const spent = g.主角.磨炼 ?? {};
+  const emax = Math.max(1, g.主角.能量kJ.上限);
+  for (const [fk, fam] of Object.entries(FAMKEY) as [string, string][]) {
+    for (const br of (TREE as Record<string, string[]>)[fam] ?? []) {
+      if (tierOf(aff, fk, br) !== 'far') continue;
+      map[br] = Math.round((4 - 2 * Math.min(1, (spent[br] ?? 0) / (5 * emax))) * 100) / 100;
+    }
+  }
+  return map;
+}
+
 /** 引擎 ctx 组装（结算/报价/送审共用） */
 export function engineCtx(g: 游戏, opts?: { noTuned?: boolean }) {
+  const aff = affinityEngine(g);
   return {
-    aff: affinityEngine(g),
+    aff,
+    亲和磨炼: 亲和磨炼映射(g, aff),
     scene: { wind: g.场景.风力档, mat: g.场景.可塑无机物kJ, water: g.场景.水体在场 },
     char: { burstKW: g.主角.爆发线kW, sustainKW: g.主角.持续线kW, speed: 1, eCur: g.主角.能量kJ.当前, mCur: g.主角.精神点.当前, mMax: g.主角.精神点.上限, body: g.主角.身体状态 },
     tuned: opts?.noTuned ? [] : collectTuned(g),
@@ -95,8 +111,8 @@ export function settle(g: 游戏, pack: 变更包): 结算报告 {
       for (let k = 0; k < u.次数; k++) {
         const q = quote({ fam: c.famKey, e: c.注册e ?? 0, c: c.参数向量 as Record<string, number> }, ctx);
         g.待扣单.push({
-          ref: c.id, 名称: c.名称 + '（补扣）',
-          bill: q.bill, mind: q.mind, tell: q.tell, risk: q.risk,
+          ref: c.id, 名称: c.名称 + '（补扣）', 分支: c.分支,
+          bill: q.bill, mind: q.mind, workE: q.workE, tell: q.tell, risk: q.risk,
           锚点: anchorOf(q.E_out), order: compileOrder(q), famKey: c.famKey,
         });
       }
@@ -107,6 +123,9 @@ export function settle(g: 游戏, pack: 变更包): 结算报告 {
     for (const p of g.待扣单) {
       主角.能量kJ.当前 -= p.bill;
       主角.精神点.当前 -= p.mind;
+      // 亲和磨炼：按实际做功能量累计（workE=剥除倍率/伤势溢价的做功；口径见引擎 workE）
+      const br = p.分支 ?? g.回路库.find(x => x.id === p.ref)?.分支;
+      if (br) { 主角.磨炼 ??= {}; 主角.磨炼[br] = Math.round(((主角.磨炼[br] ?? 0) + (p.workE ?? 0)) * 10) / 10; }
       log.push(`⑥a 扣费《${p.名称}》能量−${p.bill}kJ（${p.锚点}）精神−${p.mind}`);
     }
     g.待扣单 = [];
@@ -164,9 +183,13 @@ export function settle(g: 游戏, pack: 变更包): 结算报告 {
     if (typeof num.精神 === 'number') { 主角.精神点.当前 += num.精神; log.push(`⑥e 剧情特例：精神 ${num.精神 > 0 ? '+' : ''}${num.精神}`); }
     if (typeof num.能量上限 === 'number') { 主角.能量kJ.上限 = Math.max(1, 主角.能量kJ.上限 + num.能量上限); log.push(`⑥e 能量上限 → ${主角.能量kJ.上限}kJ`); }
     if (typeof num.精神上限 === 'number') { 主角.精神点.上限 = Math.max(1, 主角.精神点.上限 + num.精神上限); log.push(`⑥e 精神上限 → ${主角.精神点.上限}`); notices.push(`精神上限变为 ${主角.精神点.上限}`); }
-    // 爆发线/持续线：只能提高（训练/战斗才可，且一次一点）；负值忽略
-    if (typeof num.爆发线 === 'number' && num.爆发线 > 0) { 主角.爆发线kW = Math.round(主角.爆发线kW + num.爆发线); log.push(`⑥e 爆发线 → ${主角.爆发线kW}kW`); notices.push(`爆发线提升至 ${主角.爆发线kW}kW`); }
-    if (typeof num.持续线 === 'number' && num.持续线 > 0) { 主角.持续线kW = Math.round(主角.持续线kW + num.持续线); log.push(`⑥e 持续线 → ${主角.持续线kW}kW`); notices.push(`持续线提升至 ${主角.持续线kW}kW`); }
+    // 持续线：只能提高（训练/战斗才可，且一次 1~5）；爆发线=持续×倍率 派生，AI 不得直接报
+    if (typeof num.持续线 === 'number' && num.持续线 > 0) {
+      主角.持续线kW = Math.round(主角.持续线kW + num.持续线);
+      主角.爆发线kW = Math.round(主角.持续线kW * (主角.爆发倍率 ?? 10) * 10) / 10;
+      log.push(`⑥e 持续线 → ${主角.持续线kW}kW（爆发线 ${主角.爆发线kW}kW）`);
+      notices.push(`持续线提升至 ${主角.持续线kW}kW`);
+    }
   }
   if (pack.场景变更) {
     const s = pack.场景变更;
@@ -252,9 +275,9 @@ export function settle(g: 游戏, pack: 变更包): 结算报告 {
   }
   if (!pack.剧情获得.length) log.push('⑥i 无剧情获得');
 
-  /* ── j 过载率/过载风险：每轮重算各回路（引擎 settleCircuitLibrary 批量重算） ── */
+  /* ── j 过载率/过载风险/本轮走火：每轮重算各回路（引擎批量重算 + 预掷走火，判定权收归脚本） ── */
   const ctx = engineCtx(g);
-  g.回路库 = settleCircuitLibrary(g.回路库, ctx) as typeof g.回路库;
+  g.回路库 = settleCircuitLibrary(g.回路库, ctx, Math.random) as typeof g.回路库;
   log.push(`⑥j 过载率/过载风险已重算 ${g.回路库.length} 条`);
 
   return { log, notices, promoted };

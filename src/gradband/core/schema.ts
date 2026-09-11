@@ -9,8 +9,10 @@ import { z } from 'zod';
 export const 主角Schema = z.object({
   能量kJ: z.object({ 当前: z.number(), 上限: z.number() }),
   精神点: z.object({ 当前: z.number(), 上限: z.number() }),
-  爆发线kW: z.number(),
-  持续线kW: z.number(),
+  爆发线kW: z.number(),                          // 派生值 = 持续线kW × 爆发倍率（loadGame/⑥e 时重算落盘）
+  爆发倍率: z.number().optional(),               // 瞬时=持续×倍率（×8~×50）；旧档无此字段，loadGame 反推
+  持续线kW: z.number(),                          // 通径基座（加法成长唯一入口，+1~5）
+  磨炼: z.record(z.string(), z.number()).optional(),  // 分支名 → 累计实际做功能量 kJ（全陌熟练度：烧满 5 罐 ×4→×2；口径=剥除倍率溢价的做功，见引擎 workE）
   战斗中: z.boolean(),
   身体状态: z.enum(['正常', '轻伤', '重伤', '过载透支']),
   剧情时间: z.object({ label: z.string() }),   // 格式 "2026年11月12日，21：12"；分钟数由脚本解析持有
@@ -65,6 +67,8 @@ export const 回路Schema = z.object({
   过载率: z.number().optional(),
   // 过载风险（0-100，%）：综合过载风险 = (过载率映射 + 客观修正) × 精神上限系数β × 当前精神乘数γ
   过载风险: z.number().optional(),
+  // 本轮走火：脚本每轮按过载风险预掷（1~100 ≤ 风险），判定权收归脚本；玩家界面不下发
+  本轮走火: z.boolean().optional(),
   // 桌面自由放置位置（回路配置桌的自由坐标；无此字段=吸附槽位显示）
   桌面位置: z.object({ x: z.number(), y: z.number() }).optional(),
 });
@@ -93,6 +97,8 @@ export const 待扣单Schema = z.object({
   锚点: z.string(),
   order: z.string(),
   famKey: z.string().nullable().optional(),
+  分支: z.string().optional(),                      // 磨炼统计用（⑥a 按分支累计）
+  workE: z.number().optional(),                     // 实际做功能量（磨炼口径，剥除倍率溢价）
 });
 
 /* ── 场景 ── */
@@ -124,8 +130,9 @@ export function 默认游戏(over?: Partial<游戏>): 游戏 {
     主角: {
       能量kJ: { 当前: 5000, 上限: 10000 },
       精神点: { 当前: 80, 上限: 90 },
-      爆发线kW: 300,
-      持续线kW: 50,
+      爆发线kW: 0.8,
+      爆发倍率: 8,
+      持续线kW: 0.1,
       战斗中: false,
       身体状态: '正常',
       剧情时间: { label: '2026年9月1日，08：00' },

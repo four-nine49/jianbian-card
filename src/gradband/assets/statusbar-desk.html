@@ -1821,8 +1821,19 @@
     return out;
   }
   function engineCtx(g) {
+    var aff = affinityOf(g);
+    var spent = (g.主角 && g.主角.磨炼) || {};
+    var emax = Math.max(1, g.主角.能量kJ.上限);
+    var 磨炼倍率 = {};
+    Object.keys(E.FAMKEY).forEach(function (fk) {
+      (E.TREE[E.FAMKEY[fk]] || []).forEach(function (br) {
+        if (E.tierOf(aff, fk, br) !== 'far') return;
+        磨炼倍率[br] = Math.round((4 - 2 * Math.min(1, (spent[br] || 0) / (5 * emax))) * 100) / 100;
+      });
+    });
     return {
-      aff: affinityOf(g),
+      aff: aff,
+      亲和磨炼: 磨炼倍率,
       scene: { wind: g.场景.风力档, mat: g.场景.可塑无机物kJ, water: g.场景.水体在场 },
       char: { burstKW: g.主角.爆发线kW, sustainKW: g.主角.持续线kW, speed: 1, eCur: g.主角.能量kJ.当前, mCur: g.主角.精神点.当前, mMax: g.主角.精神点.上限, body: g.主角.身体状态 },
       tuned: tunedList(g)
@@ -1850,7 +1861,7 @@
     { name: '石肤壁垒', fam: 'struct', e: 40, params: { base: 1, latt: 80, mass: 55, rate: 3, stress: 0, stressT: 10 }, effect: '土石壁垒·混相' },
     { name: '电磁脉冲', fam: 'flow', e: 0, params: { mode: 0, sub: 0, band: 2, eknob: 0, pkw: 40, et: 1 }, effect: '激光 1.6kW×1s' },
     { name: '引力悬浮', fam: 'flow', e: 0, params: { mode: 2, sub: 1, gk: 0, gm: 60, gh: 1 }, effect: '悬浮 38kg×1m' },
-    { name: '周界扫描', fam: 'perce', e: 5, params: { rad: 30, res: 1, pert: 0, dwell: 0, dwellSec: 20 }, effect: '半径30m·标准' },
+    { name: '周界扫描', fam: 'perce', e: 5, params: { rad: 30, res: 1, pert: 3, dwell: 0, dwellSec: 20 }, effect: '半径30m·标准' },
   ];
   function renderPresetButtons() {
     var wrap = document.getElementById('presetButtons');
@@ -2140,7 +2151,8 @@
         var pend = {
           ref: c.id,
           名称: c.名称 + '（手操）',
-          bill: q.bill, mind: q.mind, tell: q.tell, risk: q.risk,
+          分支: c.分支,
+          bill: q.bill, mind: q.mind, workE: q.workE, tell: q.tell, risk: q.risk,
           锚点: E.anchorOf(q.E_out), order: E.compileOrder(q), famKey: c.famKey
         };
         gg.待扣单.push(pend);
@@ -2783,8 +2795,8 @@
   $('#btnManualRecalc').addEventListener('click', function () {
     if (!g) { alert('尚未开局'); return; }
     writeGame(function (gg) {
-      // 与结算 ⑥j 同口径：引擎 settleCircuitLibrary 批量重算 过载率 + 过载风险
-      gg.回路库 = E.settleCircuitLibrary(gg.回路库, engineCtx(gg));
+      // 与结算 ⑥j 同口径：引擎 settleCircuitLibrary 批量重算 过载率 + 过载风险 + 预掷本轮走火
+      gg.回路库 = E.settleCircuitLibrary(gg.回路库, engineCtx(gg), Math.random);
     });
     loadFromSave(); renderDesktopCards(); renderRepoList(); renderMonitors();
     alert('已手动重算全部回路：过载率 / 过载风险 已更新。');

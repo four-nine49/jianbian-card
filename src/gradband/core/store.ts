@@ -8,12 +8,21 @@ import { 游戏Schema, 默认游戏, type 游戏 } from './schema';
 
 export const NS = '渐变带';
 
+/** 爆发倍率迁移：旧档无此字段时按 爆发线/持续线 反推（钳 ×8~×50），并重算派生爆发线 */
+function 迁移爆发(主角: 游戏['主角']): void {
+  const sustain = Math.max(主角.持续线kW, 1e-9);
+  if (主角.爆发倍率 == null || !isFinite(主角.爆发倍率)) {
+    主角.爆发倍率 = Math.min(50, Math.max(8, Math.round((主角.爆发线kW / sustain) * 10) / 10));
+  }
+  主角.爆发线kW = Math.round(sustain * 主角.爆发倍率 * 10) / 10;
+}
+
 export function loadGame(): 游戏 | null {
   try {
     const raw = getVariables({ type: 'chat' })?.[NS];
     if (!raw) return null;
     const parsed = 游戏Schema.safeParse(raw);
-    if (parsed.success) return parsed.data;
+    if (parsed.success) { 迁移爆发(parsed.data.主角); return parsed.data; }
     console.warn('[渐变带] 存档校验失败，忽略坏数据', parsed.error?.issues?.slice(0, 3));
     return null;
   } catch { return null; }

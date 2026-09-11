@@ -5,10 +5,10 @@ import type { 回路, 补给 } from './schema';
 export interface 预设回路 { key: string; 名称: string; famKey: 'pour' | 'flow' | 'struct' | 'life' | 'perce'; e?: number; params: Record<string, number>; 一句话效果: string }
 
 export const 预设回路清单: 预设回路[] = [
-  { key: 'windcut', 名称: '风切·标准发', famKey: 'flow', params: { mode: 1, sub: 1, fmed: 0, fa: 33, fv: 70, br: 100 }, 一句话效果: '风刃 A=0.049m² v=397m/s' },
+  { key: 'windcut', 名称: '风切·标准发', famKey: 'flow', params: { mode: 1, sub: 1, fmed: 0, fa: 33, fv: 35, br: 100 }, 一句话效果: '风刃 A=0.049m² v≈109m/s' },
   { key: 'fireball', 名称: '火球·标准式', famKey: 'pour', e: 40, params: { phase: 2, pw: 55, th: 25 }, 一句话效果: '热爆轰·收窄束' },
   { key: 'stonewall', 名称: '石肤壁垒', famKey: 'struct', e: 40, params: { base: 1, latt: 80, mass: 55, rate: 3, stress: 0, stressT: 10 }, 一句话效果: '土石壁垒·混相' },
-  { key: 'scan', 名称: '周界扫描', famKey: 'perce', e: 5, params: { rad: 30, res: 1, pert: 0, dwell: 0, dwellSec: 20 }, 一句话效果: '半径30m·标准' },
+  { key: 'scan', 名称: '周界扫描', famKey: 'perce', e: 5, params: { rad: 30, res: 1, pert: 3, dwell: 0, dwellSec: 20 }, 一句话效果: '半径30m·标准' },
 ];
 
 /** 纯度 → 恢复量档位（晶体/导液 3 档：民用 <80 / 管控 80-99 / 战略 ≥99） */

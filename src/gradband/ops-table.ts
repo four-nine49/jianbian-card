@@ -76,6 +76,9 @@ export async function confirmOps(): Promise<{ ok: boolean; error?: string; 明�
       const q = quote({ fam: circuit.famKey, e: 0, c: Object.assign(initParams(circuit.famKey), circuit.参数向量) }, ctx);
       if (!q) continue;
       totalBill += q.bill; totalMind += q.mind;
+      // 亲和磨炼：按实际做功能量累计（workE=剥除倍率/伤势溢价的做功，与 ⑥a 同口径）
+      g.主角.磨炼 ??= {};
+      g.主角.磨炼[circuit.分支] = Math.round(((g.主角.磨炼[circuit.分支] ?? 0) + q.workE) * 10) / 10;
       if (k === 0) 明细.push(`${circuit.名称}×${count}`);
     }
   }

@@ -8,6 +8,15 @@
  *   3. 新增可读翻译件生成：readableParams / budgetFrom / readableBudget
  *      —— 参数向量与微调预算给 AI/面板看时必须是全中文可读形态
  *   4. localJudge 不再驳回核力场（放开限制）
+ *   5. v2.2：1-2 地震引信条款落地——过载做功口径 = 全能量 × TUNE.seismicWorkFrac(2%)，
+ *      且引信类回路（workOut）恒比爆发线（点火是瞬发动作，大地出力不算人头）；
+ *      地震从"数学笑话"变回天灾阶梯：ML1.5 常规可放 / ML2.5 军队到场级耗罐 79% / ML3.5+ 双重不可行
+ *   6. v2.2：settleCircuitLibrary 为每条回路预掷 本轮走火（1~100 ≤ 过载风险；随机源由宿主注入 rng），
+ *      走火判定权收归脚本——玩家界面不下发该字段
+ *   7. v2.2：亲和磨炼——全陌门控倍率 M=4−2×λ 可减免至 2（λ=min(1, 该分支累计实际做功能量/(5×油箱上限))，
+ *      宿主算好经 ctx.亲和磨炼[分支名] 下发）；生机系改精神门控型（能量倍率恒 ×1）。
+ *      磨炼口径=实际做功能量 workE（剥除门控倍率/伤势溢价，介质折价保留，引信类只计点火费）——
+ *      绝不能记倍率后的账单，否则倍率越高刷得越快（正反馈错误）
  * 职责：构筑核算（报价）+ 判别mock + 出手单/cast_out 编译。
  * 原则：纯函数——不碰 DOM、不读写全局、不做IO。一切上下文走 ctx 入参。
  *      "数字只被脚本改"——本引擎就是那个脚本。AI 不得自行算术。
@@ -39,7 +48,8 @@
     promoteN: 10,         // 自由回路转正次数阈值（⑥h）
     injuryRegenMul: 0.5,  // 重伤恢复倍率；前后均战斗时恒为0
     supplyMaxKJ: 5000,    // 单件补给效果上限（钳制，防数据AI灌贴）
-    supplyMaxPoint: 50    // 精神类补给上限（点）
+    supplyMaxPoint: 50,   // 精神类补给上限（点）
+    seismicWorkFrac: 0.02 // v2.2 引信条款：1-2 地震的过载做功口径 = 全能量的 2%（大地出力不算人头，只算点火费）
   };
 
   /* ================= 亲和门控（§5.1 分支表） ================= */
@@ -57,11 +67,15 @@
     if (subs.some(s => s && s.fam === fam)) return 'mid';
     return 'far';
   }
-  function gateOf(aff, famKey, br) {
+  // v2.2 亲和磨炼：全陌倍率可随练习减免（M=4→2，宿主按"累计实扣能量/5 罐"算好经 mastery[分支名] 下发）；
+  // 生机系=精神门控型（催化剂不是锤子）——亲和倍率只压精神，能量恒×1
+  function gateOf(aff, famKey, br, mastery) {
     const t = tierOf(aff, famKey, br);
-    return t === 'main' ? { m: 1, e: 1, n: '主分支', c: 'g', t }
-      : t === 'mid' ? { m: 2, e: 1.5, n: '中档·次/同族', c: 'y', t }
-        : { m: 4, e: 4, n: '全陌', c: 'r', t };
+    const life = famKey === 'life';
+    if (t === 'main') return { m: 1, e: 1, n: '主分支', c: 'g', t };
+    if (t === 'mid') return { m: 2, e: life ? 1 : 1.5, n: '中档·次/同族', c: 'y', t };
+    const M = (mastery && mastery[br]) || 4;   // 全陌磨炼减免：4 → 2（缺省=未磨炼）
+    return { m: M, e: life ? 1 : M, n: '全陌', c: 'r', t };
   }
 
   /* ================= 波动系实体：插槽=物理量，E=公式导出 ================= */
@@ -125,7 +139,7 @@
         { k: 'br', label: '介质借用率', type: 'range', min: 0, max: 100, step: 5, def: 70, show: c => c.mode === 1, fmt: v => v + ' %' }] },
     struct: { name: '结构系', sub: '分子重排 · 不可逆零维持', baseMind: 2, baseTime: .5, tell: 2,
       ctrls: [
-        { k: 'base', label: '无机物基底(=分支)', type: 'seg', opts: ['随身钢材→金属', '地面存量→土石', '空气粉尘→土石·能量×3'], def: 1 },
+        { k: 'base', label: '无机物基底(=分支)', type: 'seg', opts: ['随身钢材→金属', '地面存量→土石', '空气粉尘→土石·能量×3', '随身晶体→晶体', '随身合金→合金'], def: 1 },
         { k: 'latt', label: '晶格重排方向', type: 'range', min: 0, max: 100, step: 1, def: 80, fmt: v => (v > 70 ? '共价相·脆硬' : v > 30 ? '混相' : '金属相·延韧') + '（' + v + ' 档）' },
         { k: 'mass', label: '重排体量', type: 'range', min: 0, max: 100, step: 1, def: 55, fmt: v => massKg(v).toFixed(1) + ' kg' },
         { k: 'rate', label: '重排速率', type: 'range', min: 0.5, max: 10, step: 0.5, def: 3, fmt: v => v + ' 档' },
@@ -144,7 +158,7 @@
       ctrls: [
         { k: 'rad', label: '扫描半径', type: 'range', min: 1, max: 200, step: 1, def: 30, fmt: v => v + ' m' },
         { k: 'res', label: '信噪/分辨率', type: 'seg', opts: ['广域', '标准', '锐分(被察觉+8%)'], def: 1 },
-        { k: 'pert', label: '信息扰动深度(=分支)', type: 'seg', opts: ['噪声干扰→读心干扰', '幻觉碎片→信息伪造', '深幻→信息伪造'], def: 0 },
+        { k: 'pert', label: '信息扰动深度(=分支)', type: 'seg', opts: ['噪声干扰→读心干扰', '幻觉碎片→信息伪造', '深幻→信息伪造', '纯感知→五感延伸'], def: 0 },
         { k: 'dwell', label: '驻留形态', type: 'seg', opts: ['瞬时扫', '待机雷达', '触发告警'], def: 0 },
         { k: 'dwellSec', label: '驻留时长', type: 'range', min: 5, max: 60, step: 5, def: 20, show: c => c.dwell >= 1, fmt: v => v + ' s' }] }
   };
@@ -171,9 +185,9 @@
       if (k[0] === '1') return '媒介波';
       return { '2-0': '电磁场', '2-1': '引力场', '2-2': '核力场' }[k];
     }
-    if (fam === 'struct') return ['金属', '土石', '土石'][c.base];
+    if (fam === 'struct') return ['金属', '土石', '土石', '晶体', '合金'][c.base];
     if (fam === 'life') return ['植物', '动物(含人体)', '微生物'][c.targ];
-    return ['读心干扰', '信息伪造', '信息伪造'][c.pert];
+    return ['读心干扰', '信息伪造', '信息伪造', '五感延伸'][c.pert];
   }
 
   /* ================= v2.1 新增：可读翻译件（AI/面板只看这个） =================
@@ -228,7 +242,7 @@
     const F = FAMS[fam];
     const scene = ctx.scene || { wind: 40, mat: 3000, water: false };
     const speed = (ctx.char && ctx.char.speed) || 1;
-    const br = branchOf(fam, c), g = gateOf(ctx.aff, fam, br);
+    const br = branchOf(fam, c), g = gateOf(ctx.aff, fam, br, ctx.亲和磨炼);
     const o = { fam, F, g, branch: br, c, chips: [], lines: [] };
     o.out = F.relCap ? Math.min(sliderToKJ(e), F.relCap) : sliderToKJ(e);
     let mind = F.baseMind; o.tell = F.tell;
@@ -314,6 +328,7 @@
       }
       else if (key === '1-2') {
         E = Math.pow(10, 1.5 * c.ml + 4.8) / 1000 * (c.sfoc === 1 ? 0.6 : 1); o.relT = 2;
+        o.workOut = E * TUNE.seismicWorkFrac;   // 引信条款：过载做功只算点火费（大地出力不算人头）
         spec = 'ML' + c.ml + (c.sfoc === 1 ? '·深源远传' : '·浅源地表破坏');
         o.lines.push(['古登堡公式', 'log₁₀E(J)=1.5ML+4.8', anchorOf(E)]);
         mind += 2.5 + c.ml * 1.5; o.tell = Math.min(5, Math.round(2 + c.ml));
@@ -372,14 +387,14 @@
       o.lines.unshift([MODES[c.mode].n + '→' + def.n + '·分支[' + br + ']', '']);
     }
     else if (fam === 'struct') {
-      const kg = massKg(c.mass), cap = [50, scene.mat, 5][c.base], dust = c.base === 2 ? 3 : 1;
+      const kg = massKg(c.mass), cap = [50, scene.mat, 5, 20, 40][c.base], dust = c.base === 2 ? 3 : 1;
       o.kg = kg; o.dem = kg * 0.6 * dust; o.fill = o.out / o.dem;
       o.qual = Math.min(1.2, 0.5 + 0.08 * c.rate);
       const hard = c.latt / 100; o.hard = hard;
       o.pool = kg * 0.4 * (0.6 + 0.4 * hard) * o.qual * (c.stress ? 1.5 : 1);
       o.relT = c.rate;
       mind += 0.2 * c.rate + kg / 60 + (c.rate < 1 ? 2 : 0) + (c.stress ? c.stressT * 1 : 0);
-      o.lines.push(['基底', ['随身钢材→金属', '地面存量→土石', '空气粉尘→土石·能量×3'][c.base], '上限' + cap + 'kg']);
+      o.lines.push(['基底', ['随身钢材→金属', '地面存量→土石', '空气粉尘→土石·能量×3', '随身晶体→晶体', '随身合金→合金'][c.base], '上限' + cap + 'kg']);
       o.lines.push(['晶格', (hard > 0.7 ? '共价相·脆硬' : hard > 0.3 ? '混相' : '金属相·延韧') + ' 质量系数' + o.qual.toFixed(2)]);
       o.lines.push(['体量', kg.toFixed(1) + 'kg 需' + o.dem.toFixed(0) + 'kJ 充足率' + (o.fill * 100).toFixed(0) + '%']);
       if (o.fill < 0.8) o.chips.push({ t: '注入不足·出半成品', w: 10, l: 'o' });
@@ -477,8 +492,12 @@
     if (tuned) mind = Math.max(0.5, mind * 0.3);
     mind = +mind.toFixed(1); bill = Math.round(bill * 10) / 10;
     const exhaust = bill > (ch.eCur ?? Infinity);
-    // 过载率用"真实做功功率"（out/relT），不用含门控/伤势损耗溢价的账单功率（避免全陌三重惩罚）
-    const power = (r.out || 0.1) / r.relT;
+    // 过载率用"真实做功功率"（out/relT；引信类回路用 workOut），不用含门控/伤势损耗溢价的账单功率（避免全陌三重惩罚）
+    const power = ((r.workOut ?? r.out) || 0.1) / r.relT;
+
+    // 实际做功能量（磨炼统计口径）：引信类=点火费；其余=剥除门控倍率后的实付能量。
+    // 介质折价保留（借来的力不算自己的磨炼），倍率溢价绝不计入——否则倍率越高刷得越快（正反馈错误）。
+    const workE = r.workOut != null ? r.workOut : Math.round((r.bill / (r.g.e || 1)) * 10) / 10;
     const burst = ch.burstKW ?? 300, sus = ch.sustainKW ?? 50;
     const overBurst = power > burst, overSustain = r.relT >= 1 && power > sus;
     const mMax = ch.mMax ?? 90, mCur = ch.mCur ?? 90;
@@ -486,8 +505,8 @@
     const zone = frac < 1 / 3 ? { n: '绿·轻度', c: 'g' } : frac < 2 / 3 ? { n: '黄·中度', c: 'y' } : frac < 0.9 ? { n: '红·重荷', c: 'r' } : { n: '紫·断线区', c: 'p' };
     let tell = Math.max(1, Math.min(5, Math.round(r.tell + (r.g.t === 'far' ? 1 : 0))));
 
-    /* ── 过载率（无上限）：短脉冲比爆发线，长脉冲比持续线 ── */
-    const 基准线 = r.relT >= 1 ? (sus || 1) : (burst || 1);
+    /* ── 过载率（无上限）：短脉冲比爆发线，长脉冲比持续线；引信类回路（workOut）点火是瞬发动作，恒比爆发线 ── */
+    const 基准线 = r.workOut != null ? (burst || 1) : (r.relT >= 1 ? (sus || 1) : (burst || 1));
     const overloadRate = +((power / 基准线) * 100).toFixed(1);
 
     /* 精神状态因子 */
@@ -527,7 +546,7 @@
     if (mind > mCur) chips.push({ t: '精神余量不足·失败形态由裁判挑', w: 0, l: 'r' });
     if (exhaust) chips.push({ t: '储量透支·过载灼伤烧在接触处', w: 0, l: 'r' });
 
-    return { r, E_out: r.out, bill, mind, relT: r.relT, readyT: r.readyT, power, tell, risk, zone,
+    return { r, E_out: r.out, bill, mind, workE, relT: r.relT, readyT: r.readyT, power, tell, risk, zone,
       overloadRate, beta, gamma,
       unf: U, chips, tunedHit: tuned ? tuned.id : null, tunedName: tuned ? (tuned['名'] || tuned.name) : null,
       exhaust, overBurst, overSustain };
@@ -583,19 +602,25 @@
     const o = opts || {};
     return {
       ref: q.tunedHit || 'tmp·现搭',
+      分支: q.r.branch,
       名: o.name || (String(q.r.effect).slice(0, 10) + (q.tunedHit ? '·微调' : '·现构')),
-      bill: q.bill, mind: q.mind, tell: q.tell, risk: q.risk,
+      bill: q.bill, mind: q.mind, workE: q.workE, tell: q.tell, risk: q.risk,
       order: compileOrder(q)
     };
   }
 
-  /* ================= 结算末尾：批量重算回路库过载率/过载风险 ================= */
-  function settleCircuitLibrary(circuitLibrary, ctx) {
+  /* ================= 结算末尾：批量重算回路库过载率/过载风险，并预掷本轮走火 =================
+   * rng 由宿主注入（保持可测/纯函数）；走火判定权收归脚本，玩家界面不下发该字段。 */
+  function settleCircuitLibrary(circuitLibrary, ctx, rng) {
     if (!Array.isArray(circuitLibrary)) return [];
+    const rand = typeof rng === 'function' ? rng : Math.random;
     return circuitLibrary.map(item => {
       const req = { fam: item.famKey, e: item.注册e || 0, c: item.参数向量 || {} };
       const q = quote(req, ctx);
-      return Object.assign({}, item, { 过载率: q.overloadRate, 过载风险: q.risk });
+      return Object.assign({}, item, {
+        过载率: q.overloadRate, 过载风险: q.risk,
+        本轮走火: Math.floor(rand() * 100) + 1 <= q.risk   // 1~100 ≤ 风险 = 走火；世界书/叙事可消费
+      });
     });
   }
 
@@ -610,6 +635,6 @@
     TUNE, TREE, FAMKEY, FAMS, SUBS, SUBKEYS, MODES, WINDS, MATS, ANCH,
     // 数值工具
     anchorOf, sliderToKJ, kjToSlider, logv, logTo, pwS, massKg, exp10,
-    VERSION: '2.1.0'
+    VERSION: '2.2.0'
   };
 });
