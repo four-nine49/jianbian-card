@@ -97,8 +97,8 @@ export const FillApiConfig = z.object({
   apiKey: z.string().default(''),
   model: z.string().default(''),
   source: z.string().default('openai'),          // API 源
-  temperature: z.number().default(0.6),          // 填表常需更高温度
-  maxTokens: z.union([z.number(), z.literal('same_as_preset'), z.literal('unset')]).default(2048),
+  temperature: z.number().default(0.8),          // 填表/引导对话统一默认 0.8
+  maxTokens: z.union([z.number(), z.literal('same_as_preset'), z.literal('unset')]).default(5000),
   topP: z.union([z.number(), z.literal('same_as_preset'), z.literal('unset')]).default('unset'),
 });
 export type FillApiConfig = z.infer<typeof FillApiConfig>;

@@ -1,4 +1,5 @@
-// ui/pages/settings.ts — 设置页：界面（悬浮按钮）+ 填表API + 全局默认 + 调度（全字段带中文解释）
+// ui/pages/settings.ts — 设置页：界面（悬浮按钮）+ 引导对话 API + 全局默认 + 调度（全字段带中文解释）
+// （填表 API 与渐变带 数据AI/法术AI 的 API 配置已移至独立「API」页 ui/pages/api.ts）
 import { loadSettings, saveSetting, saveSettingsPatch } from '../../core/settings';
 import { updateDialogueApi } from '../../store/settings';
 import { setToggleVisible } from '../../window/toggle';
@@ -7,7 +8,6 @@ import { startAutoFill, stopAutoFill } from '../../schedule/trigger';
 
 export function renderSettingsPage(el: HTMLElement): void {
   const s = loadSettings();
-  const api_ = s.fillApi;
   const da = s.dialogueApi;
   const g = s.globalDefaults;
   el.innerHTML = `<div style="padding:16px;max-width:680px">
@@ -16,40 +16,6 @@ export function renderSettingsPage(el: HTMLElement): void {
       <input type="checkbox" id="of-u-toggle"> 显示悬浮按钮（🎬，可拖拽移动）
     </label>
     <div class="of-hint">关掉后仍可用 /opening 命令或在酒馆扩展设置里恢复。</div>
-
-    <div class="of-h2" style="color:#89b4fa;margin-top:20px">填表 API</div>
-    <div class="of-hint">填表用的 AI。可以「跟随酒馆当前 API」什么都不配，也可以「自定义」单独配一个（推荐：不占用正文模型，选便宜快速的即可）。</div>
-    <select class="of-select" id="of-a-mode" style="margin-top:8px;max-width:280px">
-      <option value="custom" ${api_.mode === 'custom' ? 'selected' : ''}>自定义 API（独立配置）</option>
-      <option value="tavern" ${api_.mode === 'tavern' ? 'selected' : ''}>跟随酒馆当前 API</option>
-    </select>
-    <label style="display:flex;align-items:center;gap:8px;margin-top:10px"><input type="checkbox" id="of-a-stream" ${api_.stream !== false ? 'checked' : ''}> 填表请求使用流式传输</label>
-    <div class="of-hint">走反代建议开：非流式请求更容易被反代识别。开启不影响填表结果——解析仍用完整返回；填表的流式内容不会显示在对话页。</div>
-    <div id="of-a-custom" style="display:${api_.mode === 'tavern' ? 'none' : ''};margin-top:8px">
-      <label class="of-label">代理预设（优先用）</label><input class="of-input" id="of-a-proxy" value="${api_.proxyPreset || ''}" placeholder="酒馆「代理」功能里保存的预设名">
-      <div class="of-hint">酒馆顶栏插头图标里配好的代理预设名。填了它，下面的 URL / Key 都不用再填。</div>
-      <label class="of-label" style="margin-top:12px">API URL（不用代理时直连地址）</label><input class="of-input" id="of-a-url" value="${api_.apiUrl || ''}" placeholder="如 https://api.deepseek.com/v1">
-      <div class="of-hint">OpenAI 兼容格式 的接口地址，仅当上面代理预设留空时生效。</div>
-      <label class="of-label" style="margin-top:12px">API Key</label><input class="of-input" type="password" id="of-a-key" value="${api_.apiKey || ''}" placeholder="对应接口的密钥">
-      <label class="of-label" style="margin-top:12px">模型</label><input class="of-input" id="of-a-model" value="${api_.model || ''}" placeholder="如 deepseek-chat、gpt-4o-mini">
-      <div class="of-hint">专门负责填表的模型。选便宜快速的即可。</div>
-      <div class="of-grid3" style="margin-top:12px">
-        <div>
-          <label class="of-label">温度</label><input class="of-input" type="number" step="0.1" id="of-a-temp" value="${api_.temperature}">
-          <div class="of-hint">0～1，越高越发散，填表建议 0.3～0.7</div>
-        </div>
-        <div>
-          <label class="of-label">最大回复长度</label><input class="of-input" type="number" id="of-a-max" value="${api_.maxTokens}">
-          <div class="of-hint">AI 单次填表回复的上限，一般 2048 够用</div>
-        </div>
-        <div>
-          <label class="of-label">接口类型</label><input class="of-input" id="of-a-src" value="${api_.source || ''}" placeholder="保持 openai">
-          <div class="of-hint">OpenAI 兼容接口就保持默认，不用改</div>
-        </div>
-      </div>
-    </div>
-    <button class="of-btn" id="of-a-save" style="margin-top:12px">保存</button>
-    <div class="of-hint">切到「跟随酒馆」时已填的自定义配置会保留，切回来还在。</div>
 
     <div class="of-h2" style="color:#89b4fa;margin-top:20px">引导对话 API（开局引导的 AI）</div>
     <div class="of-hint">「AI 对话」页里陪你做开局引导的 AI，和填表 API 相互独立。默认直接用酒馆当前连接的 API；想用别的模型就切「自定义」。</div>
@@ -65,11 +31,11 @@ export function renderSettingsPage(el: HTMLElement): void {
       <div class="of-grid3" style="margin-top:12px">
         <div>
           <label class="of-label">温度</label><input class="of-input" type="number" step="0.1" id="of-d-temp" value="${da.temperature}">
-          <div class="of-hint">引导对话建议 0.7～1，太低说话发死</div>
+          <div class="of-hint">引导对话建议 0.7～1，太低说话发死（默认 0.8）</div>
         </div>
         <div>
           <label class="of-label">最大回复长度</label><input class="of-input" type="number" id="of-d-max" value="${da.maxTokens}">
-          <div class="of-hint">引导回复可能较长，建议 2048 以上</div>
+          <div class="of-hint">引导回复可能较长，建议 2048 以上（默认 5000）</div>
         </div>
         <div>
           <label class="of-label">接口类型</label><input class="of-input" id="of-d-src" value="${da.source || ''}" placeholder="保持 openai">
@@ -120,34 +86,7 @@ export function renderSettingsPage(el: HTMLElement): void {
     toastr?.info?.(toggleCb.checked ? '已显示悬浮按钮' : '已隐藏悬浮按钮（可在酒馆扩展设置里恢复）');
   });
 
-  // ── 填表 API ──
-  const aModeSel = el.querySelector('#of-a-mode') as HTMLSelectElement;
-  aModeSel.addEventListener('change', () => {
-    (el.querySelector('#of-a-custom') as HTMLElement).style.display = aModeSel.value === 'custom' ? '' : 'none';
-  });
-  el.querySelector('#of-a-save')!.addEventListener('click', () => {
-    const mode = aModeSel.value === 'tavern' ? 'tavern' : 'custom';
-    const stream = (el.querySelector('#of-a-stream') as HTMLInputElement).checked;
-    if (mode === 'custom') {
-      saveSettingsPatch({
-        fillApi: {
-          ...api_,
-          mode,
-          stream,
-          proxyPreset: (el.querySelector('#of-a-proxy') as HTMLInputElement).value,
-          apiUrl: (el.querySelector('#of-a-url') as HTMLInputElement).value,
-          apiKey: (el.querySelector('#of-a-key') as HTMLInputElement).value,
-          model: (el.querySelector('#of-a-model') as HTMLInputElement).value,
-          temperature: parseFloat((el.querySelector('#of-a-temp') as HTMLInputElement).value) || 0.6,
-          maxTokens: parseInt((el.querySelector('#of-a-max') as HTMLInputElement).value, 10) || 2048,
-          source: (el.querySelector('#of-a-src') as HTMLInputElement).value || 'openai',
-        },
-      });
-    } else {
-      saveSettingsPatch({ fillApi: { ...api_, mode, stream } });
-    }
-    toastr?.success?.(mode === 'tavern' ? '填表已切换为跟随酒馆当前 API' : '已保存发送 API 配置（自定义）');
-  });
+  // ── 填表 API 已移至「API」页（ui/pages/api.ts）──
 
   // ── 引导对话 API（保存后重建引擎立即生效；会话历史不受影响）──
   const dModeSel = el.querySelector('#of-d-mode') as HTMLSelectElement;
@@ -163,8 +102,8 @@ export function renderSettingsPage(el: HTMLElement): void {
         apiUrl: (el.querySelector('#of-d-url') as HTMLInputElement).value,
         apiKey: (el.querySelector('#of-d-key') as HTMLInputElement).value,
         model: (el.querySelector('#of-d-model') as HTMLInputElement).value,
-        temperature: parseFloat((el.querySelector('#of-d-temp') as HTMLInputElement).value) || 0.7,
-        maxTokens: parseInt((el.querySelector('#of-d-max') as HTMLInputElement).value, 10) || 2048,
+        temperature: parseFloat((el.querySelector('#of-d-temp') as HTMLInputElement).value) || 0.8,
+        maxTokens: parseInt((el.querySelector('#of-d-max') as HTMLInputElement).value, 10) || 5000,
         source: (el.querySelector('#of-d-src') as HTMLInputElement).value || 'openai',
       });
     } else {

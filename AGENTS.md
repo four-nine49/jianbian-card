@@ -91,7 +91,8 @@ src/
 │   ├── state.ts           # 引擎管理（getGuidedEngine/reset/startGuidedDialogue；空规则包拦截）
 │   ├── styles.ts          # ★ 唯一样式源（PANEL_CSS）；手机适配在末尾 @media (max-width:640px)
 │   └── pages/             # 每页一个 render 函数（start/preset-opening/jianbandai-opening/
-│                          #   chat/tables/sheet-config/settings/prompt-template/tools/gradband*）
+│                          #   chat/tables/sheet-config/api/settings/prompt-template/tools/gradband*；
+│                          #   api=API 集中页：填表+数据AI+法术AI，温度默认0.8/max_tokens默认5000）
 └── utils/macros.ts        # substituteMacros（{{user}} 等；数据出口必须过这里）
 ```
 
@@ -276,13 +277,15 @@ node package-loader.mjs           # 生成 releases/酒馆助手脚本-开局.js
 
 ## 12. 版本与发布流程（每次改完）
 
-1. 改 `core/version.ts` + `manifest.json` + `package.json`（三处同步，当前 1.8.0；
+1. 改 `core/version.ts` + `manifest.json` + `package.json`（三处同步，当前 1.8.1；
    版本以 `manifest.json` 为准，别凭记忆写）。
 2. `node build.mjs` → `tsc --noEmit`（`pnpm run check`）→ `node smoke.mjs`。
 3. 改了 manifest 版本号 → `node package-loader.mjs` 重新生成 `releases/酒馆助手脚本-开局.json`
    （回退版本号自动嵌入；自检必须全 ✅）。
-4. **重新生成 `json/regex-开局.json` / `regex-状态栏.json`**：用新 dist 的两个 HTML 覆盖其
-   replaceString（查找标记分别是 `<渐变带开局/>` 和 `<StatusPlaceHolderImpl/>`，别动其他字段）。
+4. **仅当 dist 的两个 HTML 有变更时**重新生成 `json/regex-开局.json` / `regex-状态栏.json`：
+   用新 dist 的 HTML 覆盖其 replaceString（查找标记分别是 `<渐变带开局/>` 和
+   `<StatusPlaceHolderImpl/>`，别动其他字段）。`git status` 里 `dist/*.html` 未出现在改动中
+   ＝ 逐字节未变，跳过本步（用户也无需重导正则）——纯 TS/CSS 改动不影响 HTML 内容。
 5. 用户侧发布：`git add -A && git commit && git push` + `git tag vX.Y.Z && git push origin vX.Y.Z`
    （push 更扩展版，tag 更脚本版；tag 撞名先 `git tag` 查占用）。
 

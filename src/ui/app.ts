@@ -14,6 +14,7 @@ import { renderTablesPage } from './pages/tables';
 import { renderSheetConfigPage } from './pages/sheet-config';
 import { renderPromptTemplatePage } from './pages/prompt-template';
 import { renderSettingsPage } from './pages/settings';
+import { renderApiPage } from './pages/api';
 import { renderToolsPage } from './pages/tools';
 import { loadSettings, saveSetting } from '../core/settings';
 
@@ -35,6 +36,7 @@ export const PAGES: PageDef[] = [
   { name: 'chat', label: 'AI 对话', order: 10, render: renderChatPage, modes: ['presets'] },
   { name: 'tables', label: '表格数据', order: 20, render: renderTablesPage, modes: ['presets'] },
   { name: 'sheetconf', label: '表结构/配置', order: 30, render: renderSheetConfigPage, modes: ['presets'] },
+  { name: 'api', label: 'API', order: 35, render: renderApiPage, modes: ['presets'] },
   { name: 'settings', label: '设置', order: 40, render: renderSettingsPage, modes: ['presets'] },
   { name: 'prompt', label: '提示词模板', order: 50, render: renderPromptTemplatePage, modes: ['presets'] },
   { name: 'tools', label: '工具', order: 90, render: renderToolsPage, modes: ['presets'] },
@@ -46,6 +48,7 @@ export const PAGES: PageDef[] = [
   { name: 'tables', label: '表格数据', order: 20, render: renderTablesPage, modes: ['gradband'] },
   { name: 'sheetconf', label: '表结构/配置', order: 30, render: renderSheetConfigPage, modes: ['gradband'] },
   { name: 'gradband-prompt', label: '提示词模板', order: 50, render: renderPromptTemplatePage, modes: ['gradband'] },
+  { name: 'api', label: 'API', order: 35, render: renderApiPage, modes: ['gradband'] },
   { name: 'settings', label: '设置', order: 40, render: renderSettingsPage, modes: ['gradband'] },
   { name: 'tools', label: '工具', order: 90, render: renderToolsPage, modes: ['gradband'] },
 ];

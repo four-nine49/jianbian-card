@@ -3,7 +3,7 @@
 // 沿用业务自带的 4 个 tab（总览/设置/提示词/工具），渲染与事件逻辑
 // 从原 渐变带-自由回路/src/ui/window.ts 平移；DOM id/class 维持 gbfc- 前缀，
 // 样式由 gradband 的 gbfc 类提供（见 ui/styles.ts 的 gbfc 段）。
-import { loadSettings, saveSettings, type Settings, type ApiConfig } from '../../gradband/core/settings';
+import { loadSettings, saveSettings, type Settings } from '../../gradband/core/settings';
 import { loadGame, syncSnapshot, NS } from '../../gradband/core/store';
 import { updateVariablesWith } from '../../bridge/tavern';
 import { getLastReport, manualTurn } from '../../gradband/pipeline/scheduler';
@@ -60,21 +60,7 @@ function renderBody(body: HTMLElement): void {
     });
     html += '<h4>结算频率（每 N 条 AI 回复一次）</h4>';
     html += `<label>数据AI <input type="number" min="1" step="1" data-freq="数据AI" value="${s.频率.数据AI}"></label>`;
-    html += '<h4>API（三态：跟随酒馆 / 自定义）</h4>';
-    (['数据AI', '法术AI'] as const).forEach(w => {
-      const cfg = s.api[w];
-      html += `<div class="gbfc-card"><b>${w}</b><div class="gbfc-row">
-        <span class="gbfc-seg ${cfg.mode === 'tavern' ? 'on' : ''}" data-apimode="${w}|tavern">跟随酒馆</span>
-        <span class="gbfc-seg ${cfg.mode === 'custom' ? 'on' : ''}" data-apimode="${w}|custom">自定义</span></div>`;
-      if (cfg.mode === 'custom') {
-        html += `<label>apiurl <input type="text" data-api="${w}|apiurl" value="${esc(cfg.apiurl || '')}"></label>`;
-        html += `<label>key <input type="text" data-api="${w}|key" value="${esc(cfg.key || '')}"></label>`;
-        html += `<label>model <input type="text" data-api="${w}|model" value="${esc(cfg.model || '')}"></label>`;
-        html += `<label>代理预设（可选，填了可省 apiurl/key）<input type="text" data-api="${w}|proxy_preset" value="${esc(cfg.proxy_preset || '')}"></label>`;
-        html += `<div class="gbfc-row">temperature <input type="number" step="0.1" style="width:70px" data-api="${w}|temperature" value="${cfg.temperature ?? 0.6}"> max_tokens <input type="number" step="128" style="width:90px" data-api="${w}|max_tokens" value="${cfg.max_tokens ?? 2048}"></div>`;
-      }
-      html += '</div>';
-    });
+    html += `<div class="gbfc-hint">数据AI / 法术AI 的 API 配置已移至侧栏「API」页。</div>`;
   } else if (curTab === 'prompts') {
     html += '<h4>提示词编辑</h4>';
     html += '<div class="gbfc-hint">两套提示词（数据 / 法术）已独立成页，段级编辑（ON/OFF、排序、增删、恢复默认）。</div>';
@@ -113,24 +99,7 @@ function bindBody(body: HTMLElement): void {
       saveSettings(s);
     });
   });
-  body.querySelectorAll('.gbfc-seg[data-apimode]').forEach(el => {
-    el.addEventListener('click', () => {
-      const [w, mode] = (el as HTMLElement).dataset.apimode!.split('|');
-      const s = loadSettings();
-      s.api[w as '数据AI'].mode = mode as ApiConfig['mode'];
-      saveSettings(s); renderBody(body);
-    });
-  });
-  body.querySelectorAll('input[data-api]').forEach(el => {
-    (el as HTMLInputElement).addEventListener('change', () => {
-      const [w, k] = (el as HTMLElement).dataset.api!.split('|');
-      const s = loadSettings();
-      const cfg = s.api[w as '数据AI'] as any;
-      const v = (el as HTMLInputElement).value;
-      cfg[k] = ['temperature', 'max_tokens'].includes(k) ? +v : v;
-      saveSettings(s);
-    });
-  });
+  // 渐变带 API（数据AI/法术AI）的编辑已移至「API」页（ui/pages/api.ts）
   const wire = (id: string, fn: () => void) => body.querySelector(id)?.addEventListener('click', fn);
   wire('#gbInjectOpening', () => void injectOpeningToLatest());
   wire('#gbInjectOpening2', () => void injectOpeningToLatest());

@@ -28,12 +28,12 @@ export const PANEL_CSS = `
 
 /* ── 面板壳（侧栏 + 页面，挂在窗口内容区里）── */
 .of-panel{display:flex;height:100%;min-height:0;position:relative}
-/* ── 顶部模式切换器（剑与汽水 / 渐变带）：relative 面板 → 定位在内容区右上，不再飘到标题栏盖住 ✕；right 加大 = 往左移一点 ── */
-.of-modepicker{position:absolute;top:6px;right:18px;display:flex;gap:4px;z-index:5}
+/* ── 顶部模式切换器（剑与汽水 / 渐变带）：relative 面板 → 定位在左上角（侧栏上方），nav 顶部留 padding 避让 ── */
+.of-modepicker{position:absolute;top:8px;left:10px;display:flex;gap:4px;z-index:5}
 .of-modebtn{padding:3px 10px;border:none;border-radius:12px;background:#313244;color:#6c7086;font-size:11px;cursor:pointer;font-family:inherit}
 .of-modebtn:hover{color:#cdd6f4}
 .of-modebtn.on{background:#89b4fa;color:#1e1e2e;font-weight:600}
-.of-nav{width:180px;flex-shrink:0;border-right:1px solid #313244;overflow-y:auto;padding:8px 0}
+.of-nav{width:180px;flex-shrink:0;border-right:1px solid #313244;overflow-y:auto;padding:36px 0 8px}
 .of-nav-btn{display:block;width:100%;text-align:left;padding:8px 12px;border:none;background:none;color:#cdd6f4;cursor:pointer;font-size:13px;font-family:inherit}
 .of-nav-btn:hover{background:#313244}
 .of-nav-btn.active{background:#89b4fa;color:#1e1e2e;font-weight:600}
