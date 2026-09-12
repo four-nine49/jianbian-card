@@ -2,13 +2,14 @@
 import type { 回路, 补给 } from './schema';
 
 /** 预设固定回路：注册参数 → 开局时由引擎现算 基线账单/参数明细/微调预算 */
-export interface 预设回路 { key: string; 名称: string; famKey: 'pour' | 'flow' | 'struct' | 'life' | 'perce'; e?: number; params: Record<string, number>; 一句话效果: string }
+/** 物理相态与表征：正文AI 叙事的唯一形态锚点，与 opening.html 的 BRANCH_CIRCUIT.表征 同一套五系口径 */
+export interface 预设回路 { key: string; 名称: string; famKey: 'pour' | 'flow' | 'struct' | 'life' | 'perce'; e?: number; params: Record<string, number>; 一句话效果: string; 物理相态与表征: string }
 
 export const 预设回路清单: 预设回路[] = [
-  { key: 'windcut', 名称: '风切·标准发', famKey: 'flow', params: { mode: 1, sub: 1, fmed: 0, fa: 33, fv: 35, br: 100 }, 一句话效果: '风刃 A=0.049m² v≈109m/s' },
-  { key: 'fireball', 名称: '火球·标准式', famKey: 'pour', e: 40, params: { phase: 2, pw: 55, th: 25 }, 一句话效果: '热爆轰·收窄束' },
-  { key: 'stonewall', 名称: '石肤壁垒', famKey: 'struct', e: 40, params: { base: 1, latt: 80, mass: 55, rate: 3, stress: 0, stressT: 10 }, 一句话效果: '土石壁垒·混相' },
-  { key: 'scan', 名称: '周界扫描', famKey: 'perce', e: 5, params: { rad: 30, res: 1, pert: 3, dwell: 0, dwellSec: 20 }, 一句话效果: '半径30m·标准' },
+  { key: 'windcut', 名称: '风切·标准发', famKey: 'flow', params: { mode: 1, sub: 1, fmed: 0, fa: 33, fv: 35, br: 100 }, 一句话效果: '风刃 A=0.049m² v≈109m/s', 物理相态与表征: '压缩空气凝成半透明波阵面沿直线掠出，撕出尖锐爆鸣；所过之处空气偏转、尘埃被抽成一线' },
+  { key: 'fireball', 名称: '火球·标准式', famKey: 'pour', e: 40, params: { phase: 2, pw: 55, th: 25 }, 一句话效果: '热爆轰·收窄束', 物理相态与表征: '前端收窄的锥形焰束，橙红转青白，热浪伴随低频轰鸣；出径即承诺，直线喷射不散' },
+  { key: 'stonewall', 名称: '石肤壁垒', famKey: 'struct', e: 40, params: { base: 1, latt: 80, mass: 55, rate: 3, stress: 0, stressT: 10 }, 一句话效果: '土石壁垒·混相', 物理相态与表征: '无弹道，现场土石就地重排为致密壁垒并沿地表隆起；伴随岩层碎裂闷响与细微扬尘' },
+  { key: 'scan', 名称: '周界扫描', famKey: 'perce', e: 5, params: { rad: 30, res: 1, pert: 3, dwell: 0, dwellSec: 20 }, 一句话效果: '半径30m·标准', 物理相态与表征: '无光无形，意识中展开一圈无声的多普勒回波球域；听觉皮层被直接注入方位与距离' },
 ];
 
 /** 纯度 → 恢复量档位（晶体/导液 3 档：民用 <80 / 管控 80-99 / 战略 ≥99） */

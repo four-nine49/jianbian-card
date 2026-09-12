@@ -34,6 +34,7 @@ export function 应用开局(sel: 开局选择, extra?: { 开场白?: string }):
       名称: p.名称, type: 'fixed', famKey: p.famKey,
       params: p.params, e: p.e ?? 0, g,
       来源: '开局预设',
+      物理相态与表征: p.物理相态与表征,
     });
     c.基线账单.一句话效果 = p.一句话效果 || c.基线账单.一句话效果;
     g.回路库.push(c);

@@ -368,24 +368,24 @@
 
   /* 18 分支 → 最基础固定回路（参数按引擎 FAMS/SUBS 校准，落地 branchOf 自动对齐分支） */
   var BRANCH_CIRCUIT = {
-    '光':   { 名称: '光辐射微冲', famKey: 'pour', e: 10, params: { phase: 0, pw: 30, th: 15 }, fx: '定向光频脉冲·基础' },
-    '电':   { 名称: '电弧脉冲', famKey: 'pour', e: 10, params: { phase: 1, pw: 30, th: 25 }, fx: '高压电荷脉冲·基础' },
-    '热':   { 名称: '火球·基础', famKey: 'pour', e: 20, params: { phase: 2, pw: 40, th: 30 }, fx: '热爆轰·收窄束·基础' },
-    '实体波': { 名称: '电磁脉冲·基础', famKey: 'flow', e: 0, params: { mode: 0, sub: 0, band: 0, eknob: 0, pkw: 12, et: 0.5 }, fx: '无线电/微波能脉冲·基础' },
-    '媒介波': { 名称: '风刃·基础', famKey: 'flow', e: 0, params: { mode: 1, sub: 1, fmed: 0, fa: 20, fv: 30, br: 60 }, fx: '气流激波·基础' },
-    '电磁场': { 名称: '磁吸柔拂·基础', famKey: 'flow', e: 0, params: { mode: 2, sub: 0, mb: 40, mv: 20, mT: 0, mset: 10, mhold: 1 }, fx: '铁磁物件吸拂·基础' },
-    '引力场': { 名称: '悬浮·基础', famKey: 'flow', e: 0, params: { mode: 2, sub: 1, gk: 0, gm: 40, gh: 1 }, fx: '微重力悬浮·基础' },
-    '核力场': { 名称: '衰变微控·基础', famKey: 'flow', e: 0, params: { mode: 2, sub: 2, nmode: 0, nmass: 5, nctl: 0 }, fx: '弱核衰变微控·基础（禁区微档）' },
-    '晶体': { 名称: '晶壁·基础', famKey: 'struct', e: 20, params: { base: 3, latt: 75, mass: 40, rate: 3, stress: 0 }, fx: '晶界致密强化·基础' },
-    '金属': { 名称: '金属硬化·基础', famKey: 'struct', e: 20, params: { base: 0, latt: 40, mass: 45, rate: 3, stress: 0 }, fx: '金属晶格抗剪切·基础' },
-    '土石': { 名称: '岩刺·基础', famKey: 'struct', e: 20, params: { base: 1, latt: 60, mass: 50, rate: 4, stress: 0 }, fx: '地表岩晶尖刺·基础' },
-    '合金': { 名称: '合金装甲·基础', famKey: 'struct', e: 20, params: { base: 4, latt: 90, mass: 48, rate: 3, stress: 0 }, fx: '多元固溶体硬化·基础' },
-    '植物': { 名称: '藤蔓缠绕·基础', famKey: 'life', e: 10, params: { targ: 0, pen: 35, inten: 0, form2: 1, sel: 1, lat: 0, cat: 3 }, fx: '植物纤维缠绕·基础' },
-    '动物(含人体)': { 名称: '快速缝合·基础', famKey: 'life', e: 10, params: { targ: 1, pen: 40, inten: 0, form2: 1, sel: 1, lat: 0, cat: 3 }, fx: '创口肌肉闭合·基础' },
-    '微生物': { 名称: '发酵催化·基础', famKey: 'life', e: 10, params: { targ: 2, pen: 30, inten: 0, form2: 1, sel: 1, lat: 0, cat: 3 }, fx: '菌群生化催化·基础' },
-    '五感延伸': { 名称: '周界扫描·基础', famKey: 'perce', e: 5, params: { rad: 30, res: 1, pert: 3, dwell: 0, dwellSec: 20 }, fx: '超声多普勒周界·基础' },
-    '读心干扰': { 名称: '杂音注入·基础', famKey: 'perce', e: 5, params: { rad: 10, res: 1, pert: 0, dwell: 0, dwellSec: 20 }, fx: '突触电位杂音·基础' },
-    '信息伪造': { 名称: '幻象投射·基础', famKey: 'perce', e: 5, params: { rad: 15, res: 1, pert: 1, dwell: 0, dwellSec: 20 }, fx: '相位虚假投影·基础' }
+    '光':   { 名称: '光辐射微冲', famKey: 'pour', e: 10, params: { phase: 0, pw: 30, th: 15 }, fx: '定向光频脉冲·基础', 表征: '极细准直光针，冷白微泛青，无弹体无后坐；出膛即成绝对直线，击点瞬时白炽碳化' },
+    '电':   { 名称: '电弧脉冲', famKey: 'pour', e: 10, params: { phase: 1, pw: 30, th: 25 }, fx: '高压电荷脉冲·基础', 表征: '蓝白炽亮的折线电弧，沿最低阻抗路径跳跃，伴随空气电离的爆裂锐响；受介质指引而非虚构直线' },
+    '热':   { 名称: '火球·基础', famKey: 'pour', e: 20, params: { phase: 2, pw: 40, th: 30 }, fx: '热爆轰·收窄束·基础', 表征: '前端收窄的锥形焰束，橙红转青白，热浪伴随低频轰鸣；出径即承诺，直线喷射不散' },
+    '实体波': { 名称: '电磁脉冲·基础', famKey: 'flow', e: 0, params: { mode: 0, sub: 0, band: 0, eknob: 0, pkw: 12, et: 0.5 }, fx: '无线电/微波能脉冲·基础', 表征: '肉眼完全无形，空气无扰动；仅靶面泛起微波焦痕与金属微热，无声辐射' },
+    '媒介波': { 名称: '风刃·基础', famKey: 'flow', e: 0, params: { mode: 1, sub: 1, fmed: 0, fa: 20, fv: 30, br: 60 }, fx: '气流激波·基础', 表征: '压缩空气凝成半透明波阵面，飞行时撕出尖锐爆鸣；所过之处空气偏转、尘埃被抽成一线' },
+    '电磁场': { 名称: '磁吸柔拂·基础', famKey: 'flow', e: 0, params: { mode: 2, sub: 0, mb: 40, mv: 20, mT: 0, mset: 10, mhold: 1 }, fx: '铁磁物件吸拂·基础', 表征: '无光无声，仅铁磁件表面泛起方向性震颤；场域内金属屑自发趋向贴合磁感线' },
+    '引力场': { 名称: '悬浮·基础', famKey: 'flow', e: 0, params: { mode: 2, sub: 1, gk: 0, gm: 40, gh: 1 }, fx: '微重力悬浮·基础', 表征: '无光无热，仅悬浮体周遭空间泛起轻微视觉扭曲、尘埃失重飘散；重力梯度被无声改写' },
+    '核力场': { 名称: '衰变微控·基础', famKey: 'flow', e: 0, params: { mode: 2, sub: 2, nmode: 0, nmass: 5, nctl: 0 }, fx: '弱核衰变微控·基础（禁区微档）', 表征: '无可见辐射，靶体异常温升并泛起不可见波段的衰变辉光；空气电离，浮起淡淡臭氧味' },
+    '晶体': { 名称: '晶壁·基础', famKey: 'struct', e: 20, params: { base: 3, latt: 75, mass: 40, rate: 3, stress: 0 }, fx: '晶界致密强化·基础', 表征: '无弹道，仅接触面析出灰白哑光晶层，沿手背逆行攀附；伴随矿物微观咬合的细密脆响' },
+    '金属': { 名称: '金属硬化·基础', famKey: 'struct', e: 20, params: { base: 0, latt: 40, mass: 45, rate: 3, stress: 0 }, fx: '金属晶格抗剪切·基础', 表征: '无弹道，仅随身金属表面泛起冷硬延韧的金属光泽；晶格位错重新咬合，触感由软转硬' },
+    '土石': { 名称: '岩刺·基础', famKey: 'struct', e: 20, params: { base: 1, latt: 60, mass: 50, rate: 4, stress: 0 }, fx: '地表岩晶尖刺·基础', 表征: '无弹道，脚下土石就地重排为灰褐致密尖刺并沿地表隆起；伴随岩层碎裂闷响与细微扬尘' },
+    '合金': { 名称: '合金装甲·基础', famKey: 'struct', e: 20, params: { base: 4, latt: 90, mass: 48, rate: 3, stress: 0 }, fx: '多元固溶体硬化·基础', 表征: '无弹道，装甲表面析出多层交错固溶体，呈暗银致密金属质感；界面咬合处应力泛白' },
+    '植物': { 名称: '藤蔓缠绕·基础', famKey: 'life', e: 10, params: { targ: 0, pen: 35, inten: 0, form2: 1, sel: 1, lat: 0, cat: 3 }, fx: '植物纤维缠绕·基础', 表征: '无光无弹道，纤维以触须状急速抽长缠绕、木质素就地加固；伴随纤维绷紧的细微吱响' },
+    '动物(含人体)': { 名称: '快速缝合·基础', famKey: 'life', e: 10, params: { targ: 1, pen: 40, inten: 0, form2: 1, sel: 1, lat: 0, cat: 3 }, fx: '创口肌肉闭合·基础', 表征: '无光无弹道，需触碰或近距接触；创口血管收缩、肉芽急速闭合，泛起麻痒与组织蠕动的温热' },
+    '微生物': { 名称: '发酵催化·基础', famKey: 'life', e: 10, params: { targ: 2, pen: 30, inten: 0, form2: 1, sel: 1, lat: 0, cat: 3 }, fx: '菌群生化催化·基础', 表征: '无光无弹道，以气雾或渗透方式施放；靶区组织泛起暗红斑纹与生化降解的细密气泡感' },
+    '五感延伸': { 名称: '周界扫描·基础', famKey: 'perce', e: 5, params: { rad: 30, res: 1, pert: 3, dwell: 0, dwellSec: 20 }, fx: '超声多普勒周界·基础', 表征: '无光无形，意识中展开一圈无声的多普勒回波球域；听觉皮层被直接注入方位与距离' },
+    '读心干扰': { 名称: '杂音注入·基础', famKey: 'perce', e: 5, params: { rad: 10, res: 1, pert: 0, dwell: 0, dwellSec: 20 }, fx: '突触电位杂音·基础', 表征: '无光无声，仅目标神经突触间泛起白噪音般的动作电位杂音；伴随轻微耳鸣，前摇被截断' },
+    '信息伪造': { 名称: '幻象投射·基础', famKey: 'perce', e: 5, params: { rad: 15, res: 1, pert: 1, dwell: 0, dwellSec: 20 }, fx: '相位虚假投影·基础', 表征: '无实体、无物理杀伤，仅目标感知中叠入相位影像；影像无影无温，不扰动物理世界' }
   };
 
   var 预设补给 = [
@@ -664,6 +664,7 @@
       参数明细: E.readableParams(p.famKey, params),
       微调预算: budget, 微调预算明细: E.readableBudget ? E.readableBudget(budget) : null,
       基线账单: { 输出kJ: q.E_out, 计费kJ: q.bill, 精神: q.mind, 一句话效果: p.fx },
+      物理相态与表征: p.表征,
       uses: null, 来源: '开局预设', 审核存档: null, 审核状态: '免审'
     };
   }
