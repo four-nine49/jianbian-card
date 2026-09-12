@@ -453,6 +453,33 @@
       box-shadow: 0 0 14px rgba(255, 170, 60, 0.35);
     }
     .review-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    /* ── 送审中（法术AI 处理中）· 忙碌反馈：明确「已发出」，防重复点击 ── */
+    @keyframes reviewSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .review-dock.is-busy {
+      border-color: rgba(255, 170, 60, 0.9);
+      box-shadow: 0 0 22px rgba(255, 170, 60, 0.28), 0 10px 24px rgba(0, 0, 0, 0.8);
+    }
+    .review-dock.is-busy .matrix-title { color: #fbbf24; }
+    .slot-socket.is-review.is-busy {
+      border-color: rgba(255, 170, 60, 0.95) !important;
+      box-shadow: 0 0 26px rgba(255, 170, 60, 0.35), inset 0 0 18px rgba(255, 170, 60, 0.15) !important;
+    }
+    .slot-socket.is-review.is-busy .slot-meta b { color: #fbbf24; }
+    .review-busy-badge {
+      position: absolute; inset: 0; z-index: 30;
+      display: none; flex-direction: column; align-items: center; justify-content: center; gap: 7px;
+      background: rgba(10, 7, 2, 0.74);
+      font-family: var(--font-mono); font-size: 10px; font-weight: 900; letter-spacing: 1px; color: #fbbf24;
+      text-align: center; padding: 10px;
+    }
+    .slot-socket.is-review.is-busy .review-busy-badge { display: flex; }
+    .review-busy-badge .spin {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 3px solid rgba(255, 170, 60, 0.25); border-top-color: #fbbf24;
+      animation: reviewSpin 0.9s linear infinite;
+    }
+    .review-busy-badge .t2 { color: #fdba74; font-size: 8px; font-weight: 700; letter-spacing: 0.4px; line-height: 1.6; }
+    .review-btn.is-busy { cursor: progress; border-color: rgba(255, 170, 60, 0.85); }
     /* ================= 销毁台（删除槽；红色 · 与审核台并排） ================= */
     .recycle-row {
       display: flex;
@@ -1434,6 +1461,22 @@
     .btn-forge-submit.save:hover { background: #fff; color: #000; }
     .btn-forge-submit.cast { background: var(--acid-green); color: #000; box-shadow: 0 0 15px rgba(198, 255, 0, 0.4); }
     .btn-forge-submit.cast:hover { box-shadow: 0 0 25px rgba(198, 255, 0, 0.8); }
+    /* 自由构筑「申报入自由库」送审中（法术AI 处理中） */
+    .btn-forge-submit:disabled { cursor: progress; }
+    .btn-forge-submit.save.is-busy {
+      background: rgba(255, 170, 60, 0.14); border-color: rgba(255, 170, 60, 0.65); color: #fbbf24;
+    }
+    .btn-forge-submit.save.is-busy:hover { background: rgba(255, 170, 60, 0.14); color: #fbbf24; }
+    .forge-busy-note {
+      display: none; align-items: center; gap: 7px; margin-top: 8px;
+      font-family: var(--font-mono); font-size: 9.5px; font-weight: 800; letter-spacing: 0.4px; color: #fbbf24;
+    }
+    .forge-busy-note.show { display: flex; }
+    .forge-busy-note .spin {
+      width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+      border: 2px solid rgba(255, 170, 60, 0.25); border-top-color: #fbbf24;
+      animation: reviewSpin 0.9s linear infinite;
+    }
 
     /* 主亲和卡牌全彩：图案 / 左上角族名 / 左侧竖线 全部上色（叠加在外壳霓虹之上） */
     .affinity-card.status-primary .aff-head { color: var(--accent); }
@@ -1595,7 +1638,10 @@
       <div class="review-dock-body">
         <div class="slot-socket is-review" id="socket_review">
           <div class="slot-meta"><span>REV 01 [审核]</span><b>JUDGE GATE</b></div>
-          <div class="slot-well"><div class="standby-crosshair"><div class="cross-circle">⚖</div><span>拖入待送审回路 → 点下方送审</span></div></div>
+          <div class="slot-well">
+            <div class="standby-crosshair"><div class="cross-circle">⚖</div><span>拖入待送审回路 → 点下方送审</span></div>
+            <div class="review-busy-badge" id="reviewBusyBadge"><div class="spin"></div><span>送审中…</span><span class="t2">法术AI 正在审阅，请勿重复点击<br>出结果会自动放回牌库</span></div>
+          </div>
         </div>
         <button class="review-btn" id="btnReviewDock" disabled>⚖ 送审（送审槽为空）</button>
       </div>
@@ -1777,6 +1823,7 @@
         <div class="forge-action-btns">
           <button class="btn-forge-submit save" id="btnSaveToRepo">申报入自由库</button>
         </div>
+        <div class="forge-busy-note" id="forgeBusyNote"><span class="spin"></span><span>申报送审中…法术AI 正在审阅，请勿重复点击</span></div>
       </div>
     </div>
 
@@ -3177,8 +3224,12 @@
   }
 
   /* ═══════════════════ 待送审回路送审（串行 + 防卡死 + 令牌） ═══════════════════ */
-  var isReviewing = false;
+  var isReviewing = false;   // 送审槽（剧情获得回路）送审中
+  var isForging = false;     // 自由构筑「申报入自由库」（自创回路）送审中
   var reviewToken = 0;   // 递增令牌：超时/新请求取代后，丢弃迟到的 AI 响应，防止重复落地
+  var forgeToken = 0;    // 同上，用于自创回路申报
+  // 任一送审在途 → 禁止再发起法术AI 送审（两入口共用同一支法术AI，避免并发扣费 / 重复入库）
+  function spellReviewBusy() { return isReviewing || isForging; }
 
   function 参数模板JSON(famKey) {
     var F = E.FAMS[famKey];
@@ -3221,11 +3272,14 @@
   }
 
   function reviewCircuit(cardData) {
-    if (isReviewing) { alert('上一次送审尚未完成，请稍候。'); return; }
+    if (spellReviewBusy()) { alert('上一次送审尚未完成，请稍候。'); return; }
     var c = circuitById(g, cardData.id);
     if (!c || c.审核状态 !== '待送审') { alert('该回路不处于待送审状态。'); return; }
 
     isReviewing = true;
+    // ★ 立即进入「送审中」可见状态：按钮禁用+改文案、送审槽加载遮罩、详情页送审按钮同步。
+    //   （此前只在完成后刷新，用户看不出是否发出 → 重复点击；现改为发起即反馈）
+    updateReviewDock();
     var tok = ++reviewToken;   // 本次送审令牌
     var 模板 = 参数模板JSON(c.famKey);
     var aff = affinityOf(g);
@@ -3305,12 +3359,30 @@
     openSidebar(); switchTab('tabRepo');
   }
 
-  /* 审核台按钮状态：送审槽有卡才可点；审核中禁用 */
+  /* 审核台按钮状态：送审槽有卡才可点；送审中禁用并叠加加载遮罩（随时可重入，与牌库/桌面刷新解耦） */
   function updateReviewDock() {
     var btn = btnReviewDock;
     if (!btn) return;
-    var dock = g.回路库.find(function (c) { return c.送审槽; });
-    if (isReviewing) { btn.disabled = true; btn.textContent = '⟳ 审核中…'; btn.style.opacity = '0.7'; return; }
+    var dock = g && g.回路库 ? g.回路库.find(function (c) { return c.送审槽; }) : null;
+    var dockEl = document.getElementById('reviewDock');
+    var sockEl = document.getElementById('socket_review');
+    if (dockEl) dockEl.classList.toggle('is-busy', isReviewing);
+    if (sockEl) sockEl.classList.toggle('is-busy', isReviewing);
+    btn.classList.toggle('is-busy', isReviewing);
+    // 详情页的「送审」按钮同步忙碌态（送审也可从牌库详情页发起）
+    var detailBtn = document.getElementById('btnReviewInDetail');
+    if (detailBtn) {
+      if (!isReviewing && !detailBtn.dataset.idleLabel) detailBtn.dataset.idleLabel = detailBtn.textContent;
+      detailBtn.disabled = isReviewing;
+      if (isReviewing) detailBtn.textContent = '⟳ 送审中…请勿重复点击';
+      else if (detailBtn.dataset.idleLabel) detailBtn.textContent = detailBtn.dataset.idleLabel;
+    }
+    if (isReviewing) {
+      btn.disabled = true;
+      btn.textContent = '⟳ 送审中…请勿重复点击';
+      btn.style.opacity = '1';
+      return;
+    }
     if (dock) {
       btn.disabled = false;
       btn.textContent = '⚖ 送审《' + String(dock.名称).slice(0, 8) + '》';
@@ -3322,8 +3394,8 @@
     }
   }
   btnReviewDock.addEventListener('click', function () {
-    if (isReviewing) return;
-    var dock = g.回路库.find(function (c) { return c.送审槽; });
+    if (spellReviewBusy()) return;   // 送审中：按钮已禁用，此处为兜底
+    var dock = g && g.回路库 ? g.回路库.find(function (c) { return c.送审槽; }) : null;
     if (!dock) { alert('送审槽为空：先把「待送审」回路拖进送审槽。'); return; }
     reviewCircuit(toDeskCard(dock, 'review', null));
   });
@@ -3916,6 +3988,20 @@
     });
   }
 
+  /* 「申报入自由库」送审中反馈：按钮禁用+改文案 + 下方加载提示。
+     此前该入口无任何在途守卫 → 重复点击会并发多次法术AI 调用并重复入库；现加守卫 + 可见状态。 */
+  function renderForgeBusy(on) {
+    var btn = document.getElementById('btnSaveToRepo');
+    var note = document.getElementById('forgeBusyNote');
+    if (btn) {
+      btn.disabled = !!on;
+      btn.classList.toggle('is-busy', !!on);
+      if (!btn.dataset.idleLabel) btn.dataset.idleLabel = btn.textContent;
+      btn.textContent = on ? '⟳ 申报送审中…请勿重复点击' : btn.dataset.idleLabel;
+    }
+    if (note) note.classList.toggle('show', !!on);
+  }
+
   /* 出口 A：申报入自由库（预设回路免审直接入库；自定义送审 → 通过才入库） */
   $('#btnSaveToRepo').addEventListener('click', function () {
     if (!g) { alert('尚未开局'); return; }
@@ -3945,6 +4031,7 @@
       return;
     }
 
+    if (spellReviewBusy()) { alert('法术AI 正在处理上一次送审，请稍候再试。'); return; }
     var desc = intentDesc.value.trim();
     if (desc.length < 8) { alert('构筑意图描述太短：至少写清"作用对象 + 作用方式"（≥8字）。'); return; }
     var q = recalcForgeQuote();
@@ -3959,6 +4046,17 @@
       场景: '风力' + g.场景.风力档 + '，无机物' + g.场景.可塑无机物kJ + 'kJ，水体' + (g.场景.水体在场 ? '有' : '无')
     };
 
+    isForging = true;
+    renderForgeBusy(true);
+    var tok = ++forgeToken;
+    // 防卡死兜底：20s 未返回 → 视为失败，释放按钮（避免永久禁用卡住）
+    var forgeDeadline = setTimeout(function () {
+      if (tok !== forgeToken) return;
+      forgeToken++;              // 作废迟到响应
+      isForging = false; renderForgeBusy(false);
+      alert('申报送审超时（20s），请重试。');
+    }, 20000);
+
     generateRaw({
       ordered_prompts: assembleSpell(getSpellPrompt(), vars),
       should_stream: false, should_silence: true,
@@ -3966,6 +4064,9 @@
       custom_api: getSpellApi(),
       json_schema: { name: 'spell_review', value: { type: 'object', properties: { 结论: { type: 'string', enum: ['通过', '驳回'] }, 规范化回路: { type: ['object', 'null'], properties: { 名称: { type: 'string' }, 一句话效果: { type: 'string' }, 物理相态与表征: { type: 'string' }, 效果文字稿: { type: 'string' } }, required: ['名称', '一句话效果'], additionalProperties: false }, 解释: { type: ['string', 'null'] } }, required: ['结论', '规范化回路', '解释'], additionalProperties: false } }
     }).then(function (raw) {
+      clearTimeout(forgeDeadline);
+      if (tok !== forgeToken) return;   // 已被超时/新请求取代 → 丢弃迟到响应
+      isForging = false; renderForgeBusy(false);
       var text = typeof raw === 'string' ? raw : JSON.stringify(raw);
       var m = text.match(/\{[\s\S]*\}/); var json = null;
       try { json = JSON.parse(m ? m[0] : text); } catch (e) {}
@@ -3997,6 +4098,9 @@
         alert('【驳回】' + (json && json.解释 ? json.解释 : '法术AI 未给出可解析结论（请重试或改描述）。'));
       }
     }).catch(function (e) {
+      clearTimeout(forgeDeadline);
+      if (tok !== forgeToken) return;
+      isForging = false; renderForgeBusy(false);
       alert('送审失败（法术AI 不可用）：' + (e && e.message ? e.message : e));
     });
   });

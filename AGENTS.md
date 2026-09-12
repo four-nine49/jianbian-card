@@ -271,6 +271,12 @@ finally：开关.状态栏标记 → 楼末追加 <StatusPlaceHolderImpl/>
 - 状态栏自带存档闭环：`writeGame(mut)` → updateVariablesWith 改 chat 变量 `渐变带` +
   300ms 后同步 stat_data 快照。玩家操作（施放/装槽/补给/手操确认）都走它，与 saveGame 同存储。
 - 改状态栏/开局 HTML 后：`node build.mjs` 重新生成 dist → **用户需重新导入正则**。
+- **法术AI 送审的「送审中」状态（v1.8.6）**：送审有两个入口——送审槽（`reviewCircuit`，剧情获得回路）
+  与自由构筑「申报入自由库」（`#btnSaveToRepo`，自创回路），二者共用同一支法术AI。各自维护
+  `isReviewing` / `isForging` 忙碌标志，并由 `spellReviewBusy()` 统一做并发守卫（一个在途时另一个禁发起，
+  避免并发扣费 / 重复入库）。**发起送审时必须立刻渲染忙碌态**（按钮禁用+改文案、送审槽 `.is-busy`
+  加载遮罩、详情页送审按钮同步），否则用户看不出是否已发出而重复点击。完成/驳回/超时/异常四条路径
+  都要复位（统一走 `updateReviewDock()` / `renderForgeBusy(false)`），并保留「令牌 + 超时兜底」防迟到响应二次落地。
 - **亲和 ctx 键名契约（血的教训，v1.8.5）**：引擎 `tierOf/gateOf` 读的是 `aff.main[].fam / .br`，
   而存档 `亲和.主分支` 存的是 `{族, 分支}` —— HTML 面板**必须自己转名**：
   `{ fam: b.族, br: b.分支 }`，且 **fam 装的是中文族名**（引擎内部 `FAMKEY[famKey]` 英文→中文再比对；
@@ -315,7 +321,7 @@ node package-loader.mjs           # 生成 releases/酒馆助手脚本-开局.js
 
 ## 12. 版本与发布流程（每次改完）
 
-1. 改 `core/version.ts` + `manifest.json` + `package.json`（三处同步，当前 1.8.5；
+1. 改 `core/version.ts` + `manifest.json` + `package.json`（三处同步，当前 1.8.6；
    版本以 `manifest.json` 为准，别凭记忆写）。
 2. `node build.mjs` → `tsc --noEmit`（`pnpm run check`）→ `node smoke.mjs`。
 3. 改了 manifest 版本号 → `node package-loader.mjs` 重新生成 `releases/酒馆助手脚本-开局.json`
