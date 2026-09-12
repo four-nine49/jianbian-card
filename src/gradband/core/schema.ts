@@ -55,6 +55,9 @@ export const 回路Schema = z.object({
   微调预算: z.object({ br_min: z.number(), fv_max: z.number(), E_min: z.number(), E_max: z.number() }).nullable(),
   微调预算明细: z.record(z.string(), z.union([z.string(), z.number()])).nullable(),
   基线账单: z.object({ 输出kJ: z.number(), 计费kJ: z.number(), 精神: z.number(), 一句话效果: z.string() }),
+  // 物理相态与表征（v1.8.3 起）：法术AI 送审通过时按五系机理提炼的**视觉/声学/空间/介质**形态描写，
+  //   ★正文AI 叙事唯一形态锚点。可选——旧档与开局预设/免审回路没有这个字段（undefined），别给默认值硬编。
+  物理相态与表征: z.string().optional(),
   uses: z.number().int().nullable(),             // 仅 free 计数
   来源: z.enum(['面板送审', '转正', '剧情授技', '开局预设']),
   审核存档: z.object({ 原始描述: z.string(), 规范化结果: z.any() }).nullable(),

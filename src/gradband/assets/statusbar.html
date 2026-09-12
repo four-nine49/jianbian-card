@@ -570,7 +570,7 @@
 
   /* ── 送审 ── */
   var DEFAULT_SPELL_PROMPT = [
-    { role: 'system', enabled: true, content: '你是跑团系统的"法术AI"，负责审核玩家自创施法回路是否合理（物理可行性，与亲和无关）。通过→{"结论":"通过","规范化回路":{"名称":"2~7字中文短名","一句话效果":"…","效果文字稿":"…"}}；驳回→{"结论":"驳回","解释":"通俗说明"}。只输出 JSON。' },
+    { role: 'system', enabled: true, content: '你是跑团系统的"法术AI"，负责审核玩家自创施法回路是否合理（物理可行性，与亲和无关）。通过→{"结论":"通过","规范化回路":{"名称":"2~7字中文短名","一句话效果":"…","物理相态与表征":"依五系机理提炼的视觉/声学/空间/介质特征","效果文字稿":"…"}}；驳回→{"结论":"驳回","解释":"通俗说明"}。只输出 JSON。' },
     { role: 'user', enabled: true, content: '【玩家描述】\n{{描述}}\n\n【构筑参数】\n{{参数}}\n\n【场景】\n{{场景}}\n\n【已有回路（查重）】\n{{库索引}}\n\n请输出审核结果 JSON。' }
   ];
   function getSpellPrompt() {
@@ -611,7 +611,7 @@
       should_stream: false, should_silence: true,
       generation_id: 'gb_spell_webui_' + Date.now(),
       custom_api: api,
-      json_schema: { name: 'spell_review', value: { type: 'object', properties: { 结论: { type: 'string', enum: ['通过', '驳回'] }, 规范化回路: { type: ['object', 'null'], properties: { 名称: { type: 'string' }, 一句话效果: { type: 'string' }, 效果文字稿: { type: 'string' } }, required: ['名称', '一句话效果'], additionalProperties: false }, 解释: { type: ['string', 'null'] } }, required: ['结论', '规范化回路', '解释'], additionalProperties: false } }
+      json_schema: { name: 'spell_review', value: { type: 'object', properties: { 结论: { type: 'string', enum: ['通过', '驳回'] }, 规范化回路: { type: ['object', 'null'], properties: { 名称: { type: 'string' }, 一句话效果: { type: 'string' }, 物理相态与表征: { type: 'string' }, 效果文字稿: { type: 'string' } }, required: ['名称', '一句话效果'], additionalProperties: false }, 解释: { type: ['string', 'null'] } }, required: ['结论', '规范化回路', '解释'], additionalProperties: false } }
     }).then(function (raw) {
       var text = typeof raw === 'string' ? raw : JSON.stringify(raw);
       var m = text.match(/\{[\s\S]*\}/); var json = null;
@@ -651,6 +651,8 @@
           参数明细: E.readableParams(S.fam, params),
           微调预算: budget, 微调预算明细: E.readableBudget(budget),
           基线账单: { 输出kJ: q.E_out, 计费kJ: q.bill, 精神: q.mind, 一句话效果: effect },
+          // 正文AI 叙事唯一形态锚点（法术AI 按五系机理提炼）
+          物理相态与表征: String((json.规范化回路 && json.规范化回路.物理相态与表征) || ''),
           uses: targetType === 'free' ? 0 : null,
           来源: targetType === 'fixed' ? '剧情授技' : '面板送审',
           审核存档: { 原始描述: desc, 规范化结果: json.规范化回路 },

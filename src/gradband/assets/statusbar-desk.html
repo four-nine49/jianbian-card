@@ -2011,6 +2011,8 @@
         { k: '族', v: c.族 || '' },
         { k: '分支', v: c.分支 || '' },
         { k: '效果', v: bill.一句话效果 || '' },
+        // 形态锚点：法术AI 送审通过时才有（旧档/预设/免审回路没有 → 显示 —）
+        { k: '形态', v: c.物理相态与表征 || '—' },
         { k: '过载率', v: c.过载率 != null ? c.过载率 + '%' : '—' },
         { k: '过载风险', v: c.过载风险 != null ? c.过载风险 + '%' : '—' }
       ],
@@ -2581,7 +2583,7 @@
       场景: '风力' + g.场景.风力档 + '，无机物' + g.场景.可塑无机物kJ + 'kJ，水体' + (g.场景.水体在场 ? '有' : '无')
     };
     var segs = getSpellPrompt().concat([
-      { role: 'user', enabled: true, content: '【剧情获得回路：据"一句话效果"审核物理可行性，并填出该族合理的参数向量】\n{{描述}}\n\n【该族参数模板】\n{{参数}}\n\n【亲和（仅参考）】\n{{亲和}}\n\n【场景】\n{{场景}}\n\n请只输出审核结果 JSON；若通过，规范化回路必须含"参数向量"。' }
+      { role: 'user', enabled: true, content: '【剧情获得回路：据"一句话效果"审核物理可行性，并填出该族合理的参数向量】\n{{描述}}\n\n【该族参数模板】\n{{参数}}\n\n【亲和（仅参考）】\n{{亲和}}\n\n【场景】\n{{场景}}\n\n请只输出审核结果 JSON；若通过，规范化回路必须含"参数向量"，并按五系机理给出"物理相态与表征"。' }
     ]);
 
     // 防卡死：15s 超时兜底（超时 = 失败：清送审槽，牌自动回牌库）
@@ -2598,7 +2600,7 @@
       should_stream: false, should_silence: true,
       generation_id: 'gb_review_' + Date.now(),
       custom_api: getSpellApi(),
-      json_schema: { name: 'spell_review', value: { type: 'object', properties: { 结论: { type: 'string', enum: ['通过', '驳回'] }, 规范化回路: { type: ['object', 'null'], properties: { 名称: { type: 'string' }, 一句话效果: { type: 'string' }, 参数向量: { type: 'object' } }, required: ['名称', '一句话效果', '参数向量'], additionalProperties: false }, 解释: { type: ['string', 'null'] } }, required: ['结论', '规范化回路', '解释'], additionalProperties: false } }
+      json_schema: { name: 'spell_review', value: { type: 'object', properties: { 结论: { type: 'string', enum: ['通过', '驳回'] }, 规范化回路: { type: ['object', 'null'], properties: { 名称: { type: 'string' }, 一句话效果: { type: 'string' }, 物理相态与表征: { type: 'string' }, 参数向量: { type: 'object' } }, required: ['名称', '一句话效果', '参数向量'], additionalProperties: false }, 解释: { type: ['string', 'null'] } }, required: ['结论', '规范化回路', '解释'], additionalProperties: false } }
     }).then(function (raw) {
       clearTimeout(deadline);
       if (tok !== reviewToken) return;
@@ -2622,6 +2624,7 @@
           delete cc.送审槽;   // 通过 → 清送审槽 → 牌自动回牌库
           var q = E.quote({ fam: cc.famKey, e: cc.注册e || 0, c: params }, forgeCtx());
           cc.基线账单 = { 输出kJ: q.E_out, 计费kJ: q.bill, 精神: q.mind, 一句话效果: effect || String(q.r.effect || '') };
+          cc.物理相态与表征 = String(json.规范化回路.物理相态与表征 || '');
         });
         loadFromSave(); renderDesktopCards(); renderRepoList(); updateReviewDock();
         openSidebar(); switchTab('tabRepo');
@@ -3240,7 +3243,7 @@
       if (seg && seg.length) return seg;
     } catch (e) {}
     return [
-      { role: 'system', enabled: true, content: '你是跑团系统的"法术AI"，负责审核施法回路是否合理（物理可行性，与亲和无关；不做账单计算）。双场景：自创申报（{{参数}}为中文参数明细）通过时规范化回路输出 {"名称","一句话效果","效果文字稿"}；剧情获得送审（{{参数}}为参数模板JSON）通过时必须含"参数向量"。输出二选一 JSON：通过→{"结论":"通过","规范化回路":{…}}；驳回→{"结论":"驳回","解释":"通俗说明"}。只输出 JSON。' },
+      { role: 'system', enabled: true, content: '你是跑团系统的"法术AI"，负责审核施法回路是否合理（物理可行性，与亲和无关；不做账单计算）。双场景：自创申报（{{参数}}为中文参数明细）通过时规范化回路输出 {"名称","一句话效果","物理相态与表征","效果文字稿"}；剧情获得送审（{{参数}}为参数模板JSON）通过时必须含"参数向量"与"物理相态与表征"。规范化回路各字段：名称=2~7字纯中文短名；一句话效果=核心物理做功本质（20字内）；物理相态与表征=依五系机理提炼的视觉/声学/空间/介质形态（★正文AI叙事唯一形态锚点，严禁光晕/魔法阵/神秘能量等奇幻辞藻）。输出二选一 JSON：通过→{"结论":"通过","规范化回路":{…}}；驳回→{"结论":"驳回","解释":"通俗说明"}。只输出 JSON。' },
       { role: 'user', enabled: true, content: '【玩家描述】\n{{描述}}\n\n【构筑参数】\n{{参数}}\n\n【场景】\n{{场景}}\n\n【亲和（仅参考）】\n{{亲和}}\n\n请输出审核结果 JSON。' }
     ];
   }
@@ -3307,7 +3310,7 @@
       should_stream: false, should_silence: true,
       generation_id: 'gb_spell_desk_' + Date.now(),
       custom_api: getSpellApi(),
-      json_schema: { name: 'spell_review', value: { type: 'object', properties: { 结论: { type: 'string', enum: ['通过', '驳回'] }, 规范化回路: { type: ['object', 'null'], properties: { 名称: { type: 'string' }, 一句话效果: { type: 'string' }, 效果文字稿: { type: 'string' } }, required: ['名称', '一句话效果'], additionalProperties: false }, 解释: { type: ['string', 'null'] } }, required: ['结论', '规范化回路', '解释'], additionalProperties: false } }
+      json_schema: { name: 'spell_review', value: { type: 'object', properties: { 结论: { type: 'string', enum: ['通过', '驳回'] }, 规范化回路: { type: ['object', 'null'], properties: { 名称: { type: 'string' }, 一句话效果: { type: 'string' }, 物理相态与表征: { type: 'string' }, 效果文字稿: { type: 'string' } }, required: ['名称', '一句话效果'], additionalProperties: false }, 解释: { type: ['string', 'null'] } }, required: ['结论', '规范化回路', '解释'], additionalProperties: false } }
     }).then(function (raw) {
       var text = typeof raw === 'string' ? raw : JSON.stringify(raw);
       var m = text.match(/\{[\s\S]*\}/); var json = null;
@@ -3326,6 +3329,8 @@
             参数明细: E.readableParams(FORGE_STATE.fam, params),
             微调预算: null, 微调预算明细: null,
             基线账单: { 输出kJ: qq.E_out, 计费kJ: qq.bill, 精神: qq.mind, 一句话效果: effect },
+            // 正文AI 叙事唯一形态锚点（法术AI 按五系机理提炼）
+            物理相态与表征: String(json.规范化回路.物理相态与表征 || ''),
             uses: 0, 来源: '面板送审',
             审核存档: { 原始描述: desc, 规范化结果: json.规范化回路 },
             审核状态: '已通过'

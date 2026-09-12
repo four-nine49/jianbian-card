@@ -208,6 +208,15 @@ structured rules 清空）；只有 `group` 永远单表。**任何新填表逻�
 （feel-ai.ts 已不存在）；陆安追踪表现走开局框架标准填表流程（enabled:true）。
 状态栏 HTML 是正则注入的独立脚本，读不到扩展表格存储，所以手操走 chat 变量 `渐变带.操作表`。
 
+**回路记录新增字段（v1.8.3）`物理相态与表征`**：可选字符串，代表**正文AI 叙事唯一形态锚点**，
+由法术AI 送审通过时按五系机理分流写入（倾泻=准直射束／波动·媒介波=介质与激波／波动·场=无形场域／
+结构=晶格相态与就地取材·绝无弹道／生机=渗透与组织异变·绝无弹道光球／感知=神经感官与无形球域）。
+改动一个字段要同时动五处，别漏：`core/schema.ts` 回路Schema（zod，缺了会被 strip）、
+`pipeline/spell-ai.ts`（两个 json_schema + 结果类型 + 兜底）、**`assets/statusbar-desk.html`
+（剧情获得 + 自创申报两个 json_schema、`getSpellPrompt` 兜底文案、两处入库写入、详情页 specs 的「形态」行）**、
+`assets/statusbar.html`（旧六页版同样三处）。⚠️ 双桌 HTML 里的 `additionalProperties:false` 意味着
+**不加进 schema 的字段 AI 根本输出不了**；旧档/开局预设/免审回路没有该字段（undefined，别硬补默认值）。
+
 ### 9.2 回合管线（pipeline/scheduler.ts 的 runTurn）
 
 ```
@@ -280,7 +289,7 @@ node package-loader.mjs           # 生成 releases/酒馆助手脚本-开局.js
 
 ## 12. 版本与发布流程（每次改完）
 
-1. 改 `core/version.ts` + `manifest.json` + `package.json`（三处同步，当前 1.8.2；
+1. 改 `core/version.ts` + `manifest.json` + `package.json`（三处同步，当前 1.8.3；
    版本以 `manifest.json` 为准，别凭记忆写）。
 2. `node build.mjs` → `tsc --noEmit`（`pnpm run check`）→ `node smoke.mjs`。
 3. 改了 manifest 版本号 → `node package-loader.mjs` 重新生成 `releases/酒馆助手脚本-开局.json`

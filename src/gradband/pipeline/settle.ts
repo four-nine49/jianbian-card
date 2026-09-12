@@ -67,6 +67,7 @@ export function 构建回路记录(opts: {
   id: string; 名称: string; type: 'fixed' | 'free'; famKey: 回路['famKey'];
   params: Record<string, number>; e: number; g: 游戏;
   来源: 回路['来源']; 审核存档?: 回路['审核存档']; 一句话效果?: string;
+  物理相态与表征?: string;
   审核状态?: 回路['审核状态'];
 }): 回路 {
   const { id, 名称, type, famKey, params, e, g, 来源 } = opts;
@@ -86,6 +87,8 @@ export function 构建回路记录(opts: {
     微调预算: budget,
     微调预算明细: readableBudget(budget),
     基线账单: { 输出kJ: q.E_out, 计费kJ: q.bill, 精神: q.mind, 一句话效果: opts.一句话效果 ?? String(q.r.effect ?? '') },
+    // 形态锚点：只有法术AI 送审通过时才有；剧情授技入牌库（待送审）时为 undefined，送审后补齐
+    ...(opts.物理相态与表征 ? { 物理相态与表征: opts.物理相态与表征 } : {}),
     uses: type === 'free' ? 0 : null,
     来源,
     审核存档: opts.审核存档 ?? null,

@@ -19,6 +19,7 @@ const SCHEMA = {
         properties: {
           名称: { type: 'string', description: '2~7字中文短名' },
           一句话效果: { type: 'string' },
+          物理相态与表征: { type: 'string', description: '按五系机理提炼的视觉/声学/空间/介质形态描写（正文AI叙事唯一形态锚点）' },
           效果文字稿: { type: 'string' },
         },
         required: ['名称', '一句话效果'],
@@ -40,7 +41,7 @@ export interface 送审输入 {
 
 export interface 送审结果 {
   结论: '通过' | '驳回';
-  规范化回路?: { 名称: string; 一句话效果: string; 效果文字稿?: string; 参数向量?: Record<string, number> };
+  规范化回路?: { 名称: string; 一句话效果: string; 物理相态与表征?: string; 效果文字稿?: string; 参数向量?: Record<string, number> };
   解释?: string;
   来源: '法术AI' | '本地兜底';
 }
@@ -75,7 +76,7 @@ function 兜底(input: 送审输入): 送审结果 {
   const res = localJudge({ desc: input.desc, fam: input.famKey, entity: null, params: input.params, effect: input.effect, scene: {} });
   if (res['结论'] === '通过') {
     const nn = res['规范化回路'];
-    return { 结论: '通过', 规范化回路: { 名称: String(nn?.['名'] ?? '未名回路'), 一句话效果: String(nn?.['一句话效果'] ?? input.effect ?? ''), 效果文字稿: input.desc, 参数向量: input.params }, 来源: '本地兜底' };
+    return { 结论: '通过', 规范化回路: { 名称: String(nn?.['名'] ?? '未名回路'), 一句话效果: String(nn?.['一句话效果'] ?? input.effect ?? ''), 物理相态与表征: String(nn?.['物理相态与表征'] ?? ''), 效果文字稿: input.desc, 参数向量: input.params }, 来源: '本地兜底' };
   }
   return { 结论: '驳回', 解释: String(res['解释'] ?? ''), 来源: '本地兜底' };
 }
@@ -135,6 +136,7 @@ export interface 剧情送审结果 {
   参数向量?: Record<string, number>;
   名称?: string;
   一句话效果?: string;
+  物理相态与表征?: string;
   解释?: string;
 }
 
@@ -147,7 +149,7 @@ export async function 送审剧情获得(g: 游戏, item: { 族: string; 一句�
 
   if (settings.api.法术AI.mode !== 'custom' && settings.api.法术AI.mode !== 'tavern') {
     if (兜底['结论'] === '通过') {
-      return { ok: true, 参数向量: initParams(famKey) as Record<string, number>, 名称: String(兜底['规范化回路']?.['名'] ?? (item.一句话效果.slice(0, 6) || '未名回路')), 一句话效果: item.一句话效果 };
+      return { ok: true, 参数向量: initParams(famKey) as Record<string, number>, 名称: String(兜底['规范化回路']?.['名'] ?? (item.一句话效果.slice(0, 6) || '未名回路')), 一句话效果: item.一句话效果, 物理相态与表征: String(兜底['规范化回路']?.['物理相态与表征'] ?? '') };
     }
     return { ok: false, 解释: String(兜底['解释'] ?? '') };
   }
@@ -163,6 +165,7 @@ export async function 送审剧情获得(g: 游戏, item: { 族: string; 一句�
           properties: {
             名称: { type: 'string', description: '2~7字中文短名' },
             一句话效果: { type: 'string' },
+            物理相态与表征: { type: 'string', description: '按五系机理提炼的视觉/声学/空间/介质形态描写（正文AI叙事唯一形态锚点）' },
             参数向量: { type: 'object', description: '该族参数键值（数值）；只填你判断的关键键，缺省键脚本用默认' },
           },
           required: ['名称', '一句话效果', '参数向量'],
@@ -177,7 +180,7 @@ export async function 送审剧情获得(g: 游戏, item: { 族: string; 一句�
 
   const segs: PromptSegment[] = [
     ...settings.提示词.法术AI,
-    { role: 'user', enabled: true, note: '剧情获得填参指令', content: '【剧情获得回路：据"一句话效果"审核物理可行性，并填出该族合理的参数向量】\n{{描述}}\n\n【该族参数模板】\n{{参数}}\n\n【亲和（仅参考）】\n{{亲和}}\n\n【场景】\n{{场景}}\n\n请只输出审核结果 JSON；若通过，规范化回路必须含"参数向量"（没把握的键可省略，脚本用默认补齐）。' },
+    { role: 'user', enabled: true, note: '剧情获得填参指令', content: '【剧情获得回路：据"一句话效果"审核物理可行性，并填出该族合理的参数向量】\n{{描述}}\n\n【该族参数模板】\n{{参数}}\n\n【亲和（仅参考）】\n{{亲和}}\n\n【场景】\n{{场景}}\n\n请只输出审核结果 JSON；若通过，规范化回路必须含"参数向量"，并按五系机理给出"物理相态与表征"（没把握的参数键可省略，脚本用默认补齐）。' },
   ];
   const vars = {
     描述: item.一句话效果,
@@ -191,12 +194,12 @@ export async function 送审剧情获得(g: 游戏, item: { 族: string; 一句�
     const json = 抽取JSON(raw);
     if (json?.结论 === '通过' && json.规范化回路?.参数向量) {
       const params = 钳制参数(famKey, json.规范化回路.参数向量 as Record<string, any>);
-      return { ok: true, 参数向量: params, 名称: String(json.规范化回路.名称 || ''), 一句话效果: String(json.规范化回路.一句话效果 || item.一句话效果) };
+      return { ok: true, 参数向量: params, 名称: String(json.规范化回路.名称 || ''), 一句话效果: String(json.规范化回路.一句话效果 || item.一句话效果), 物理相态与表征: String(json.规范化回路.物理相态与表征 || '') };
     }
     return { ok: false, 解释: json?.解释 || '法术AI 未给出可解析结论' };
   } catch {
     if (兜底['结论'] === '通过') {
-      return { ok: true, 参数向量: initParams(famKey) as Record<string, number>, 名称: String(兜底['规范化回路']?.['名'] ?? (item.一句话效果.slice(0, 6) || '未名回路')), 一句话效果: item.一句话效果 };
+      return { ok: true, 参数向量: initParams(famKey) as Record<string, number>, 名称: String(兜底['规范化回路']?.['名'] ?? (item.一句话效果.slice(0, 6) || '未名回路')), 一句话效果: item.一句话效果, 物理相态与表征: String(兜底['规范化回路']?.['物理相态与表征'] ?? '') };
     }
     return { ok: false, 解释: '法术AI 不可用，本地兜底驳回：' + String(兜底['解释'] ?? '') };
   }
