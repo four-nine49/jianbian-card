@@ -185,6 +185,9 @@ structured rules 清空）；只有 `group` 永远单表。**任何新填表逻�
 - **窗口/悬浮球**：位置尺寸持久化到 extensionSettings；悬浮球是唯一入口，
   有三层保底（最先挂 / 3 秒自检补挂 / 失败重试一次）——改 index.ts 时不要破坏。
 - **z-index**：窗口 9999、悬浮球 10000。
+- **模式切换器位置**：`.of-modepicker` 固定**窗口左上角**（`top:8px; left:10px`，v1.8.1 起从
+  内容区右上移来），z-index 5、压在侧栏上方；`.of-nav` 用 `padding-top:36px` 给它让位——
+  改这两处要成对改，别把按钮挪回内容区。手机端（≤640px）它是 `position:static` 横排。
 - **页面生命周期**：页面事件订阅挂到 `(el as any)._ofDispose`，app.ts 切页时统一调用。
 - **宏**：数据出口（同步/渲染/种子写入）必须过 `utils/macros.substituteMacros`。
 
