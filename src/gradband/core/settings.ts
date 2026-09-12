@@ -134,7 +134,13 @@ export function loadSettings(): Settings {
   const def = 默认设置();
   const raw = readExtensionSettings<Partial<Settings>>(SETTINGS_KEY, {});
   cache = {
-    开关: { ...def.开关, ...(raw.开关 || {}) },
+    // 白名单取键：旧档可能残留**已废弃的开关键**（如 pre-v1.7.0 的「情感分析」，感情AI 删除后无人读取），
+    // 而面板是按 Object.keys(s.开关) 动态渲染的——残留键会变成一个点了没用的幽灵勾选框。
+    // 这里只认已知键，顺带在下次保存时把残留键从 extensionSettings 里清掉。
+    开关: {
+      自动结算: typeof raw.开关?.自动结算 === 'boolean' ? raw.开关.自动结算 : def.开关.自动结算,
+      状态栏标记: typeof raw.开关?.状态栏标记 === 'boolean' ? raw.开关.状态栏标记 : def.开关.状态栏标记,
+    },
     频率: { 数据AI: (raw.频率 && typeof raw.频率.数据AI === 'number' ? raw.频率.数据AI : def.频率.数据AI) },
     api: {
       数据AI: raw.api?.数据AI ?? def.api.数据AI,

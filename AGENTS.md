@@ -280,7 +280,7 @@ node package-loader.mjs           # 生成 releases/酒馆助手脚本-开局.js
 
 ## 12. 版本与发布流程（每次改完）
 
-1. 改 `core/version.ts` + `manifest.json` + `package.json`（三处同步，当前 1.8.1；
+1. 改 `core/version.ts` + `manifest.json` + `package.json`（三处同步，当前 1.8.2；
    版本以 `manifest.json` 为准，别凭记忆写）。
 2. `node build.mjs` → `tsc --noEmit`（`pnpm run check`）→ `node smoke.mjs`。
 3. 改了 manifest 版本号 → `node package-loader.mjs` 重新生成 `releases/酒馆助手脚本-开局.json`
