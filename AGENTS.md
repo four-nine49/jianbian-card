@@ -256,6 +256,12 @@ finally：开关.状态栏标记 → 楼末追加 <StatusPlaceHolderImpl/>
 - v2.2 要点：瞬时爆发线=持续×爆发倍率（倍率存 `主角.爆发倍率`，旧档 loadGame 反推）；地震等引信类
   做功口径 = 全能量×`TUNE.seismicWorkFrac`(2%) 且恒比爆发线；每条回路每轮预掷 `本轮走火`（对玩家界面不可见）；
   亲和磨炼=全陌 ×4→×2（按 workE 实际做功能量累计，生机系能量门控恒 ×1）——磨炼倍率映射由 engineCtx 下发。
+- **v2.3 要点：固定回路精神折扣**。`quote()` 新增可选入参 `req.固定`（宿主按回路 `type === 'fixed'` 传 true）
+  → 精神账单 ×`TUNE.fixedMindMul`(0.2，即 ÷5)，兑现「固定槽=肌肉记忆、精神消耗极低」的设定；
+  与 `findTuned` 的 ×0.3 **二选一不叠加**（改成了 if/else if）。⚠️ 自由/现构回路**绝不能**传该位，
+  否则等于白送 5 倍精神折扣。当前所有调用点（opening.html circuitFor、双桌手操/送审入库、旧六页版
+  施放手操、settle.ts 构建回路记录/补挂/施放挂单、ops-table.ts confirmOps）均已按 `type` 传参。
+  引擎 VERSION → 2.3.0。
 - smoke 里 `globalThis.module=undefined` 是故意的（让 UMD 引擎挂 window）；engine.ts 两侧都找。
 
 ### 9.4 状态栏 / 开局 HTML（正则注入）
@@ -265,6 +271,13 @@ finally：开关.状态栏标记 → 楼末追加 <StatusPlaceHolderImpl/>
 - 状态栏自带存档闭环：`writeGame(mut)` → updateVariablesWith 改 chat 变量 `渐变带` +
   300ms 后同步 stat_data 快照。玩家操作（施放/装槽/补给/手操确认）都走它，与 saveGame 同存储。
 - 改状态栏/开局 HTML 后：`node build.mjs` 重新生成 dist → **用户需重新导入正则**。
+- **亲和 ctx 键名契约（血的教训，v1.8.5）**：引擎 `tierOf/gateOf` 读的是 `aff.main[].fam / .br`，
+  而存档 `亲和.主分支` 存的是 `{族, 分支}` —— HTML 面板**必须自己转名**：
+  `{ fam: b.族, br: b.分支 }`，且 **fam 装的是中文族名**（引擎内部 `FAMKEY[famKey]` 英文→中文再比对；
+  `settle.ts` 的 `affinityEngine()` 是官方范式）。漏转会**静默**退化成「全陌」→ 精神×4、能量×4，
+  同时污染报价、挂单扣除与基线账单三处（v1.8.5 修的正是它，坏在 `opening.html` 的 `ctxRef()` 与
+  两个状态栏的 `affinityOf()`）。**改完必须用真存档跑一次 `tierOf` 验证 main/mid/far 三档**，
+  别只看有没有报错。
 - 布局契约（双桌版）：不碰 body/视口（改归 `#gdesk` 容器）；画布视口 100%×860px 相对定位；
   `position:fixed` 只允许弹窗/装饰。曾否决：内联小修、iframe srcdoc 包裹——别再试。
   数据契约详见 `docs/具体介绍.md` 第二部分。
@@ -302,7 +315,7 @@ node package-loader.mjs           # 生成 releases/酒馆助手脚本-开局.js
 
 ## 12. 版本与发布流程（每次改完）
 
-1. 改 `core/version.ts` + `manifest.json` + `package.json`（三处同步，当前 1.8.4；
+1. 改 `core/version.ts` + `manifest.json` + `package.json`（三处同步，当前 1.8.5；
    版本以 `manifest.json` 为准，别凭记忆写）。
 2. `node build.mjs` → `tsc --noEmit`（`pnpm run check`）→ `node smoke.mjs`。
 3. 改了 manifest 版本号 → `node package-loader.mjs` 重新生成 `releases/酒馆助手脚本-开局.json`

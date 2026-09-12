@@ -101,7 +101,13 @@
   var S = { fam: 'flow', e: 40, c: {}, desc: '' };   // 构筑页状态
   var FAMNAME = { pour: '倾泻系', flow: '波动系', struct: '结构系', life: '生机系', perce: '感知系' };
 
-  function affinityOf(g) { return { main: Array.isArray(g.亲和.主分支) ? g.亲和.主分支 : (g.亲和.主分支 ? [g.亲和.主分支] : []), subs: g.亲和.次分支 || [] }; }
+  // ⚠️ 引擎 tierOf 读 aff.main[].fam / .br，而存档里的 亲和.主分支 存的是 {族,分支} —— 必须在此转名，
+  //    否则门控恒判「全陌」，精神×4/能量×4 会同时污染报价、挂单与实际扣费（v1.8.5 修）。
+  function affinityOf(g) {
+    var map = function (b) { return b ? { fam: (b.族 != null ? b.族 : b.fam), br: (b.分支 != null ? b.分支 : b.br) } : b; };
+    var mains = Array.isArray(g.亲和.主分支) ? g.亲和.主分支 : (g.亲和.主分支 ? [g.亲和.主分支] : []);
+    return { main: mains.map(map), subs: (g.亲和.次分支 || []).map(map) };
+  }
 
   function render() {
     var g = readSnapshot() || readChat();
@@ -360,7 +366,7 @@
         if (!可用(c)) return;   // 未送审通过的回路不参与手操
         var count = o.counts[i] || 1;
         for (var k = 0; k < count; k++) {
-          var q = E.quote({ fam: c.famKey, e: 0, c: Object.assign(E.initParams(c.famKey), c.参数向量) }, ctx);
+          var q = E.quote({ fam: c.famKey, e: 0, c: Object.assign(E.initParams(c.famKey), c.参数向量), 固定: c.type === 'fixed' }, ctx);
           if (!q) continue;
           totalBill += q.bill; totalMind += q.mind;
         }
@@ -532,7 +538,7 @@
         char: { burstKW: gg.主角.爆发线kW, sustainKW: gg.主角.持续线kW, speed: 1, eCur: gg.主角.能量kJ.当前, mCur: gg.主角.精神点.当前, mMax: gg.主角.精神点.上限, body: gg.主角.身体状态 },
         tuned: tunedList(gg)
       };
-      var q = E.quote({ fam: cc.famKey, e: cc.注册e || 0, c: cc.参数向量 }, ctx);
+      var q = E.quote({ fam: cc.famKey, e: cc.注册e || 0, c: cc.参数向量, 固定: cc.type === 'fixed' }, ctx);
       gg.待扣单.push({
         ref: q.tunedHit || cc.id,
         名称: cc.名称 + (cc.type === 'fixed' ? '' : '·现构'),

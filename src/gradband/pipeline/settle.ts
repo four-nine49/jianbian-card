@@ -73,7 +73,7 @@ export function 构建回路记录(opts: {
   const { id, 名称, type, famKey, params, e, g, 来源 } = opts;
   const c = Object.assign(initParams(famKey), params);
   const ctx = engineCtx(g, { noTuned: true });
-  const q = quote({ fam: famKey, e, c }, ctx);
+  const q = quote({ fam: famKey, e, c, 固定: type === 'fixed' }, ctx);
   const branch = branchOf(famKey, syncParams(famKey, c));
   const budget = type === 'fixed' ? budgetFrom(famKey, syncParams(famKey, c), q.E_out) : null;
   return {
@@ -112,7 +112,7 @@ export function settle(g: 游戏, pack: 变更包): 结算报告 {
       const c = g.回路库.find(x => x.id === u.回路);
       if (!c) continue;
       for (let k = 0; k < u.次数; k++) {
-        const q = quote({ fam: c.famKey, e: c.注册e ?? 0, c: c.参数向量 as Record<string, number> }, ctx);
+        const q = quote({ fam: c.famKey, e: c.注册e ?? 0, c: c.参数向量 as Record<string, number>, 固定: c.type === 'fixed' }, ctx);
         g.待扣单.push({
           ref: c.id, 名称: c.名称 + '（补扣）', 分支: c.分支,
           bill: q.bill, mind: q.mind, workE: q.workE, tell: q.tell, risk: q.risk,
@@ -315,7 +315,7 @@ export function 施放挂单(g: 游戏, circuit: 回路, opts?: { e?: number; c?
   // 微调：现构参数落在已装固定回路预算内 → 按固定招基线。面板现构时传 e/c。
   const params = Object.assign(initParams(circuit.famKey), opts?.c ?? circuit.参数向量);
   const ctx = engineCtx(g);
-  const q = quote({ fam: circuit.famKey, e, c: params }, ctx);
+  const q = quote({ fam: circuit.famKey, e, c: params, 固定: isTuned }, ctx);
   const pending: any = {
     ref: q.tunedHit || (isTuned ? circuit.id : 'tmp·现搭'),
     名称: opts?.名称 ?? (circuit.名称 + (isTuned ? '' : '·现构')),

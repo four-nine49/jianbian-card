@@ -73,7 +73,7 @@ export async function confirmOps(): Promise<{ ok: boolean; error?: string; 明�
     const circuit = g.回路库.find(c => c.id === id);
     if (!circuit) { 明细.push(`回路 ${id} 不在库，忽略`); continue; }
     for (let k = 0; k < count; k++) {
-      const q = quote({ fam: circuit.famKey, e: 0, c: Object.assign(initParams(circuit.famKey), circuit.参数向量) }, ctx);
+      const q = quote({ fam: circuit.famKey, e: 0, c: Object.assign(initParams(circuit.famKey), circuit.参数向量), 固定: circuit.type === 'fixed' }, ctx);
       if (!q) continue;
       totalBill += q.bill; totalMind += q.mind;
       // 亲和磨炼：按实际做功能量累计（workE=剥除倍率/伤势溢价的做功，与 ⑥a 同口径）

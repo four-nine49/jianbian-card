@@ -49,7 +49,10 @@
     injuryRegenMul: 0.5,  // 重伤恢复倍率；前后均战斗时恒为0
     supplyMaxKJ: 5000,    // 单件补给效果上限（钳制，防数据AI灌贴）
     supplyMaxPoint: 50,   // 精神类补给上限（点）
-    seismicWorkFrac: 0.02 // v2.2 引信条款：1-2 地震的过载做功口径 = 全能量的 2%（大地出力不算人头，只算点火费）
+    seismicWorkFrac: 0.02, // v2.2 引信条款：1-2 地震的过载做功口径 = 全能量的 2%（大地出力不算人头，只算点火费）
+    fixedMindMul: 0.2     // v2.3 固定回路（肌肉记忆/固化，req.固定=true）：精神账单 ×0.2（即 ÷5）。
+                          //   与 findTuned 的 ×0.3 是两套机制：本项按 type==='fixed' 直接打折；
+                          //   ×0.3 保留给「现构回路落进已装槽固定招预算内」的微调命中。
   };
 
   /* ================= 亲和门控（§5.1 分支表） ================= */
@@ -480,7 +483,9 @@
     return { mM: 1 + 0.25 * sev, eM: 1 + 0.15 * sev, sev };
   }
 
-  /* ================= 总装：报价（§3.1-②A 的完整一次执行） ================= */
+  /* ================= 总装：报价（§3.1-②A 的完整一次执行） =================
+   * req.固定（可选）：true = 本次施放的是固化回路（type==='fixed'，肌肉记忆），精神账单 ×TUNE.fixedMindMul。
+   *   自由/现构回路不要传（默认 false）——忘了传只会让固定回路贵 5 倍，不会让自由回路变便宜。 */
   function quote(req, ctx) {
     const r = calcCircuit(req, ctx);
     const ch = ctx.char || {};
@@ -489,7 +494,10 @@
     const tuned = findTuned(ctx, r, r.c);
     let mind = Math.max(0.5, r.mind * U.unf * im.mM);
     let bill = r.bill * im.eM;
-    if (tuned) mind = Math.max(0.5, mind * 0.3);
+    // v2.3 固定回路（肌肉记忆/固化）：由宿主按回路 type==='fixed' 在 req.固定 声明 → 精神 ×TUNE.fixedMindMul。
+    // 与 findTuned 的 ×0.3 不叠加（固定回路本身就常落在自己的微调预算内，叠加会双重打折）。
+    if (req.固定) mind = Math.max(0.5, mind * TUNE.fixedMindMul);
+    else if (tuned) mind = Math.max(0.5, mind * 0.3);
     mind = +mind.toFixed(1); bill = Math.round(bill * 10) / 10;
     const exhaust = bill > (ch.eCur ?? Infinity);
     // 过载率用"真实做功功率"（out/relT；引信类回路用 workOut），不用含门控/伤势损耗溢价的账单功率（避免全陌三重惩罚）
@@ -635,6 +643,6 @@
     TUNE, TREE, FAMKEY, FAMS, SUBS, SUBKEYS, MODES, WINDS, MATS, ANCH,
     // 数值工具
     anchorOf, sliderToKJ, kjToSlider, logv, logTo, pwS, massKg, exp10,
-    VERSION: '2.2.0'
+    VERSION: '2.3.0'
   };
 });

@@ -653,7 +653,7 @@
     var p = BRANCH_CIRCUIT[br];
     if (!p || !E) return null;
     var params = Object.assign(E.initParams(p.famKey), p.params);
-    var q = E.quote({ fam: p.famKey, e: p.e, c: params }, ctxRef());
+    var q = E.quote({ fam: p.famKey, e: p.e, c: params, 固定: true }, ctxRef());   // 开局发的都是固化回路 → 精神 ÷5
     var budget = E.budgetFrom ? E.budgetFrom(p.famKey, params, q.E_out) : null;
     return {
       id: 'fx-' + (idx < 9 ? '0' + (idx + 1) : idx + 1),
@@ -670,8 +670,12 @@
   }
 
   var ctxRef = function () {
-    var mainsB = mains.map(function (b) { var f = ''; AFFINITY_SCHEMA.forEach(function (g) { if (g.branches.indexOf(b) >= 0) f = g.family; }); return { 族: f, 分支: b }; });
-    var subsB = subs.map(function (b) { var f = ''; AFFINITY_SCHEMA.forEach(function (g) { if (g.branches.indexOf(b) >= 0) f = g.family; }); return { 族: f, 分支: b }; });
+    // ⚠️ 引擎 tierOf 读的是 aff.main[].fam / aff.main[].br（fam = 中文族名）——绝不能沿用存档的
+    //    {族,分支} 键名：用错键名时 tierOf 永远匹配不上，门控恒判「全陌」，开局送的每条回路都会被
+    //    按 精神×4 / 能量×4 记进基线账单（v1.8.5 修）。存档写入仍用 {族,分支}（见下方 确认开局）。
+    var affMap = function (b) { var f = ''; AFFINITY_SCHEMA.forEach(function (g) { if (g.branches.indexOf(b) >= 0) f = g.family; }); return { fam: f, br: b }; };
+    var mainsB = mains.map(affMap);
+    var subsB = subs.map(affMap);
     var E0 = ATTRIB_GRADES[attrSel.energy], M0 = ATTRIB_GRADES[attrSel.mind], S0 = ATTRIB_GRADES[attrSel.sustain], B0 = ATTRIB_GRADES[attrSel.burst];
     var eKJ = Math.round(E0.能量MJ * 1000), sp = M0.精神;
     return {

@@ -1811,7 +1811,13 @@
   function circuitById(g, id) { for (var i = 0; i < g.回路库.length; i++) if (g.回路库[i].id === id) return g.回路库[i]; return null; }
   /* 送审闸门：只有免审（预设/转正/剧情授技）或已通过（法术AI送审）才可装配/施放 */
   function 可用(c) { return !!c && (c.审核状态 === '免审' || c.审核状态 === '已通过'); }
-  function affinityOf(g) { return { main: Array.isArray(g.亲和.主分支) ? g.亲和.主分支 : (g.亲和.主分支 ? [g.亲和.主分支] : []), subs: g.亲和.次分支 || [] }; }
+  // ⚠️ 引擎 tierOf 读 aff.main[].fam / .br，而存档里的 亲和.主分支 存的是 {族,分支} —— 必须在此转名，
+  //    否则门控恒判「全陌」，精神×4/能量×4 会同时污染报价、挂单与实际扣费（v1.8.5 修）。
+  function affinityOf(g) {
+    var map = function (b) { return b ? { fam: (b.族 != null ? b.族 : b.fam), br: (b.分支 != null ? b.分支 : b.br) } : b; };
+    var mains = Array.isArray(g.亲和.主分支) ? g.亲和.主分支 : (g.亲和.主分支 ? [g.亲和.主分支] : []);
+    return { main: mains.map(map), subs: (g.亲和.次分支 || []).map(map) };
+  }
   function tunedList(g) {
     var out = [];
     (g.槽位.固定槽 || []).forEach(function (id) {
@@ -2148,7 +2154,7 @@
       ids.forEach(function (id) {
         var c = gg.回路库.find(function (x) { return x.id === id; });
         if (!c || !可用(c)) return;
-        var q = E.quote({ fam: c.famKey, e: c.注册e || 0, c: c.参数向量 }, ctx);
+        var q = E.quote({ fam: c.famKey, e: c.注册e || 0, c: c.参数向量, 固定: c.type === 'fixed' }, ctx);
         // 挂待扣单（不当场扣，回合末 settle ⑥a 统一扣；ref=回路 id，数据AI 报"本轮使用回路"靠 id 对上）
         var pend = {
           ref: c.id,
@@ -2622,7 +2628,7 @@
           if (cc.famKey === 'flow') cc.实体 = String(E.curKey(params));
           cc.审核状态 = '已通过';
           delete cc.送审槽;   // 通过 → 清送审槽 → 牌自动回牌库
-          var q = E.quote({ fam: cc.famKey, e: cc.注册e || 0, c: params }, forgeCtx());
+          var q = E.quote({ fam: cc.famKey, e: cc.注册e || 0, c: params, 固定: cc.type === 'fixed' }, forgeCtx());
           cc.基线账单 = { 输出kJ: q.E_out, 计费kJ: q.bill, 精神: q.mind, 一句话效果: effect || String(q.r.effect || '') };
           cc.物理相态与表征 = String(json.规范化回路.物理相态与表征 || '');
         });
