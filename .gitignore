@@ -1,6 +1,9 @@
 # 依赖不提交（lockfile 要提交）
 node_modules/
 
+# 智能体本地工作记忆（WorkBuddy 生成，只在本机用）
+.workbuddy/
+
 # 构建中间产物
 *.tsbuildinfo
 *.log
