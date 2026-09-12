@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>渐变带 · 状态栏（手机版）</title>
+<style>
+  /* 手机版：单列卡片流 + 大触控目标，无 3D/拖拽/动画；全部内容归 #gmobile 容器，不碰 body/视口 */
+  :root{--bg:#10151c;--card:#171e28;--line:#243040;--ink:#c9d6e2;--dim:#77899b;--cyan:#4fc3f7;--g:#66bb6a;--y:#ffd54f;--r:#ef5350;--p:#ab47bc;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  #gmobile{background:var(--bg);color:var(--ink);font:15px/1.65 "Microsoft YaHei",system-ui,sans-serif;padding:10px;border-radius:10px;max-width:640px;margin:0 auto;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;}
+  h3{font-size:14px;color:var(--cyan);letter-spacing:1px;border-bottom:1px dashed var(--line);padding-bottom:4px;margin-bottom:8px;font-weight:600;}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .kv{font-size:13px;color:var(--dim);} .kv b{color:var(--ink);}
+  .bar{height:10px;background:#0b0f14;border-radius:5px;overflow:hidden;margin:2px 0 6px;}
+  .bar i{display:block;height:100%;border-radius:5px;}
+  .badge{font-size:12px;border-radius:10px;padding:2px 10px;border:1px solid var(--line);color:var(--dim);}
+  .badge.g{color:var(--g);border-color:var(--g);} .badge.y{color:var(--y);border-color:var(--y);}
+  .badge.r{color:var(--r);border-color:var(--r);} .badge.p{color:var(--p);border-color:var(--p);}
+  .btn{border:1px solid var(--line);background:#1c2531;color:var(--ink);border-radius:8px;padding:9px 14px;font-size:14px;cursor:pointer;min-height:40px;}
+  .btn.pri{border-color:var(--cyan);color:var(--cyan);}
+  .btn.warn{border-color:var(--r);color:var(--r);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .tabs{display:flex;gap:6px;overflow-x:auto;white-space:nowrap;margin:4px 0 10px;padding-bottom:2px;}
+  .tab{flex:0 0 auto;border:1px solid var(--line);border-radius:8px;padding:7px 14px;font-size:14px;color:var(--dim);cursor:pointer;}
+  .tab.on{color:var(--cyan);border-color:var(--cyan);background:#12202c;}
+  .page{display:none;} .page.on{display:block;}
+  .seg{display:flex;gap:5px;flex-wrap:wrap;}
+  .segbtn{border:1px solid var(--line);background:#131a24;color:var(--dim);border-radius:6px;padding:6px 11px;font-size:13px;cursor:pointer;min-height:34px;}
+  .segbtn.on{color:var(--cyan);border-color:var(--cyan);}
+  .segbtn.dis{opacity:.35;text-decoration:line-through;cursor:not-allowed;}
+  input[type=range]{width:100%;height:30px;accent-color:var(--cyan);}
+  textarea{width:100%;background:#0b0f14;border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:8px;font:14px/1.5 inherit;}
+  select{background:#131a24;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:6px 8px;font-size:14px;min-height:36px;}
+  .lab{font-size:13px;color:var(--dim);margin:9px 0 3px;display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .lab b{color:var(--ink);font-weight:600;}
+  .hint{font-size:12px;color:var(--dim);}
+  .meters{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .meter{background:#131a24;border:1px solid var(--line);border-radius:8px;padding:6px 9px;}
+  .meter .mv{font-size:16px;font-weight:700;}
+  .circuit{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:14px;}
+  .circuit .nm{color:var(--cyan);font-weight:600;}
+  .pbar{height:5px;background:#0b0f14;border-radius:3px;margin-top:3px;overflow:hidden;}
+  .pbar i{display:block;height:100%;background:var(--cyan);}
+  pre.log{background:#0b0f14;border:1px solid var(--line);border-radius:8px;padding:8px;font:12px/1.55 Consolas,monospace;color:#9fc3d8;white-space:pre-wrap;max-height:300px;overflow:auto;}
+  .gl{color:var(--g);} .yl{color:var(--y);} .rl{color:var(--r);} .dl{color:var(--dim);} .cl{color:var(--cyan);}
+</style>
+</head>
+<body>
+<div id="gmobile"><div id="app">渐变带状态栏（手机版）加载中…</div></div>
+
+<script>
+/*@ENGINE@*/
+(function () {
+  'use strict';
+  var E = window.CircuitEngine || globalThis.CircuitEngine;
+  var $ = function (s, el) { return (el || document).querySelector(s); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function fmtN(n) { return Math.round(n * 10) / 10; }
+
+  /* ── 数据读取（与旧六页/双桌同款三层） ── */
+  function readChat() {
+    try { var v = getVariables({ type: 'chat' }); return v ? v['渐变带'] || null : null; } catch (e) { return null; }
+  }
+  function readSnapshot() {
+    try {
+      var ids = [];
+      try { ids.push(getCurrentMessageId()); } catch (e) {}
+      ids.push(-1, -2, -3);
+      for (var i = 0; i < ids.length; i++) {
+        var v = getVariables({ type: 'message', message_id: ids[i] });
+        var s = v && v.stat_data && v.stat_data['渐变带'];
+        if (s) return s;
+      }
+    } catch (e) {}
+    return null;
+  }
+  function writeGame(mut) {
+    try {
+      updateVariablesWith(function (v) { var g = v['渐变带']; if (g) { mut(g); } return v; }, { type: 'chat' });
+      setTimeout(function () {
+        try {
+          var g = readChat(); if (!g) return;
+          var snap = JSON.parse(JSON.stringify(g));
+          if (snap['主角']) delete snap['主角']['上次结算min'];
+          updateVariablesWith(function (v) { v.stat_data = v.stat_data || {}; v.stat_data['渐变带'] = snap; return v; }, { type: 'message', message_id: getLastMessageId() });
+        } catch (e) {}
+      }, 300);
+      return true;
+    } catch (e) { alert('写入失败：' + e); return false; }
+  }
+
+  /* ── 亲和：v1.8.5 起引擎契约 {fam, br}（fam=中文族名）；v1.8.8 教训——所有消费点只读 fam/br ── */
+  function affinityOf(g) {
+    var map = function (b) { return b ? { fam: (b.族 != null ? b.族 : b.fam), br: (b.分支 != null ? b.分支 : b.br) } : b; };
+    var mains = Array.isArray(g.亲和.主分支) ? g.亲和.主分支 : (g.亲和.主分支 ? [g.亲和.主分支] : []);
+    return { main: mains.map(map), subs: (g.亲和.次分支 || []).map(map) };
+  }
+  function fmtAff(b) { return (b && b.fam ? b.fam : '') + '·' + (b && b.br ? b.br : ''); }
+  function fmtAffList(list) { return (list || []).map(fmtAff).join('、') || '无'; }
+
+  var FAMNAME = { pour: '倾泻', flow: '波动', struct: '结构', life: '生机', perce: '感知' };
+  var FAMFULL = { pour: '倾泻系', flow: '波动系', struct: '结构系', life: '生机系', perce: '感知系' };
+
+  /* ── 公共 ── */
+  var curTab = 'slots';
+  var S = { fam: 'flow', e: 40, c: {}, desc: '' };   // 构筑页状态
+  function circuitById(g, id) { for (var i = 0; i < g.回路库.length; i++) if (g.回路库[i].id === id) return g.回路库[i]; return null; }
+  function 可用(c) { return !!c && (c.审核状态 === '免审' || c.审核状态 === '已通过'); }
+  function tunedList(g) {
+    var out = [];
+    (g.槽位.固定槽 || []).forEach(function (id) {
+      if (!id) return; var c = circuitById(g, id);
+      if (c && c.type === 'fixed' && c.微调预算) out.push({ id: c.id, 名: c.名称, params: c.参数向量, budget: c.微调预算 });
+    });
+    return out;
+  }
+  function quoteCtx(gg) {
+    return {
+      aff: affinityOf(gg),
+      scene: { wind: gg.场景.风力档, mat: gg.场景.可塑无机物kJ, water: gg.场景.水体在场 },
+      char: { burstKW: gg.主角.爆发线kW, sustainKW: gg.主角.持续线kW, speed: 1, eCur: gg.主角.能量kJ.当前, mCur: gg.主角.精神点.当前, mMax: gg.主角.精神点.上限, body: gg.主角.身体状态 },
+      tuned: tunedList(gg)
+    };
+  }
+
+  /* ── 渲染 ── */
+  function render() {
+    var g = readSnapshot() || readChat();
+    var app = $('#app');
+    if (!g) { app.innerHTML = '<div class="card">尚未开局：请先打开「渐变带开局」面板完成角色创建。</div>'; return; }
+    if (!E) { app.innerHTML = '<div class="card">状态栏就绪（引擎未内联，仅展示）。</div>' + simpleStatus(g); return; }
+    var zhu = g.主角;
+    var ePct = Math.max(0, Math.min(100, zhu.能量kJ.当前 / zhu.能量kJ.上限 * 100));
+    var mPct = Math.max(0, Math.min(100, zhu.精神点.当前 / zhu.精神点.上限 * 100));
+    var bodyBadge = { '正常': 'g', '轻伤': 'y', '重伤': 'r', '过载透支': 'p' }[zhu.身体状态] || 'g';
+    var h = '';
+    /* 顶部状态条（常驻） */
+    h += '<div class="card"><h3>📊 渐变带 · 状态</h3>';
+    h += '<div class="row"><span class="kv">⏱ <b>' + esc(zhu.剧情时间.label) + '</b></span>';
+    h += '<span class="badge ' + (zhu.战斗中 ? 'r' : 'g') + '">' + (zhu.战斗中 ? '⚔ 战斗中' : '非战斗') + '</span>';
+    h += '<span class="badge ' + bodyBadge + '">' + esc(zhu.身体状态) + '</span></div>';
+    h += '<div class="lab"><b>⚡ 能量</b><span class="kv">' + fmtN(zhu.能量kJ.当前) + ' / ' + zhu.能量kJ.上限 + ' kJ</span></div>';
+    h += '<div class="bar"><i style="width:' + ePct + '%;background:var(--cyan)"></i></div>';
+    h += '<div class="lab"><b>🧠 精神</b><span class="kv">' + fmtN(zhu.精神点.当前) + ' / ' + zhu.精神点.上限 + '</span></div>';
+    h += '<div class="bar"><i style="width:' + mPct + '%;background:var(--g)"></i></div>';
+    h += '<div class="hint">爆发线 ' + zhu.爆发线kW + 'kW · 持续线 ' + zhu.持续线kW + 'kW'
+      + (g.待扣单 && g.待扣单.length ? ' · <span class="yl">待扣单 ' + g.待扣单.length + ' 条（回合末结算）</span>' : '') + '</div>';
+    h += '</div>';
+    /* 页签 */
+    h += '<div class="tabs">' + ['slots|🎯 槽位', 'lib|📚 回路库', 'build|🛠 构筑', 'sup|🧪 补给', 'ops|✋ 手操', 'log|📜 日志'].map(function (t) {
+      var p = t.split('|');
+      var pend = p[0] === 'lib' && g.回路库.some(function (c) { return c.审核状态 === '待送审'; }) ? ' 🔔' : '';
+      return '<div class="tab' + (curTab === p[0] ? ' on' : '') + '" data-t="' + p[0] + '">' + p[1] + pend + '</div>';
+    }).join('') + '</div>';
+    h += '<div class="page' + (curTab === 'slots' ? ' on' : '') + '" data-p="slots">' + pageSlots(g) + '</div>';
+    h += '<div class="page' + (curTab === 'lib' ? ' on' : '') + '" data-p="lib">' + pageLib(g) + '</div>';
+    h += '<div class="page' + (curTab === 'build' ? ' on' : '') + '" data-p="build">' + pageBuild(g) + '</div>';
+    h += '<div class="page' + (curTab === 'sup' ? ' on' : '') + '" data-p="sup">' + pageSup(g) + '</div>';
+    h += '<div class="page' + (curTab === 'ops' ? ' on' : '') + '" data-p="ops">' + pageOps(g) + '</div>';
+    h += '<div class="page' + (curTab === 'log' ? ' on' : '') + '" data-p="log">' + pageLog(g) + '</div>';
+    app.innerHTML = h;
+    bind();
+  }
+  function simpleStatus(g) {
+    var zhu = g.主角 || {};
+    return '<div class="card">⏱ ' + esc(zhu.剧情时间 && zhu.剧情时间.label) + '　能量 ' + fmtN((zhu.能量kJ || {}).当前) + 'kJ　精神 ' + fmtN((zhu.精神点 || {}).当前) + '　' + esc(zhu.身体状态) + (zhu.战斗中 ? '　⚔战斗中' : '') + '</div>';
+  }
+
+  /* ── 槽位页 ── */
+  function pageSlots(g) {
+    var inBattle = g.主角.战斗中;
+    var h = '<div class="card"><h3>槽位（固定10 / 自由3）' + (inBattle ? '　<span class="rl">⚔ 固定槽上锁</span>' : '') + '</h3>';
+    for (var i = 0; i < g.槽位.固定槽.length; i++) h += slotRow(g, g.槽位.固定槽[i], '固定' + (i + 1), inBattle);
+    for (var j = 0; j < g.槽位.自由槽.length; j++) h += slotRow(g, g.槽位.自由槽[j], '自由' + (j + 1), false);
+    h += '<div class="hint">施放 = 挂待扣单，回合末统一扣费（与双桌一致）。</div></div>';
+    return h;
+  }
+  function slotRow(g, id, label, locked) {
+    var c = id ? circuitById(g, id) : null;
+    if (!c) return '<div class="circuit dl">' + label + '：（空）</div>';
+    var uses = c.type === 'free' ? ' · uses ' + (c.uses || 0) + '/10' : '';
+    return '<div class="circuit"><span class="nm">' + esc(c.名称) + '</span> <span class="dl">[' + esc(c.族) + '·' + esc(c.分支) + ']' + uses + '</span><br>' +
+      '<span class="hint">' + esc(c.基线账单.一句话效果) + '</span><br>' +
+      '<span class="kv">计费 ' + c.基线账单.计费kJ + 'kJ · 精神 ' + c.基线账单.精神 + '</span><br>' +
+      '<div class="row" style="margin-top:4px"><button class="btn pri" data-cast="' + c.id + '">⚡ 施放</button>' +
+      (locked ? '<span class="hint">🔒 战斗中固定槽上锁</span>' : '<button class="btn" data-unmount="' + c.id + '">换出</button>') + '</div></div>';
+  }
+
+  /* ── 回路库页（含送审） ── */
+  function pageLib(g) {
+    var h = '<div class="card"><h3>回路库</h3>';
+    ['fixed', 'free'].forEach(function (type) {
+      var list = g.回路库.filter(function (c) { return c.type === type; });
+      h += '<div class="lab"><b>' + (type === 'fixed' ? '🔒 固定回路' : '🎯 自由回路') + '</b><span class="hint">' + list.length + ' 条</span></div>';
+      if (!list.length) h += '<div class="dl">（空）</div>';
+      list.forEach(function (c) {
+        var mounted = (g.槽位.固定槽.indexOf(c.id) >= 0) || (g.槽位.自由槽.indexOf(c.id) >= 0);
+        var st = c.审核状态 || '已通过';
+        var stBadge = st === '待送审' ? '<span class="badge y">🔔 待送审</span>' : st === '免审' ? '<span class="badge g">免审</span>' : '<span class="badge g">已通过</span>';
+        h += '<div class="circuit"><span class="nm">' + esc(c.名称) + '</span> <span class="dl">' + c.id + ' [' + esc(c.族) + '·' + esc(c.分支) + ']</span> ' + stBadge + '<br>';
+        h += '<span class="hint">' + esc(c.基线账单.一句话效果 || '') + ' · 计费' + c.基线账单.计费kJ + 'kJ · 精神' + c.基线账单.精神 + '</span>';
+        if (type === 'free') h += '<div class="pbar"><i style="width:' + Math.min(100, (c.uses || 0) / 10 * 100) + '%"></i></div><div class="hint">uses ' + (c.uses || 0) + '/10（满 10 可转正）</div>';
+        h += '<div class="row" style="margin-top:5px">';
+        if (st === '待送审') h += '<button class="btn pri" data-review="' + c.id + '"' + (spellReviewBusy() ? ' disabled' : '') + '>' + (spellReviewBusy() ? '⟳ 送审中…' : '⚖ 送审') + '</button>';
+        if (!mounted && 可用(c)) h += '<button class="btn" data-mount="' + c.id + '">装上</button>';
+        h += '<button class="btn" data-detail="' + c.id + '">详情</button></div>';
+        h += '<div data-d="' + c.id + '" style="display:none;margin-top:5px" class="hint">参数：' + esc(JSON.stringify(c.参数明细))
+          + '<br>形态：' + esc(c.物理相态与表征 || '—') + '</div>';
+        h += '</div>';
+      });
+    });
+    h += '<div class="hint">剧情获得的回路（待送审）点「送审」，法术AI 通过后即可装配施放。</div></div>';
+    return h;
+  }
+
+  /* ── 构筑页（简版自创申报） ── */
+  function ctrlList(fam) {
+    var ctrls = E.FAMS[fam].ctrls.slice();
+    if (fam === 'flow') ctrls = ctrls.concat(E.SUBS[E.curKey(S.c)] ? E.SUBS[E.curKey(S.c)].ctrls : []);
+    return ctrls;
+  }
+  function pageBuild(g) {
+    var h = '<div class="card"><h3>自由构筑</h3>';
+    h += '<div class="lab"><b>① 族</b></div><div class="seg">';
+    Object.keys(E.FAMS).forEach(function (k) { h += '<span class="segbtn' + (S.fam === k ? ' on' : '') + '" data-fam="' + k + '">' + FAMFULL[k] + '</span>'; });
+    h += '</div><div class="hint">' + esc(E.FAMS[S.fam].sub) + '</div>';
+    var derived = !!(E.FAMS[S.fam] && E.FAMS[S.fam].derived);
+    h += '<div class="lab"><b>② 注入能量 E</b><span class="cl">' + (derived ? 'E=公式导出' : E.sliderToKJ(S.e).toFixed(1) + ' kJ') + '</span></div>';
+    h += '<input type="range" id="eRange" min="0" max="100" step="1" value="' + S.e + '"' + (derived ? ' disabled' : '') + '>';
+    h += '<div class="lab"><b>③ 参数插槽</b></div>' + buildCtrls();
+    var q = quoteCurrent(g);
+    h += '<div class="lab"><b>④ 实时核算</b></div>' + meters(g, q);
+    h += '<div class="lab"><b>⑤ 描述（送审素材）</b></div>';
+    h += '<textarea id="descBox" rows="3" placeholder="一句话描述作用对象+作用方式，例：借环境强风塑形高周波风刃切断铁锁">' + esc(S.desc) + '</textarea>';
+    h += '<div class="row" style="margin-top:8px"><button class="btn pri" id="btnForge"' + (spellReviewBusy() ? ' disabled' : '') + '>⚖ 申报入自由库</button></div>';
+    h += '<div class="hint" id="forgeMsg">' + (spellReviewBusy() ? '⟳ 申报送审中…请勿重复点击' : '送审通过后进入回路库，去槽位页/回路库页装上。') + '</div>';
+    h += '</div>';
+    return h;
+  }
+  function buildCtrls() {
+    var h = '';
+    ctrlList(S.fam).forEach(function (ctl) {
+      if (ctl.show && !ctl.show(S.c)) return;
+      if (ctl.k === 'sub') {
+        h += '<div class="lab"><b>' + esc(ctl.label) + '</b></div><div class="seg">';
+        (E.SUBKEYS[S.c.mode] || []).forEach(function (key, i) {
+          h += '<span class="segbtn' + (E.curKey(S.c) === key ? ' on' : '') + '" data-ck="sub" data-ci="' + i + '">' + esc(E.SUBS[key].n.split(' ')[0]) + '</span>';
+        });
+        h += '</div>';
+        return;
+      }
+      if (ctl.type === 'seg') {
+        h += '<div class="lab"><b>' + esc(ctl.label) + '</b></div><div class="seg">';
+        ctl.opts.forEach(function (o, i) {
+          var dis = (ctl.k === 'pert' && i >= (ctl.lockFrom || 99)) ? ' dis' : '';
+          h += '<span class="segbtn' + (S.c[ctl.k] === i ? ' on' : '') + dis + '" data-ck="' + ctl.k + '" data-ci="' + i + '">' + esc(o) + '</span>';
+        });
+        h += '</div>';
+      } else {
+        h += '<div class="lab"><b>' + esc(ctl.label) + '</b><span class="cl">' + esc(ctl.fmt ? ctl.fmt(S.c[ctl.k]) : S.c[ctl.k]) + '</span></div>';
+        h += '<input type="range" data-rk="' + ctl.k + '" min="' + ctl.min + '" max="' + ctl.max + '" step="' + ctl.step + '" value="' + S.c[ctl.k] + '">';
+      }
+    });
+    return h;
+  }
+  function quoteCurrent(g) {
+    try { return E.quote({ fam: S.fam, e: S.e, c: S.c }, quoteCtx(g)); } catch (e) { return null; }
+  }
+  function meters(g, q) {
+    if (!q) return '<span class="rl">核算失败</span>';
+    var r = q.r;
+    var h = '<div class="meters">';
+    h += '<div class="meter"><div class="hint">瞬时功率</div><div class="mv">' + fmtN(q.power) + ' kW</div><div class="hint">爆发 ' + g.主角.爆发线kW + ' / 持续 ' + g.主角.持续线kW + '</div></div>';
+    h += '<div class="meter"><div class="hint">精神占用（' + q.zone.n + '）</div><div class="mv">' + q.mind + '</div><div class="hint">陌生×' + q.unf.unf.toFixed(2) + '</div></div>';
+    h += '<div class="meter"><div class="hint">征状等级</div><div class="mv">Lv' + q.tell + '</div><div class="hint">导引 ' + fmtN(q.readyT) + 's · 作用 ' + fmtN(q.relT) + 's</div></div>';
+    h += '<div class="meter"><div class="hint">过载风险</div><div class="mv ' + (q.risk >= 60 ? 'rl' : q.risk >= 30 ? 'yl' : 'gl') + '">' + q.risk + '%</div><div class="hint">上限85%</div></div>';
+    h += '<div class="meter"><div class="hint">能量输出</div><div class="mv">' + fmtN(q.E_out) + ' kJ</div><div class="hint">' + esc(E.anchorOf(q.E_out)) + '</div></div>';
+    h += '<div class="meter"><div class="hint">能量账单（回合末扣）</div><div class="mv cl">' + q.bill.toFixed(1) + ' kJ</div><div class="hint">' + (q.exhaust ? '<span class="rl">储量透支!</span>' : '储量充足') + '</div></div>';
+    h += '</div>';
+    if (q.chips && q.chips.length) {
+      h += '<div style="margin-top:4px">';
+      q.chips.forEach(function (c) { h += '<span class="badge ' + (c.l === 'r' ? 'r' : c.l === 'o' ? 'y' : 'g') + '" style="margin:1px 2px">' + esc(c.t) + '</span>'; });
+      h += '</div>';
+    }
+    return h;
+  }
+
+  /* ── 补给页 ── */
+  function pageSup(g) {
+    var h = '<div class="card"><h3>补给物品</h3>';
+    if (!g.补给物品.length) h += '<div class="dl">（空）</div>';
+    g.补给物品.forEach(function (it, i) {
+      var eff = it.效果;
+      var effTxt = eff.目标 === '能量' ? '能量+' + eff.增加kJ + 'kJ' : '精神+' + eff.增加点;
+      h += '<div class="circuit"><span class="nm">' + esc(it.名称) + '</span> ×' + it.数量 + ' <span class="hint">（' + effTxt + '）</span> <button class="btn pri" data-use="' + i + '">使用</button></div>';
+    });
+    h += '</div>';
+    return h;
+  }
+
+  /* ── 手操页：勾选回路（每轮每回路一次）→ 确认 = 挂待扣单（与双桌同语义） ── */
+  function readOps() {
+    try { var v = getVariables({ type: 'chat' }); var o = v && v['渐变带'] && v['渐变带']['操作表']; return o || null; } catch (e) { return null; }
+  }
+  function pageOps(g) {
+    var o = readOps() || { manual: false, circuits: [], counts: [] };
+    var h = '<div class="card"><h3>手操（本轮行动，每轮自动清空）</h3>';
+    h += '<div class="lab"><label><input type="checkbox" id="opsManual" ' + (o.manual ? 'checked' : '') + '> 本轮手操</label></div>';
+    h += '<div class="lab"><b>勾选要使用的回路（每回路一次）</b></div>';
+    ['fixed', 'free'].forEach(function (type) {
+      g.回路库.filter(function (c) { return c.type === type; }).forEach(function (c) {
+        if (!可用(c)) return;
+        h += '<div class="circuit"><label><input type="checkbox" data-opc="' + c.id + '"' + (o.circuits.indexOf(c.id) >= 0 ? ' checked' : '') + '> ' + esc(c.名称) + ' <span class="dl">' + c.id + '</span></label></div>';
+      });
+    });
+    h += '<div class="row" style="margin-top:6px"><button class="btn pri" id="opsConfirm">✅ 确认操作</button> <button class="btn" id="opsClear">清空</button></div>';
+    h += '<div class="hint">确认后挂入待扣单，回合末 settle 统一扣费（数据AI 只计次不重复扣）。</div>';
+    h += '</div>';
+    return h;
+  }
+  function saveOps(o) {
+    try { updateVariablesWith(function (v) { var g = v['渐变带']; if (g) g['操作表'] = o; return v; }, { type: 'chat' }); }
+    catch (e) { alert('保存手操失败：' + e); }
+  }
+  function doOpsConfirm() {
+    var o = readOps() || { manual: false, circuits: [], counts: [] };
+    if (!o.manual || !o.circuits.length) { alert('未开启手操或未勾选回路'); return; }
+    var names = [];
+    writeGame(function (gg) {
+      var ctx = quoteCtx(gg);
+      o.circuits.forEach(function (id) {
+        var c = gg.回路库.find(function (x) { return x.id === id; });
+        if (!c || !可用(c)) return;
+        var q = E.quote({ fam: c.famKey, e: c.注册e || 0, c: c.参数向量, 固定: c.type === 'fixed' }, ctx);
+        if (!q) return;
+        gg.待扣单.push({
+          ref: c.id, 名称: c.名称 + '（手操）', 分支: c.分支,
+          bill: q.bill, mind: q.mind, workE: q.workE, tell: q.tell, risk: q.risk,
+          锚点: E.anchorOf(q.E_out), order: E.compileOrder(q), famKey: c.famKey
+        });
+        names.push(c.名称);
+      });
+      gg['操作表'] = { manual: false, circuits: [], counts: [] };
+    });
+    alert('手操确认：' + (names.join('，') || '无') + ' 已挂入待扣单（回合末统一扣费）。');
+    render();
+  }
+
+  /* ── 日志页（场景/身体兜底 + 结算日志） ── */
+  function readLog() {
+    try { var v = getVariables({ type: 'chat' }); return (v && v['渐变带日志']) || null; } catch (e) { return null; }
+  }
+  function pageLog(g) {
+    var lg = readLog();
+    var h = '<div class="card"><h3>场景 / 状态兜底</h3>';
+    h += '<div class="lab"><b>场景（数据AI 也会从正文提取）</b></div><div class="row">';
+    h += '风力 <select id="scWind">' + E.WINDS.map(function (w) { return '<option value="' + w.v + '"' + (g.场景.风力档 === w.v ? ' selected' : '') + '>' + w.t + '(' + w.v + ')</option>'; }).join('') + '</select></div>';
+    h += '<div class="row" style="margin-top:4px">基底 <select id="scMat">' + E.MATS.map(function (w) { return '<option value="' + w.v + '"' + (g.场景.可塑无机物kJ === w.v ? ' selected' : '') + '>' + w.t + '(' + w.v + ')</option>'; }).join('') + '</select></div>';
+    h += '<div class="row" style="margin-top:4px">水体 <select id="scWater"><option value="0"' + (!g.场景.水体在场 ? ' selected' : '') + '>无</option><option value="1"' + (g.场景.水体在场 ? ' selected' : '') + '>有</option></select>';
+    h += '<button class="btn" id="btnScene">应用场景</button></div>';
+    h += '<div class="lab"><b>身体 / 战斗旗</b></div><div class="row">';
+    h += '<select id="bodySel">' + ['正常', '轻伤', '重伤', '过载透支'].map(function (b) { return '<option' + (g.主角.身体状态 === b ? ' selected' : '') + '>' + b + '</option>'; }).join('') + '</select>';
+    h += '<select id="battleSel"><option value="0"' + (!g.主角.战斗中 ? ' selected' : '') + '>非战斗</option><option value="1"' + (g.主角.战斗中 ? ' selected' : '') + '>战斗中</option></select>';
+    h += '<button class="btn" id="btnBody">应用状态</button></div>';
+    if (lg) {
+      h += '<div class="lab"><b>最近结算日志</b></div>';
+      h += '<pre class="log">' + esc((lg.log || []).join('\n')) + (lg.notices && lg.notices.length ? '\n\n【提示】\n' + lg.notices.join('\n') : '') + '</pre>';
+    } else h += '<div class="hint">尚无结算日志。</div>';
+    h += '</div>';
+    return h;
+  }
+
+  /* ═══════════ 法术AI 送审（v1.8.7 双套提示词口径；与双桌版同语义） ═══════════ */
+  var isReviewing = false, isForging = false, reviewToken = 0, forgeToken = 0;
+  function spellReviewBusy() { return isReviewing || isForging; }   // 两入口互斥，防并发扣费/重复入库
+  // 忙碌态反馈走 render() 全量重绘（按钮禁用 + 文案切换由 pageLib/pageBuild 按 spellReviewBusy() 输出）
+
+  function getSpellPrompt(kind) {
+    try {
+      var st = (typeof SillyTavern !== 'undefined') && SillyTavern.getContext && SillyTavern.getContext();
+      var P = st && st.extensionSettings && st.extensionSettings['渐变带自由回路'] && st.extensionSettings['渐变带自由回路'].提示词;
+      var seg = P && P['法术AI' + kind] && P['法术AI' + kind].length ? P['法术AI' + kind]
+              : (P && P.法术AI && P.法术AI.length ? P.法术AI : null);
+      if (seg) return seg;
+    } catch (e) {}
+    if (kind === '剧情') return [
+      { role: 'system', enabled: true, content: '你是跑团系统的"法术AI"，负责审核剧情获得施法回路是否合理（物理可行性，与亲和无关；不做账单计算）。本次为【剧情获得送审】：{{参数}}为该族参数模板JSON。通过时规范化回路必须含"参数向量"（按模板 key 与 min/max 上下限填数值）与"物理相态与表征"。字段要求：名称=2~7字纯中文短名；一句话效果=核心物理做功本质（20字内）；物理相态与表征=依五系机理提炼的视觉/声学/空间/介质形态（★正文AI叙事唯一形态锚点，严禁光晕/魔法阵/神秘能量等奇幻辞藻）。输出二选一 JSON：通过→{"结论":"通过","规范化回路":{…含参数向量}}；驳回→{"结论":"驳回","解释":"通俗物理说明"}。只输出 JSON。' },
+      { role: 'user', enabled: true, content: '【剧情法术描述】\n{{描述}}\n\n【待填参数模板】\n{{参数}}\n\n【场景】\n{{场景}}\n\n【亲和（仅参考）】\n{{亲和}}\n\n请输出审核结果 JSON。' }
+    ];
+    return [
+      { role: 'system', enabled: true, content: '你是跑团系统的"法术AI"，负责审核玩家自创施法回路是否合理（物理可行性，与亲和无关；不做账单计算）。本次为【自创申报】：{{参数}}为中文参数明细（玩家已定好参数）。通过时规范化回路输出 {"名称","一句话效果","物理相态与表征","效果文字稿"}，严禁携带"参数向量"。字段要求：名称=2~7字纯中文短名；一句话效果=核心物理做功本质（20字内）；物理相态与表征=依五系机理提炼的视觉/声学/空间/介质形态（★正文AI叙事唯一形态锚点，严禁光晕/魔法阵/神秘能量等奇幻辞藻）；效果文字稿=供正文引用的施法描写。输出二选一 JSON：通过→{"结论":"通过","规范化回路":{…}}；驳回→{"结论":"驳回","解释":"通俗物理说明"}。只输出 JSON。' },
+      { role: 'user', enabled: true, content: '【玩家描述】\n{{描述}}\n\n【构筑参数】\n{{参数}}\n\n【场景】\n{{场景}}\n\n【亲和（仅参考）】\n{{亲和}}\n\n请输出审核结果 JSON。' }
+    ];
+  }
+  function getSpellApi() {
+    try {
+      var st = (typeof SillyTavern !== 'undefined') && SillyTavern.getContext && SillyTavern.getContext();
+      var cfg = st && st.extensionSettings && st.extensionSettings['渐变带自由回路'] && st.extensionSettings['渐变带自由回路'].api;
+      return cfg && cfg.法术AI && cfg.法术AI.mode === 'custom' ? cfg.法术AI : undefined;
+    } catch (e) { return undefined; }
+  }
+  function assembleSpell(segs, vars) {
+    return segs.filter(function (s) { return s.enabled !== false; }).map(function (s) {
+      var c = s.content;
+      Object.keys(vars).forEach(function (k) { c = c.split('{{' + k + '}}').join(vars[k]); });
+      return { role: s.role, content: c };
+    });
+  }
+  function affVars(g) {
+    var aff = affinityOf(g);
+    return '主分支：' + fmtAffList(aff.main) + '；次分支：' + fmtAffList(aff.subs);
+  }
+  function sceneText(g) { return '风力' + g.场景.风力档 + '，无机物' + g.场景.可塑无机物kJ + 'kJ，水体' + (g.场景.水体在场 ? '有' : '无'); }
+
+  /* 某族参数模板（给法术AI 填参数用）——同双桌版 */
+  function 参数模板JSON(famKey) {
+    var F = E.FAMS[famKey];
+    var 顶层 = [];
+    for (var i = 0; i < F.ctrls.length; i++) {
+      var ctl = F.ctrls[i];
+      顶层.push({ key: ctl.k, label: ctl.label, type: ctl.type, opts: ctl.opts || null, min: ctl.min != null ? ctl.min : null, max: ctl.max != null ? ctl.max : null, def: ctl.def });
+    }
+    if (famKey !== 'flow') return JSON.stringify({ 族: famKey, 默认参数: E.initParams(famKey), 参数: 顶层 }, null, 1);
+    var 子实体 = [];
+    for (var j = 0; j < E.SUBKEYS.length; j++) {
+      for (var k = 0; k < E.SUBKEYS[j].length; k++) {
+        var key = E.SUBKEYS[j][k];
+        var s = E.SUBS[key];
+        if (!s) continue;
+        子实体.push({ key: key, 名称: s.n, 参数: s.ctrls.map(function (c) { return { key: c.k, label: c.label, type: c.type, opts: c.opts || null, min: c.min != null ? c.min : null, max: c.max != null ? c.max : null, def: c.def }; }) });
+      }
+    }
+    return JSON.stringify({ 族: famKey, 说明: 'flow 需先定 mode(作用模态) 与 sub(操纵实体)，再填对应子实体参数', 默认参数: E.initParams(famKey), 顶层参数: 顶层, 子实体参数: 子实体 }, null, 1);
+  }
+  /* AI 报的参数钳制回引擎合法域（seg 下标 / range 上下限、删非法键）——同双桌版 */
+  function 钳制参数(famKey, cIn) {
+    var merged = E.syncParams(famKey, cIn || {});
+    var 合法键 = {};
+    var clamp = function (ctl) {
+      合法键[ctl.k] = true;
+      if (ctl.type === 'seg') merged[ctl.k] = Math.max(0, Math.min((ctl.opts ? ctl.opts.length : 1) - 1, Math.round(Number(merged[ctl.k]) || 0)));
+      else if (ctl.type === 'range') merged[ctl.k] = Math.max(ctl.min || 0, Math.min(ctl.max || 100, Number(merged[ctl.k]) || ctl.def || 0));
+    };
+    var F = E.FAMS[famKey];
+    for (var i = 0; i < F.ctrls.length; i++) clamp(F.ctrls[i]);
+    if (famKey === 'flow') {
+      var key = E.curKey(merged) || '1-1';
+      var subs = (E.SUBS[key] || {}).ctrls || [];
+      for (var j = 0; j < subs.length; j++) clamp(subs[j]);
+    }
+    var out = {};
+    for (var kk in merged) if (合法键[kk]) out[kk] = Number(merged[kk]);
+    return out;
+  }
+
+  /* 送审槽（剧情获得回路）：回路库页点「送审」→ 法术AI 填参数 → 转已通过 */
+  function reviewCircuit(g, id) {
+    if (spellReviewBusy()) { alert('上一次送审尚未完成，请稍候。'); return; }
+    var c = circuitById(g, id);
+    if (!c || c.审核状态 !== '待送审') { alert('该回路不处于待送审状态。'); return; }
+    isReviewing = true;      // 发起即反馈（v1.8.6 口径）
+    render();                // 重绘后按钮已按忙碌态禁用
+    var tok = ++reviewToken;
+    var vars = {
+      描述: (c.基线账单 && c.基线账单.一句话效果) ? c.基线账单.一句话效果 : c.名称,
+      参数: 参数模板JSON(c.famKey),
+      亲和: affVars(g),
+      场景: sceneText(g)
+    };
+    var deadline = setTimeout(function () {
+      if (tok !== reviewToken) return;
+      reviewToken++;
+      isReviewing = false;
+      alert('送审超时（15s），请重试。');
+      render();
+    }, 15000);
+    generateRaw({
+      ordered_prompts: assembleSpell(getSpellPrompt('剧情'), vars),
+      should_stream: false, should_silence: true,
+      generation_id: 'gb_review_mobile_' + Date.now(),
+      custom_api: getSpellApi(),
+      json_schema: { name: 'spell_review', value: { type: 'object', properties: { 结论: { type: 'string', enum: ['通过', '驳回'] }, 规范化回路: { type: ['object', 'null'], properties: { 名称: { type: 'string' }, 一句话效果: { type: 'string' }, 物理相态与表征: { type: 'string' }, 参数向量: { type: 'object' } }, required: ['名称', '一句话效果', '参数向量'], additionalProperties: false }, 解释: { type: ['string', 'null'] } }, required: ['结论', '规范化回路', '解释'], additionalProperties: false } }
+    }).then(function (raw) {
+      clearTimeout(deadline);
+      if (tok !== reviewToken) return;
+      isReviewing = false;
+      var text = typeof raw === 'string' ? raw : JSON.stringify(raw);
+      var m = text.match(/\{[\s\S]*\}/); var json = null;
+      try { json = JSON.parse(m ? m[0] : text); } catch (e) {}
+      if (json && json.结论 === '通过' && json.规范化回路 && json.规范化回路.参数向量) {
+        var params = 钳制参数(c.famKey, json.规范化回路.参数向量);
+        var name = String(json.规范化回路.名称 || c.名称).slice(0, 10);
+        var effect = String(json.规范化回路.一句话效果 || '');
+        writeGame(function (gg) {
+          var cc = circuitById(gg, id);
+          if (!cc) return;
+          cc.参数向量 = params;
+          cc.名称 = name;
+          cc.参数明细 = E.readableParams(c.famKey, params);
+          cc.分支 = E.branchOf(c.famKey, params);
+          if (cc.famKey === 'flow') cc.实体 = String(E.curKey(params));
+          cc.审核状态 = '已通过';
+          delete cc.送审槽;   // 若在双桌送审槽里，标记一并清
+          var q = E.quote({ fam: cc.famKey, e: cc.注册e || 0, c: params, 固定: cc.type === 'fixed' }, quoteCtx(gg));
+          cc.基线账单 = { 输出kJ: q.E_out, 计费kJ: q.bill, 精神: q.mind, 一句话效果: effect || String(q.r.effect || '') };
+          cc.物理相态与表征 = String(json.规范化回路.物理相态与表征 || '');
+        });
+        alert('《' + name + '》送审通过，已填入参数并可用。');
+      } else {
+        alert('【驳回】' + (json && json.解释 ? json.解释 : '法术AI 未给出可解析结论（请重试）。'));
+      }
+      render();
+    }).catch(function (e) {
+      clearTimeout(deadline);
+      if (tok !== reviewToken) return;
+      isReviewing = false;
+      alert('送审失败：' + (e && e.message ? e.message : e));
+      render();
+    });
+  }
+
+  /* 自创申报：构筑页 → 法术AI（自创套）→ 通过入自由库 */
+  function doForge(g) {
+    if (spellReviewBusy()) { alert('上一次送审尚未完成，请稍候。'); return; }
+    var desc = ($('#descBox') || {}).value || '';
+    if (desc.trim().length < 8) { alert('描述太短：至少写清"作用对象 + 作用方式"（≥8字）。'); return; }
+    S.desc = desc;
+    var params = E.syncParams(S.fam, S.c);
+    var q = quoteCurrent(g);
+    if (!q) { alert('核算失败，请调整参数。'); return; }
+    isForging = true;
+    render();
+    var tok = ++forgeToken;
+    var forgeDeadline = setTimeout(function () {
+      if (tok !== forgeToken) return;
+      forgeToken++;
+      isForging = false;
+      alert('申报送审超时（20s），请重试。');
+      render();
+    }, 20000);
+    var vars = {
+      描述: desc,
+      参数: JSON.stringify({ 族: S.fam, 参数明细: E.readableParams(S.fam, params), 引擎参考效果: String(q.r.effect || '') }, null, 1),
+      亲和: affVars(g),
+      场景: sceneText(g)
+    };
+    generateRaw({
+      ordered_prompts: assembleSpell(getSpellPrompt('自创'), vars),
+      should_stream: false, should_silence: true,
+      generation_id: 'gb_spell_mobile_' + Date.now(),
+      custom_api: getSpellApi(),
+      json_schema: { name: 'spell_review', value: { type: 'object', properties: { 结论: { type: 'string', enum: ['通过', '驳回'] }, 规范化回路: { type: ['object', 'null'], properties: { 名称: { type: 'string' }, 一句话效果: { type: 'string' }, 物理相态与表征: { type: 'string' }, 效果文字稿: { type: 'string' } }, required: ['名称', '一句话效果'], additionalProperties: false }, 解释: { type: ['string', 'null'] } }, required: ['结论', '规范化回路', '解释'], additionalProperties: false } }
+    }).then(function (raw) {
+      clearTimeout(forgeDeadline);
+      if (tok !== forgeToken) return;
+      isForging = false;
+      var text = typeof raw === 'string' ? raw : JSON.stringify(raw);
+      var m = text.match(/\{[\s\S]*\}/); var json = null;
+      try { json = JSON.parse(m ? m[0] : text); } catch (e) {}
+      if (json && json.结论 === '通过' && json.规范化回路) {
+        var name = String(json.规范化回路.名称 || desc.slice(0, 7) + '·自创').slice(0, 10);
+        var effect = String(json.规范化回路.一句话效果 || q.r.effect || '');
+        writeGame(function (gg) {
+          var qq = E.quote({ fam: S.fam, e: S.e, c: params }, quoteCtx(gg));
+          var n = 1; var ids = gg.回路库.map(function (c) { return c.id; });
+          while (ids.indexOf('fr-' + (n < 10 ? '0' + n : n)) >= 0) n++;
+          gg.回路库.push({
+            id: 'fr-' + (n < 10 ? '0' + n : n), 名称: name, type: 'free',
+            族: FAMNAME[S.fam], famKey: S.fam,
+            分支: E.branchOf(S.fam, params),
+            实体: S.fam === 'flow' ? String(E.curKey(params)) : null,
+            参数向量: params, 注册e: S.fam === 'flow' ? 0 : S.e,
+            参数明细: E.readableParams(S.fam, params),
+            微调预算: null, 微调预算明细: null,
+            基线账单: { 输出kJ: qq.E_out, 计费kJ: qq.bill, 精神: qq.mind, 一句话效果: effect },
+            物理相态与表征: String(json.规范化回路.物理相态与表征 || ''),
+            uses: 0, 来源: '面板送审',
+            审核存档: { 原始描述: desc, 规范化结果: json.规范化回路 },
+            审核状态: '已通过'
+          });
+        });
+        alert('自由回路《' + name + '》送审通过，已入自由库。');
+      } else {
+        alert('【驳回】' + (json && json.解释 ? json.解释 : '法术AI 未给出可解析结论（请重试或改描述）。'));
+      }
+      render();
+    }).catch(function (e) {
+      clearTimeout(forgeDeadline);
+      if (tok !== forgeToken) return;
+      isForging = false;
+      alert('送审失败（法术AI 不可用）：' + (e && e.message ? e.message : e));
+      render();
+    });
+  }
+
+  /* ── 施放（挂待扣单，同旧六页/双桌） ── */
+  function doCast(g, id) {
+    var c = circuitById(g, id);
+    if (!c) return;
+    if (!可用(c)) { alert('该回路未送审通过，不能施放'); return; }
+    writeGame(function (gg) {
+      var cc = circuitById(gg, id); if (!cc) return;
+      var q = E.quote({ fam: cc.famKey, e: cc.注册e || 0, c: cc.参数向量, 固定: cc.type === 'fixed' }, quoteCtx(gg));
+      if (!q) return;
+      gg.待扣单.push({
+        ref: q.tunedHit || cc.id,
+        名称: cc.名称 + (cc.type === 'fixed' ? '' : '·现构'),
+        分支: cc.分支,
+        bill: q.bill, mind: q.mind, workE: q.workE, tell: q.tell, risk: q.risk,
+        锚点: E.anchorOf(q.E_out), order: E.compileOrder(q), famKey: cc.famKey
+      });
+    });
+    render();
+  }
+
+  /* ── 事件绑定（委托只绑一次） ── */
+  var bound = false;
+  function bind() {
+    var app = $('#app');
+    if (app.dataset.bound) return;
+    app.dataset.bound = '1';
+    app.addEventListener('click', onBtn);
+    app.addEventListener('input', onInput, true);
+    app.addEventListener('change', onChange, true);
+  }
+  function onInput(ev) {
+    var t = ev.target;
+    if (t.id === 'descBox') { S.desc = t.value; return; }   // 描述即时暂存，防 4s 轮询重绘丢字
+    var k = t.getAttribute && t.getAttribute('data-rk');
+    if (k) { S.c[k] = +t.value; var g = readSnapshot() || readChat(); if (g) { var old = $('#app .page[data-p=build]'); if (old) old.innerHTML = pageBuild(g); } }
+  }
+  function onChange(ev) {
+    var t = ev.target;
+    if (t.id === 'opsManual') {
+      var om = readOps() || { manual: false, circuits: [], counts: [] };
+      om.manual = t.checked;
+      saveOps(om); return;
+    }
+    var opc = t.getAttribute && t.getAttribute('data-opc');
+    if (opc) {
+      var o1 = readOps() || { manual: false, circuits: [], counts: [] };
+      var i1 = o1.circuits.indexOf(opc);
+      if (t.checked && i1 < 0) { o1.circuits.push(opc); o1.counts.push(1); }
+      if (!t.checked && i1 >= 0) { o1.circuits.splice(i1, 1); o1.counts.splice(i1, 1); }
+      saveOps(o1); return;
+    }
+  }
+  function onBtn(ev) {
+    var t = ev.target;
+    var g = readSnapshot() || readChat();
+    if (!g) return;
+    if (t.getAttribute && t.getAttribute('data-t')) { curTab = t.getAttribute('data-t'); render(); return; }
+    if (t.getAttribute && t.getAttribute('data-fam')) { S.fam = t.getAttribute('data-fam'); S.c = E.initParams(S.fam); render(); return; }
+    var ck = t.getAttribute && t.getAttribute('data-ck');
+    if (ck) {
+      if (t.classList.contains('dis')) return;
+      S.c[ck] = +t.getAttribute('data-ci');
+      if (ck === 'mode' || ck === 'sub') S.c = E.syncParams(S.fam, S.c);
+      render(); return;
+    }
+    var cast = t.getAttribute && t.getAttribute('data-cast');
+    if (cast) return doCast(g, cast);
+    var un = t.getAttribute && t.getAttribute('data-unmount');
+    if (un) {
+      writeGame(function (gg) {
+        gg.槽位.固定槽 = gg.槽位.固定槽.map(function (x) { return x === un ? null : x; });
+        gg.槽位.自由槽 = gg.槽位.自由槽.map(function (x) { return x === un ? null : x; });
+      });
+      render(); return;
+    }
+    var mo = t.getAttribute && t.getAttribute('data-mount');
+    if (mo) {
+      var c = circuitById(g, mo);
+      if (!c) return;
+      if (!可用(c)) { alert('该回路未送审通过，不能装配'); return; }
+      if (g.主角.战斗中 && c.type === 'fixed') { alert('战斗中固定槽整排上锁'); return; }
+      writeGame(function (gg) {
+        var cc = circuitById(gg, mo); if (!cc) return;
+        var arr = cc.type === 'fixed' ? gg.槽位.固定槽 : gg.槽位.自由槽;
+        var idx = arr.indexOf(null);
+        if (idx < 0) { alert((cc.type === 'fixed' ? '固定槽' : '自由槽') + '已满'); return; }
+        arr[idx] = cc.id;
+      });
+      render(); return;
+    }
+    var dt = t.getAttribute && t.getAttribute('data-detail');
+    if (dt) { var el = document.querySelector('[data-d="' + dt + '"]'); if (el) el.style.display = el.style.display === 'none' ? '' : 'none'; return; }
+    var rv = t.getAttribute && t.getAttribute('data-review');
+    if (rv) return reviewCircuit(g, rv);
+    if (t.id === 'btnForge') return doForge(g);
+    var use = t.getAttribute && t.getAttribute('data-use');
+    if (use != null && use !== '') {
+      var it = g.补给物品[+use];
+      if (!it) return;
+      writeGame(function (gg) {
+        var item = null;
+        for (var i = 0; i < gg.补给物品.length; i++) if (gg.补给物品[i].名称 === it.名称) item = gg.补给物品[i];
+        if (!item) return;
+        var eff = item.效果;
+        if (eff.目标 === '能量') gg.主角.能量kJ.当前 = Math.min(gg.主角.能量kJ.上限, gg.主角.能量kJ.当前 + (eff.增加kJ || 0));
+        else gg.主角.精神点.当前 = Math.min(gg.主角.精神点.上限, gg.主角.精神点.当前 + (eff.增加点 || 0));
+        item.数量 -= 1;
+        if (item.数量 <= 0) gg.补给物品.splice(gg.补给物品.indexOf(item), 1);
+      });
+      render(); return;
+    }
+    if (t.id === 'opsClear') { saveOps({ manual: false, circuits: [], counts: [] }); render(); return; }
+    if (t.id === 'opsConfirm') { doOpsConfirm(); return; }
+    if (t.id === 'btnScene') {
+      writeGame(function (gg) {
+        gg.场景.风力档 = +$('#scWind').value;
+        gg.场景.可塑无机物kJ = +$('#scMat').value;
+        gg.场景.水体在场 = $('#scWater').value === '1';
+      });
+      render(); return;
+    }
+    if (t.id === 'btnBody') {
+      writeGame(function (gg) {
+        gg.主角.身体状态 = $('#bodySel').value;
+        gg.主角.战斗中 = $('#battleSel').value === '1';
+      });
+      render(); return;
+    }
+  }
+
+  /* ── 启动 ── */
+  function boot() {
+    S.c = E ? E.initParams(S.fam) : {};
+    render();
+    setInterval(function () { render(); }, 4000);   // 快照变化轮询刷新（描述已即时暂存，不丢字）
+  }
+  if (typeof getVariables !== 'function') {
+    document.getElementById('app').textContent = '渐变带状态栏（手机版）需要酒馆助手环境。';
+  } else {
+    boot();
+  }
+})();
+</script>
+</body>
+</html>

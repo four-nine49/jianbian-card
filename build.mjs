@@ -106,6 +106,7 @@ function emitHtml() {
     statusbar: '状态栏面板.html',
     opening: '开局界面.html',
     'statusbar-desk': '状态栏面板-双桌.html', // 双桌工作台（另存，不替换旧版）
+    'statusbar-mobile': '状态栏面板-手机.html', // 手机简化版（v1.8.9；单列卡片流，配套 regex-状态栏-手机.json）
   };
   for (const [name, outName] of Object.entries(htmlTargets)) {
     const tpl = readFileSync(resolve(assets, `${name}.html`), 'utf8');

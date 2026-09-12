@@ -82,7 +82,8 @@ src/
 │   ├── ops-table.ts       # 操作表（状态栏手操 → 确认扣费）
 │   ├── feel-tables.ts     # 陆安追踪表注册（v1.7.0 起走标准填表，无独立感情AI）
 │   ├── opening/grants.ts  # 开局发放（新手包/自挑 → 应用开局）
-│   └── assets/            # opening.html / statusbar.html（旧六页）/ statusbar-desk.html（★双桌）
+│   └── assets/            # opening.html / statusbar.html（旧六页）/ statusbar-desk.html（★双桌）/
+│                          #   statusbar-mobile.html（v1.8.9 手机简化版，配套 regex-状态栏-手机.json）
 ├── sync/
 │   ├── message-sync.ts    # ★ 楼层变量同步：stat_data.开局框架（{表名:[{列:值}]}，宏替换）
 │   └── status-placeholder.ts # <StatusPlaceHolderImpl/> 楼末追加（默认开；refresh:'affected'）
