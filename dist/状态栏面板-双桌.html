@@ -3290,7 +3290,7 @@
       亲和: '主分支：' + (aff.main.map(fmtAff).join('、') || '无') + '；次分支：' + (aff.subs.map(fmtAff).join('、') || '无'),
       场景: '风力' + g.场景.风力档 + '，无机物' + g.场景.可塑无机物kJ + 'kJ，水体' + (g.场景.水体在场 ? '有' : '无')
     };
-    var segs = getSpellPrompt().concat([
+    var segs = getSpellPrompt('剧情').concat([
       { role: 'user', enabled: true, content: '【剧情获得回路：据"一句话效果"审核物理可行性，并填出该族合理的参数向量】\n{{描述}}\n\n【该族参数模板】\n{{参数}}\n\n【亲和（仅参考）】\n{{亲和}}\n\n【场景】\n{{场景}}\n\n请只输出审核结果 JSON；若通过，规范化回路必须含"参数向量"，并按五系机理给出"物理相态与表征"。' }
     ]);
 
@@ -3961,15 +3961,24 @@
     return 'fr-' + (n < 10 ? '0' + n : n);
   }
 
-  /* ═══════════════════ 法术AI 送审（玩家自创回路必须先送审通过才能用） ═══════════════════ */
-  function getSpellPrompt() {
+  /* ═══════════════════ 法术AI 送审（玩家自创回路必须先送审通过才能用） ═══════════════════
+     v1.8.7：提示词拆成两套——自创申报（键 法术AI自创）/ 剧情获得送审（键 法术AI剧情），
+     按入口取用，AI 不再自行识别场景。读取链：新键 → 旧合并键 法术AI（兼容用户自定义过的
+     双场景版，旧键在设置页保存一次后消失）→ 内联兜底（同样分场景两套）。 */
+  function getSpellPrompt(kind) {
     try {
       var st = (typeof SillyTavern !== 'undefined') && SillyTavern.getContext && SillyTavern.getContext();
-      var seg = st && st.extensionSettings && st.extensionSettings['渐变带自由回路'] && st.extensionSettings['渐变带自由回路'].提示词 && st.extensionSettings['渐变带自由回路'].提示词.法术AI;
-      if (seg && seg.length) return seg;
+      var P = st && st.extensionSettings && st.extensionSettings['渐变带自由回路'] && st.extensionSettings['渐变带自由回路'].提示词;
+      var seg = P && P['法术AI' + kind] && P['法术AI' + kind].length ? P['法术AI' + kind]
+              : (P && P.法术AI && P.法术AI.length ? P.法术AI : null);
+      if (seg) return seg;
     } catch (e) {}
+    if (kind === '剧情') return [
+      { role: 'system', enabled: true, content: '你是跑团系统的"法术AI"，负责审核剧情获得施法回路是否合理（物理可行性，与亲和无关；不做账单计算）。本次为【剧情获得送审】：{{参数}}为该族参数模板JSON。通过时规范化回路必须含"参数向量"（按模板 key 与 min/max 上下限填数值）与"物理相态与表征"。字段要求：名称=2~7字纯中文短名；一句话效果=核心物理做功本质（20字内）；物理相态与表征=依五系机理提炼的视觉/声学/空间/介质形态（★正文AI叙事唯一形态锚点，严禁光晕/魔法阵/神秘能量等奇幻辞藻）。输出二选一 JSON：通过→{"结论":"通过","规范化回路":{…含参数向量}}；驳回→{"结论":"驳回","解释":"通俗物理说明"}。只输出 JSON。' },
+      { role: 'user', enabled: true, content: '【剧情法术描述】\n{{描述}}\n\n【待填参数模板】\n{{参数}}\n\n【场景】\n{{场景}}\n\n【亲和（仅参考）】\n{{亲和}}\n\n请输出审核结果 JSON。' }
+    ];
     return [
-      { role: 'system', enabled: true, content: '你是跑团系统的"法术AI"，负责审核施法回路是否合理（物理可行性，与亲和无关；不做账单计算）。双场景：自创申报（{{参数}}为中文参数明细）通过时规范化回路输出 {"名称","一句话效果","物理相态与表征","效果文字稿"}；剧情获得送审（{{参数}}为参数模板JSON）通过时必须含"参数向量"与"物理相态与表征"。规范化回路各字段：名称=2~7字纯中文短名；一句话效果=核心物理做功本质（20字内）；物理相态与表征=依五系机理提炼的视觉/声学/空间/介质形态（★正文AI叙事唯一形态锚点，严禁光晕/魔法阵/神秘能量等奇幻辞藻）。输出二选一 JSON：通过→{"结论":"通过","规范化回路":{…}}；驳回→{"结论":"驳回","解释":"通俗说明"}。只输出 JSON。' },
+      { role: 'system', enabled: true, content: '你是跑团系统的"法术AI"，负责审核玩家自创施法回路是否合理（物理可行性，与亲和无关；不做账单计算）。本次为【自创申报】：{{参数}}为中文参数明细（玩家已定好参数）。通过时规范化回路输出 {"名称","一句话效果","物理相态与表征","效果文字稿"}，严禁携带"参数向量"。字段要求：名称=2~7字纯中文短名；一句话效果=核心物理做功本质（20字内）；物理相态与表征=依五系机理提炼的视觉/声学/空间/介质形态（★正文AI叙事唯一形态锚点，严禁光晕/魔法阵/神秘能量等奇幻辞藻）；效果文字稿=供正文引用的施法描写。输出二选一 JSON：通过→{"结论":"通过","规范化回路":{…}}；驳回→{"结论":"驳回","解释":"通俗物理说明"}。只输出 JSON。' },
       { role: 'user', enabled: true, content: '【玩家描述】\n{{描述}}\n\n【构筑参数】\n{{参数}}\n\n【场景】\n{{场景}}\n\n【亲和（仅参考）】\n{{亲和}}\n\n请输出审核结果 JSON。' }
     ];
   }
@@ -4058,7 +4067,7 @@
     }, 20000);
 
     generateRaw({
-      ordered_prompts: assembleSpell(getSpellPrompt(), vars),
+      ordered_prompts: assembleSpell(getSpellPrompt('自创'), vars),
       should_stream: false, should_silence: true,
       generation_id: 'gb_spell_desk_' + Date.now(),
       custom_api: getSpellApi(),

@@ -583,8 +583,11 @@
     try {
       var ctx = window.parent ? null : null;
       var st = (typeof SillyTavern !== 'undefined') && SillyTavern.getContext && SillyTavern.getContext();
-      var seg = st && st.extensionSettings && st.extensionSettings['渐变带自由回路'] && st.extensionSettings['渐变带自由回路'].提示词 && st.extensionSettings['渐变带自由回路'].提示词.法术AI;
-      if (seg && seg.length) return seg;
+      // v1.8.7 提示词拆分：本页只有自创申报入口 → 优先读新键 法术AI自创；
+      // 回退旧合并键 法术AI（兼容未保存过新设置的旧档），再退内联兜底。
+      var P = st && st.extensionSettings && st.extensionSettings['渐变带自由回路'] && st.extensionSettings['渐变带自由回路'].提示词;
+      var seg = P && P.法术AI自创 && P.法术AI自创.length ? P.法术AI自创 : (P && P.法术AI && P.法术AI.length ? P.法术AI : null);
+      if (seg) return seg;
     } catch (e) {}
     return DEFAULT_SPELL_PROMPT;
   }

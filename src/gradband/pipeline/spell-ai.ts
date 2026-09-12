@@ -59,7 +59,7 @@ export async function runSpellAI(g: 游戏, input: 送审输入): Promise<送审
     return 兜底(input);
   }
   try {
-    const raw = await callAI({ which: '法术AI', segments: settings.提示词.法术AI, vars, jsonSchema: SCHEMA, generationId: `gb_spell_${Date.now()}` });
+    const raw = await callAI({ which: '法术AI', segments: settings.提示词.法术AI自创, vars, jsonSchema: SCHEMA, generationId: `gb_spell_${Date.now()}` });
     const json = 抽取JSON(raw);
     if (json?.结论 === '通过' && json.规范化回路?.名称) {
       return { 结论: '通过', 规范化回路: json.规范化回路, 来源: '法术AI' };
@@ -179,7 +179,7 @@ export async function 送审剧情获得(g: 游戏, item: { 族: string; 一句�
   };
 
   const segs: PromptSegment[] = [
-    ...settings.提示词.法术AI,
+    ...settings.提示词.法术AI剧情,
     { role: 'user', enabled: true, note: '剧情获得填参指令', content: '【剧情获得回路：据"一句话效果"审核物理可行性，并填出该族合理的参数向量】\n{{描述}}\n\n【该族参数模板】\n{{参数}}\n\n【亲和（仅参考）】\n{{亲和}}\n\n【场景】\n{{场景}}\n\n请只输出审核结果 JSON；若通过，规范化回路必须含"参数向量"，并按五系机理给出"物理相态与表征"（没把握的参数键可省略，脚本用默认补齐）。' },
   ];
   const vars = {

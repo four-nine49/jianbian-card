@@ -1,20 +1,28 @@
 // ui/pages/gradband-prompts.ts — 渐变带·自由回路 提示词编辑页（特殊页：数据/法术 AI）
 //
-// 数据AI / 法术AI 两套提示词（已无感情AI；标准表填表走剑与汽水共用「提示词模板」页）。
+// 数据AI 一套 + 法术AI 两套（v1.8.7 起拆分：自创申报 / 剧情获得送审，AI 不再自行识别场景；
+// 标准表填表走剑与汽水共用「提示词模板」页）。
 // 段编辑交互同开局框架提示词页：ON/OFF、↑↓、删除、新增、恢复默认；占位符见页首说明。
 import { loadSettings, saveSettings, 默认提示词, type PromptSegment } from '../../gradband/core/settings';
 
-const GROUPS = ['数据AI', '法术AI'] as const;
+const GROUPS = ['数据AI', '法术AI自创', '法术AI剧情'] as const;
+
+const GROUP_HINTS: Record<(typeof GROUPS)[number], string> = {
+  数据AI: '逐轮读取正文 → 输出状态变更包',
+  法术AI自创: '审核玩家自创申报（{{参数}}=中文参数明细；通过时输出「效果文字稿」、严禁参数向量）',
+  法术AI剧情: '审核剧情获得回路（{{参数}}=参数模板JSON；通过时必须补全「参数向量」）',
+};
 
 const PLACEHOLDER_HINTS: Record<string, string> = {
   数据AI: '{{状态}} {{场景}} {{正文}}',
-  法术AI: '{{描述}} {{参数}} {{亲和}} {{场景}}',
+  法术AI自创: '{{描述}} {{参数}} {{亲和}} {{场景}}',
+  法术AI剧情: '{{描述}} {{参数}} {{亲和}} {{场景}}',
 };
 
 export function renderGradbandPromptsPage(el: HTMLElement): void {
   el.innerHTML = `<div style="padding:16px">
     <div class="of-h1">渐变带 · 提示词</div>
-    <div class="of-hint" style="margin-bottom:12px">数据 / 法术 两套提示词各自独立编辑。每套里：<b>ON/OFF</b> 控制这段发不发，↑↓ 调顺序，可删可加、可恢复默认。</div>
+    <div class="of-hint" style="margin-bottom:12px">数据 一套 + 法术 两套（自创申报 / 剧情获得送审，各自独立调用）提示词。每套里：<b>ON/OFF</b> 控制这段发不发，↑↓ 调顺序，可删可加、可恢复默认。</div>
     <div id="gbfc-pg-groups"></div>
   </div>`;
 
@@ -30,6 +38,7 @@ function renderGroup(root: HTMLElement, which: (typeof GROUPS)[number]): void {
   wrap.innerHTML = `
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
       <div class="of-h2" style="margin:0">${which} 提示词</div>
+      <span class="of-hint" style="font-size:11px">${GROUP_HINTS[which]}</span>
       <span class="of-hint" style="font-size:11px">占位符：<code>${PLACEHOLDER_HINTS[which]}</code></span>
     </div>
     <div class="gbfc-pg-segs" style="margin-top:8px"></div>
