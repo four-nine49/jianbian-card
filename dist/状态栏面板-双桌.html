@@ -2605,8 +2605,10 @@
     // 亲和映射：主分支 → primary；次分支 → secondary；其余 none
     CURRENT_ACTOR.affinityMap = {};
     var aff = affinityOf(g);
-    aff.main.forEach(function (m) { CURRENT_ACTOR.affinityMap[affKey(m.族, m.分支)] = 'primary'; });
-    aff.subs.forEach(function (s2) { var k = affKey(s2.族, s2.分支); if (!CURRENT_ACTOR.affinityMap[k]) CURRENT_ACTOR.affinityMap[k] = 'secondary'; });
+    // v1.8.8：affinityOf() 自 v1.8.5 起返回引擎契约 {fam, br}（fam=中文族名），此处旧代码读 .族/.分支
+    // 恒取空 → 亲和盘渲染错位（v1.8.5 改形状时漏掉的消费点，本次补齐）。
+    aff.main.forEach(function (m) { CURRENT_ACTOR.affinityMap[affKey(m.fam, m.br)] = 'primary'; });
+    aff.subs.forEach(function (s2) { var k = affKey(s2.fam, s2.br); if (!CURRENT_ACTOR.affinityMap[k]) CURRENT_ACTOR.affinityMap[k] = 'secondary'; });
 
     // 槽位容量：固定槽 = clamp(精神上限/10, 2, 8)；自由槽 = clamp(精神上限/30, 1, 4)
     var mindMax = (g.主角.精神点 && g.主角.精神点.上限) || 30;
@@ -3283,7 +3285,8 @@
     var tok = ++reviewToken;   // 本次送审令牌
     var 模板 = 参数模板JSON(c.famKey);
     var aff = affinityOf(g);
-    var fmtAff = function (b) { return (b && b.族 ? b.族 : '') + '·' + (b && b.分支 ? b.分支 : ''); };
+    // v1.8.8：affinityOf() 返回引擎契约 {fam, br}（fam=中文族名），旧读 .族/.分支 恒空 → 提示词亲和恒显示「·」
+    var fmtAff = function (b) { return (b && b.fam ? b.fam : '') + '·' + (b && b.br ? b.br : ''); };
     var vars = {
       描述: (c.基线账单 && c.基线账单.一句话效果) ? c.基线账单.一句话效果 : c.名称,
       参数: 模板,
@@ -4047,7 +4050,8 @@
     var params = E.syncParams(FORGE_STATE.fam, FORGE_STATE.c);
 
     var aff = affinityOf(g);
-    var fmtAff = function (b) { return (b && b.族 ? b.族 : '') + '·' + (b && b.分支 ? b.分支 : ''); };
+    // v1.8.8：affinityOf() 返回引擎契约 {fam, br}（fam=中文族名），旧读 .族/.分支 恒空 → 提示词亲和恒显示「·」
+    var fmtAff = function (b) { return (b && b.fam ? b.fam : '') + '·' + (b && b.br ? b.br : ''); };
     var vars = {
       描述: desc,
       参数: JSON.stringify({ 族: FORGE_STATE.fam, 参数明细: E.readableParams(FORGE_STATE.fam, params), 引擎参考效果: String(q.r.effect || '') }, null, 1),
